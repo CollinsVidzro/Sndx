@@ -12,16 +12,22 @@ const navigation = [
   { name: "Product Updates", href: "/" },
   { name: "Success Stories", href: "/" },
   { name: "Press & Media", href: "/" },
-  { name: "More on Sendexa", href: "/company", hasDropdown: true, id: "company" },
+  {
+    name: "More on Sendexa",
+    href: "/company",
+    hasDropdown: true,
+    id: "company",
+  },
 ];
 
 export default function ExaHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [prevDropdown, setPrevDropdown] = useState<string | null>(null);
+  const [, setPrevDropdown] = useState<string | null>(null);
   const [isHovering, setIsHovering] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const menuItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Handle hover with delay for better UX
   const handleMouseEnter = (id: string) => {
@@ -40,7 +46,7 @@ export default function ExaHeader() {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = setTimeout(() => {
-      if (!dropdownRef.current?.matches(':hover')) {
+      if (!dropdownRef.current?.matches(":hover")) {
         setActiveDropdown(null);
         setIsHovering(false);
       }
@@ -62,9 +68,9 @@ export default function ExaHeader() {
   };
 
   // Add this to see if the state is changing
-useEffect(() => {
-  console.log("Mobile menu is:", mobileMenuOpen);
-}, [mobileMenuOpen]);
+  useEffect(() => {
+    console.log("Mobile menu is:", mobileMenuOpen);
+  }, [mobileMenuOpen]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -76,20 +82,38 @@ useEffect(() => {
   }, []);
 
   const renderDropdown = () => {
-    const direction = getSlideDirection(prevDropdown, activeDropdown);
+    // const direction = getSlideDirection(prevDropdown, activeDropdown);
 
     const dropdownComponents = {
       company: <CompanyDropdown />,
     };
 
+    // Calculate position for the dropdown
+    const getDropdownPosition = () => {
+      if (!activeDropdown) return {};
+
+      const menuItemElement = menuItemRefs.current[activeDropdown];
+      if (!menuItemElement) return {};
+
+      const dropdownWidth = 280; // Width of CompanyDropdown
+      const menuItemRect = menuItemElement.getBoundingClientRect();
+      const dropdownLeft =
+        menuItemRect.left + menuItemRect.width / 2 - dropdownWidth / 2;
+
+      return {
+        left: `${dropdownLeft}px`,
+      };
+    };
+
     return (
       <motion.div
         key={activeDropdown}
-        initial={{ opacity: 0, x: direction === "left" ? 50 : -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: direction === "left" ? -50 : 50 }}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="absolute left-1/2 top-full mt-2 -translate-x-1/2"
+        className="absolute top-full mt-2"
+        style={getDropdownPosition()}
         onMouseEnter={handleDropdownMouseEnter}
         onMouseLeave={handleDropdownMouseLeave}
       >
@@ -98,22 +122,11 @@ useEffect(() => {
     );
   };
 
-  // Determine slide direction based on navigation order
-  const getSlideDirection = (prev: string | null, current: string | null) => {
-    if (!prev || !current) return "right";
-    
-    const prevIndex = navigation.findIndex(nav => nav.id === prev);
-    const currentIndex = navigation.findIndex(nav => nav.id === current);
-    
-    return currentIndex > prevIndex ? "right" : "left";
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          {/* using sendexa logo from https://cdn.sendexa.co/logos/exaweb.png */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <Image
@@ -123,21 +136,27 @@ useEffect(() => {
                 height={40}
                 className="object-contain"
               />
-
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div 
-            className="hidden items-center space-x-1 lg:flex" 
+          <div
+            className="hidden items-center space-x-1 lg:flex"
             ref={dropdownRef}
             onMouseLeave={handleMouseLeave}
           >
             {navigation.map((item) => (
-              <div 
-                key={item.name} 
+              <div
+                key={item.name}
                 className="relative"
-                onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.id!)}
+                ref={(el) => {
+                  if (item.id) {
+                    menuItemRefs.current[item.id] = el;
+                  }
+                }}
+                onMouseEnter={() =>
+                  item.hasDropdown && handleMouseEnter(item.id!)
+                }
               >
                 {item.hasDropdown ? (
                   <button className="group flex items-center px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-cyan-600">
@@ -156,14 +175,39 @@ useEffect(() => {
                     {item.name}
                   </Link>
                 )}
-
-                {/* Active indicator */}
-                {/* {activeDropdown === item.id && (
-                  <div className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" />
-                )} */}
               </div>
             ))}
           </div>
+
+          {/* Search form */}
+          {/* <div className="hidden lg:flex lg:ml-6">
+            <form className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-64 rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z"
+                  />
+                </svg>
+              </button>
+            </form>
+          </div> */}
 
           {/* CTA Buttons */}
           <div className="hidden items-center space-x-4 lg:flex">
@@ -173,22 +217,19 @@ useEffect(() => {
             >
               Sign in
             </Link>
-            <Link
+            {/* <Link
               href="/signup"
               className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md hover:shadow-cyan-500/20"
             >
               Sign up
-            </Link>
+            </Link> */}
             <button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50">
               <Globe className="h-5 w-5 text-gray-600" />
             </button>
           </div>
 
           {/* Mobile menu button */}
-          <button
-            className="lg:hidden"
-            onClick={() => setMobileMenuOpen(true)}
-          >
+          <button className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
             <Menu className="h-6 w-6 text-gray-700" />
           </button>
         </div>
@@ -212,12 +253,10 @@ useEffect(() => {
       </nav>
 
       {/* Mobile Navigation */}
-      <MobileNavigation 
-        isOpen={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
+      <MobileNavigation
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
-
-     
     </header>
   );
 }

@@ -44,30 +44,6 @@ export default function CompanyDropdown() {
             </div>
           </div>
         ))}
-
-        {/* Blog */}
-        {/* <div className="col-span-2 mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Newspaper className="h-4 w-4 text-gray-700" />
-                <span className="text-sm font-semibold text-gray-900">
-                  Blog
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-gray-600">
-                Product updates & messaging insights
-              </p>
-            </div>
-
-            <Link
-              href="/blog"
-              className="text-sm font-medium text-cyan-600 hover:text-cyan-700"
-            >
-              View →
-            </Link>
-          </div>
-        </div> */}
       </div>
     </div>
   );
