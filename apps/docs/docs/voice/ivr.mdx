@@ -1,0 +1,861 @@
+---
+title: Interactive Voice Response (IVR)
+description: Build sophisticated IVR systems using VoiceXML with Sendexa Voice API. Create interactive menus, collect input, and route calls intelligently.
+date: 2025-03-12
+---
+
+# Interactive Voice Response (IVR)
+
+Build sophisticated interactive voice response systems using VoiceXML. Create multi-level menus, collect user input, route calls, and deliver personalized experiences.
+
+---
+
+## Overview
+
+### What is IVR?
+
+Interactive Voice Response (IVR) allows callers to interact with your system through voice and keypad input. IVRs are commonly used for:
+
+- Customer service menus
+- Automated surveys
+- Payment systems
+- Appointment scheduling
+- Information retrieval
+
+### How It Works
+
+```
+┌──────────┐     ┌─────────────┐     ┌──────────────┐
+│  Caller  │────▶│   Sendexa   │────▶│  Your Server │
+│  Dials   │     │  (fetches   │     │  (returns    │
+│  Number  │     │  VoiceXML)  │     │  VoiceXML)   │
+└──────────┘     └─────────────┘     └──────────────┘
+      │                  │                     │
+      │◀─────────────────┘                     │
+      │       Plays audio/speaks                │
+      │                                         │
+      │────Presses keys (DTMF)─────────────────▶│
+      │                                         │
+      │◀────New VoiceXML instructions───────────┘
+```
+
+---
+
+## VoiceXML Basics
+
+### Basic Structure
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <!-- Your IVR logic here -->
+</Response>
+```
+
+### Core Elements
+
+| Element      | Purpose       | Example                         |
+| ------------ | ------------- | ------------------------------- |
+| `<Say>`      | Speak text    | `<Say>Hello</Say>`              |
+| `<Play>`     | Play audio    | `<Play>music.mp3</Play>`        |
+| `<Gather>`   | Collect input | `<Gather numDigits="1">`        |
+| `<Record>`   | Record audio  | `<Record maxLength="60">`       |
+| `<Dial>`     | Connect call  | `<Dial>233501234567</Dial>`     |
+| `<Hangup>`   | End call      | `<Hangup/>`                     |
+| `<Redirect>` | Redirect flow | `<Redirect>/new-url</Redirect>` |
+| `<Pause>`    | Add silence   | `<Pause length="2"/>`           |
+
+---
+
+## Simple IVR Menu
+
+### Two-Level Menu
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="female">Welcome to ABC Company</Say>
+
+  <Gather numDigits="1" action="/handle-main-menu" method="POST">
+    <Say>Press 1 for Sales</Say>
+    <Say>Press 2 for Support</Say>
+    <Say>Press 3 for Billing</Say>
+    <Say>Press 0 to speak with an operator</Say>
+  </Gather>
+
+  <Say>We didn't receive your input. Goodbye.</Say>
+  <Hangup/>
+</Response>
+```
+
+### Handling Menu Selection
+
+```javascript
+app.post('/handle-main-menu', (req, res) => {
+  const { Digits } = req.body;
+  let xml;
+
+  switch (Digits) {
+    case '1':
+      xml = `
+        <Response>
+          <Say>Connecting you to Sales</Say>
+          <Dial>233501234567</Dial>
+        </Response>
+      `;
+      break;
+
+    case '2':
+      xml = `
+        <Response>
+          <Redirect>/support-menu</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '3':
+      xml = `
+        <Response>
+          <Redirect>/billing-menu</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '0':
+      xml = `
+        <Response>
+          <Say>Please hold while we connect you</Say>
+          <Dial>233501234500</Dial>
+        </Response>
+      `;
+      break;
+
+    default:
+      xml = `
+        <Response>
+          <Say>Invalid selection</Say>
+          <Redirect>/voice</Redirect>
+        </Response>
+      `;
+  }
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## Advanced IVR Patterns
+
+### Account Lookup by Phone Number
+
+```javascript
+app.post('/account-ivr', async (req, res) => {
+  const { From } = req.body; // Caller's phone number
+
+  // Look up account
+  const account = await findAccountByPhone(From);
+
+  let xml;
+
+  if (account) {
+    xml = `
+      <Response>
+        <Say voice="female">
+          Hello ${account.name}, 
+          your account balance is ${account.balance} dollars.
+        </Say>
+        
+        <Gather numDigits="1" action="/account-menu?id=${account.id}">
+          <Say>Press 1 for recent transactions</Say>
+          <Say>Press 2 to make a payment</Say>
+          <Say>Press 3 to speak with an agent</Say>
+        </Gather>
+      </Response>
+    `;
+  } else {
+    xml = `
+      <Response>
+        <Say>We couldn't find your account</Say>
+        <Gather numDigits="10" action="/verify-account">
+          <Say>Please enter your 10-digit account number</Say>
+        </Gather>
+      </Response>
+    `;
+  }
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+### Multi-Step Input Collection
+
+```javascript
+// Step 1: Collect account number
+app.post('/verify-account', async (req, res) => {
+  const { Digits } = req.body;
+  const account = await findAccountByNumber(Digits);
+
+  if (account) {
+    const xml = `
+      <Response>
+        <Gather numDigits="4" action="/verify-pin?account=${account.id}">
+          <Say>Please enter your 4-digit PIN</Say>
+        </Gather>
+      </Response>
+    `;
+    res.set('Content-Type', 'text/xml');
+    res.send(xml);
+  } else {
+    const xml = `
+      <Response>
+        <Say>Account not found</Say>
+        <Redirect>/verify-account</Redirect>
+      </Response>
+    `;
+    res.set('Content-Type', 'text/xml');
+    res.send(xml);
+  }
+});
+
+// Step 2: Verify PIN
+app.post('/verify-pin', async (req, res) => {
+  const { Digits } = req.body;
+  const { account } = req.query;
+
+  const valid = await verifyPIN(account, Digits);
+
+  if (valid) {
+    const xml = `
+      <Response>
+        <Say>PIN verified</Say>
+        <Redirect>/account-menu?id=${account}</Redirect>
+      </Response>
+    `;
+    res.set('Content-Type', 'text/xml');
+    res.send(xml);
+  } else {
+    const xml = `
+      <Response>
+        <Say>Invalid PIN</Say>
+        <Hangup/>
+      </Response>
+    `;
+    res.set('Content-Type', 'text/xml');
+    res.send(xml);
+  }
+});
+```
+
+### Survey IVR
+
+```javascript
+const surveyQuestions = [
+  {
+    id: 'satisfaction',
+    text: 'On a scale of 1 to 5, how satisfied are you with our service?',
+    digits: 1,
+  },
+  {
+    id: 'recommend',
+    text: 'Would you recommend us to a friend? Press 1 for yes, 2 for no',
+    digits: 1,
+  },
+  {
+    id: 'support_rating',
+    text: 'Rate our customer support from 1 to 5',
+    digits: 1,
+  },
+];
+
+app.post('/survey', (req, res) => {
+  const questionIndex = parseInt(req.query.q || '0');
+
+  if (questionIndex >= surveyQuestions.length) {
+    // Survey complete
+    const xml = `
+      <Response>
+        <Say>Thank you for completing our survey. Goodbye!</Say>
+        <Hangup/>
+      </Response>
+    `;
+    res.set('Content-Type', 'text/xml');
+    return res.send(xml);
+  }
+
+  const question = surveyQuestions[questionIndex];
+  const xml = `
+    <Response>
+      <Gather 
+        numDigits="${question.digits}" 
+        action="/survey-answer?q=${questionIndex}&id=${question.id}"
+      >
+        <Say>${question.text}</Say>
+      </Gather>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+
+app.post('/survey-answer', async (req, res) => {
+  const { Digits, CallSid } = req.body;
+  const { q, id } = req.query;
+
+  // Save answer
+  await saveSurveyAnswer(CallSid, id, Digits);
+
+  // Next question
+  const nextQuestion = parseInt(q) + 1;
+  const xml = `
+    <Response>
+      <Redirect>/survey?q=${nextQuestion}</Redirect>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## Voice Recording
+
+### Leave a Voicemail
+
+```xml
+<Response>
+  <Say>Please leave a message after the beep</Say>
+
+  <Record
+    maxLength="120"
+    playBeep="true"
+    action="/handle-recording"
+    method="POST"
+    transcribe="true"
+    transcribeCallback="/transcription-ready"
+  />
+
+  <Say>Thank you for your message. Goodbye.</Say>
+</Response>
+```
+
+### Handle Recording
+
+```javascript
+app.post('/handle-recording', async (req, res) => {
+  const { RecordingUrl, RecordingDuration, CallSid, From } = req.body;
+
+  // Save recording metadata
+  await saveRecording({
+    callId: CallSid,
+    from: From,
+    url: RecordingUrl,
+    duration: RecordingDuration,
+    createdAt: new Date(),
+  });
+
+  // Notify team
+  await notifyTeam(`New voicemail from ${From}`);
+
+  const xml = `
+    <Response>
+      <Say>Your message has been recorded. Thank you!</Say>
+      <Hangup/>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## Call Forwarding & Routing
+
+### Smart Call Routing
+
+```javascript
+app.post('/route-call', async (req, res) => {
+  const { From, Digits } = req.body;
+
+  // Get business hours
+  const isBusinessHours = checkBusinessHours();
+
+  // Get available agents
+  const availableAgents = await getAvailableAgents(Digits);
+
+  let xml;
+
+  if (!isBusinessHours) {
+    xml = `
+      <Response>
+        <Say>Our office is currently closed</Say>
+        <Say>Our business hours are Monday to Friday, 9 AM to 6 PM</Say>
+        <Redirect>/voicemail</Redirect>
+      </Response>
+    `;
+  } else if (availableAgents.length === 0) {
+    xml = `
+      <Response>
+        <Say>All agents are currently busy</Say>
+        <Gather numDigits="1" action="/callback-or-voicemail">
+          <Say>Press 1 to leave a voicemail</Say>
+          <Say>Press 2 to request a callback</Say>
+        </Gather>
+      </Response>
+    `;
+  } else {
+    // Route to available agent
+    const agent = availableAgents[0];
+    xml = `
+      <Response>
+        <Say>Please hold while we connect you</Say>
+        <Dial timeout="30" action="/agent-unavailable">
+          ${agent.phone}
+        </Dial>
+      </Response>
+    `;
+  }
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+### Sequential Call Forwarding
+
+```xml
+<Response>
+  <Say>Connecting you to the next available agent</Say>
+
+  <Dial timeout="20">
+    <!-- Try agents in sequence -->
+    <Number>233501234567</Number>
+    <Number>233501234568</Number>
+    <Number>233501234569</Number>
+  </Dial>
+
+  <Say>All agents are unavailable</Say>
+  <Redirect>/voicemail</Redirect>
+</Response>
+```
+
+### Simultaneous Ring
+
+```xml
+<Response>
+  <Say>Calling all available agents</Say>
+
+  <Dial timeout="30">
+    <!-- Ring all numbers simultaneously -->
+    <Number>233501234567</Number>
+    <Number>233501234568</Number>
+    <Number>233501234569</Number>
+  </Dial>
+
+  <Redirect>/voicemail</Redirect>
+</Response>
+```
+
+---
+
+## Advanced Features
+
+### Repeat Menu Option
+
+```javascript
+app.post('/main-menu', (req, res) => {
+  const attempts = parseInt(req.query.attempts || '0');
+
+  if (attempts >= 3) {
+    // Too many attempts, transfer to operator
+    const xml = `
+      <Response>
+        <Say>Let me connect you with an operator</Say>
+        <Dial>233501234500</Dial>
+      </Response>
+    `;
+    return res.set('Content-Type', 'text/xml').send(xml);
+  }
+
+  const xml = `
+    <Response>
+      <Gather 
+        numDigits="1" 
+        action="/handle-menu?attempts=${attempts + 1}" 
+        timeout="5"
+      >
+        <Say>Press 1 for Sales</Say>
+        <Say>Press 2 for Support</Say>
+        <Say>Press 9 to repeat this menu</Say>
+        <Say>Press 0 for an operator</Say>
+      </Gather>
+      
+      <Say>We didn't receive your selection</Say>
+      <Redirect>/main-menu?attempts=${attempts + 1}</Redirect>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+
+app.post('/handle-menu', (req, res) => {
+  const { Digits } = req.body;
+  const { attempts } = req.query;
+
+  if (Digits === '9') {
+    // Repeat menu
+    return res.redirect('/main-menu?attempts=' + attempts);
+  }
+
+  // Handle other selections...
+});
+```
+
+### Time-Based Routing
+
+```javascript
+function getRoutingDestination() {
+  const hour = new Date().getHours();
+  const day = new Date().getDay();
+
+  // Weekend
+  if (day === 0 || day === 6) {
+    return {
+      available: false,
+      message: 'We are closed on weekends',
+    };
+  }
+
+  // Business hours (9 AM - 6 PM)
+  if (hour >= 9 && hour < 18) {
+    return {
+      available: true,
+      destination: '233501234567',
+    };
+  }
+
+  // After hours
+  return {
+    available: false,
+    message:
+      'Our office is closed. Our hours are 9 AM to 6 PM, Monday to Friday',
+  };
+}
+
+app.post('/time-based-route', (req, res) => {
+  const routing = getRoutingDestination();
+
+  let xml;
+
+  if (routing.available) {
+    xml = `
+      <Response>
+        <Dial>${routing.destination}</Dial>
+      </Response>
+    `;
+  } else {
+    xml = `
+      <Response>
+        <Say>${routing.message}</Say>
+        <Redirect>/voicemail</Redirect>
+      </Response>
+    `;
+  }
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+### Language Selection
+
+```javascript
+app.post('/language-select', (req, res) => {
+  const xml = `
+    <Response>
+      <Gather numDigits="1" action="/set-language">
+        <Say language="en-US">Press 1 for English</Say>
+        <Say language="fr-FR">Appuyez sur 2 pour le français</Say>
+        <Say language="sw-KE">Bonyeza 3 kwa Kiswahili</Say>
+      </Gather>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+
+app.post('/set-language', (req, res) => {
+  const { Digits, CallSid } = req.body;
+
+  const languageMap = {
+    1: 'en-US',
+    2: 'fr-FR',
+    3: 'sw-KE',
+  };
+
+  const language = languageMap[Digits] || 'en-US';
+
+  // Store language preference for this call
+  storeCallLanguage(CallSid, language);
+
+  const xml = `
+    <Response>
+      <Redirect>/main-menu?lang=${language}</Redirect>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Keep Menus Simple
+
+```xml
+<!-- Good - Clear and concise -->
+<Response>
+  <Gather numDigits="1">
+    <Say>Press 1 for Sales</Say>
+    <Say>Press 2 for Support</Say>
+    <Say>Press 0 for an operator</Say>
+  </Gather>
+</Response>
+
+<!-- Bad - Too many options -->
+<Response>
+  <Gather numDigits="1">
+    <Say>Press 1 for Sales</Say>
+    <Say>Press 2 for Technical Support</Say>
+    <Say>Press 3 for Billing</Say>
+    <Say>Press 4 for Shipping</Say>
+    <Say>Press 5 for Returns</Say>
+    <Say>Press 6 for Account Information</Say>
+    <Say>Press 7 for Product Information</Say>
+    <!-- Too many options! -->
+  </Gather>
+</Response>
+```
+
+**Rule:** Maximum 4-5 options per menu
+
+### 2. Provide Escape Options
+
+```xml
+<Response>
+  <Gather numDigits="1" action="/handle-menu">
+    <Say>Press 1 for Account Info</Say>
+    <Say>Press 2 for Support</Say>
+    <Say>Press 9 to repeat this menu</Say>
+    <Say>Press 0 to speak with an operator</Say>
+  </Gather>
+</Response>
+```
+
+### 3. Use Timeouts Wisely
+
+```xml
+<Response>
+  <Gather
+    numDigits="1"
+    timeout="5"
+    action="/handle-input"
+  >
+    <Say>Please make your selection</Say>
+  </Gather>
+
+  <Say>We didn't receive your input</Say>
+  <Redirect>/main-menu</Redirect>
+</Response>
+```
+
+### 4. Give Feedback
+
+```xml
+<Response>
+  <Say>You selected Sales</Say>
+  <Say>Please hold while we connect you</Say>
+  <Dial>233501234567</Dial>
+</Response>
+```
+
+### 5. Handle Invalid Input
+
+```javascript
+app.post('/handle-input', (req, res) => {
+  const { Digits } = req.body;
+  const validOptions = ['1', '2', '3', '0'];
+
+  if (!validOptions.includes(Digits)) {
+    const xml = `
+      <Response>
+        <Say>Invalid selection. Please try again.</Say>
+        <Redirect>/main-menu</Redirect>
+      </Response>
+    `;
+    return res.set('Content-Type', 'text/xml').send(xml);
+  }
+
+  // Handle valid input...
+});
+```
+
+---
+
+## Testing IVR Flows
+
+### Test Script
+
+```javascript
+// Test IVR navigation
+async function testIVRFlow() {
+  const tests = [
+    { path: '/voice', expectedOptions: ['1', '2', '3', '0'] },
+    { path: '/handle-menu', input: '1', expectedRedirect: '/sales' },
+    { path: '/handle-menu', input: '2', expectedRedirect: '/support' },
+    { path: '/handle-menu', input: '9', expectedRedirect: '/voice' },
+  ];
+
+  for (const test of tests) {
+    console.log(`Testing: ${test.path}`);
+    const response = await fetch(`http://localhost:3000${test.path}`, {
+      method: 'POST',
+      body: new URLSearchParams({ Digits: test.input || '' }),
+    });
+
+    const xml = await response.text();
+    console.log(xml);
+    // Verify expected behavior
+  }
+}
+```
+
+---
+
+## Complete IVR Example
+
+### Customer Service IVR
+
+```javascript
+// Main menu
+app.post('/customer-service', (req, res) => {
+  const xml = `
+    <Response>
+      <Say voice="female">Welcome to ABC Company Customer Service</Say>
+      
+      <Gather numDigits="1" action="/cs-main-menu" timeout="5">
+        <Say>Press 1 for Account Information</Say>
+        <Say>Press 2 for Technical Support</Say>
+        <Say>Press 3 for Billing Questions</Say>
+        <Say>Press 9 to repeat this menu</Say>
+        <Say>Press 0 to speak with a representative</Say>
+      </Gather>
+      
+      <Say>We didn't receive your selection</Say>
+      <Redirect>/customer-service</Redirect>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+
+// Handle main menu
+app.post('/cs-main-menu', async (req, res) => {
+  const { Digits, From } = req.body;
+  let xml;
+
+  switch (Digits) {
+    case '1':
+      // Account information - require authentication
+      xml = `
+        <Response>
+          <Redirect>/authenticate?return=/account-menu</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '2':
+      // Technical support
+      xml = `
+        <Response>
+          <Redirect>/tech-support-menu</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '3':
+      // Billing
+      xml = `
+        <Response>
+          <Redirect>/billing-menu</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '9':
+      // Repeat
+      xml = `
+        <Response>
+          <Redirect>/customer-service</Redirect>
+        </Response>
+      `;
+      break;
+
+    case '0':
+      // Speak with representative
+      const available = await checkAgentAvailability();
+      if (available) {
+        xml = `
+          <Response>
+            <Say>Please hold while we connect you</Say>
+            <Dial timeout="30">${available.phone}</Dial>
+            <Say>Sorry, the representative is unavailable</Say>
+            <Redirect>/voicemail</Redirect>
+          </Response>
+        `;
+      } else {
+        xml = `
+          <Response>
+            <Say>All representatives are currently busy</Say>
+            <Redirect>/callback-or-voicemail</Redirect>
+          </Response>
+        `;
+      }
+      break;
+
+    default:
+      xml = `
+        <Response>
+          <Say>Invalid selection</Say>
+          <Redirect>/customer-service</Redirect>
+        </Response>
+      `;
+  }
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## Next Steps
+
+- 📞 **[Make Calls](/docs/voice/make-call)** - Initiate IVR calls
+- 📢 **[Broadcast](/docs/voice/broadcast)** - Send to multiple recipients
+- 🗣️ **[Text-to-Speech](/docs/voice/tts)** - Generate speech
+- 🔔 **[Webhooks](/docs/voice/webhooks)** - Handle call events
+- 🛠️ **[API Reference](/docs/voice/v1)** - Complete documentation

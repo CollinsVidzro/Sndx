@@ -1,0 +1,58 @@
+---
+title: Email API v1 Reference
+description: Complete API reference for Sendexa Email API v1 with all endpoints and parameters.
+date: 2025-03-12
+---
+
+# Email API v1 Reference
+
+Complete reference for all Sendexa Email API v1 endpoints.
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+## Authentication
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+## Endpoints
+
+| Endpoint                  | Method | Purpose          |
+| ------------------------- | ------ | ---------------- |
+| `/v1/email/send`          | POST   | Send email       |
+| `/v1/email/send/batch`    | POST   | Send bulk emails |
+| `/v1/email/status/:id`    | GET    | Check status     |
+| `/v1/email/templates`     | GET    | List templates   |
+| `/v1/email/templates`     | POST   | Create template  |
+| `/v1/email/templates/:id` | GET    | Get template     |
+| `/v1/email/templates/:id` | PUT    | Update template  |
+| `/v1/email/templates/:id` | DELETE | Delete template  |
+
+## Rate Limits
+
+| Endpoint   | Limit   |
+| ---------- | ------- |
+| Send Email | 100/min |
+| Batch Send | 10/min  |
+| Templates  | 30/min  |
+
+## Error Codes
+
+| Code                   | Description                |
+| ---------------------- | -------------------------- |
+| `INVALID_RECIPIENT`    | Invalid email address      |
+| `DOMAIN_NOT_VERIFIED`  | Sender domain not verified |
+| `INSUFFICIENT_BALANCE` | Not enough credits         |
+| `RATE_LIMIT_EXCEEDED`  | Too many requests          |
+| `ATTACHMENT_TOO_LARGE` | File exceeds size limit    |
+
+## SDKs
+
+**Node.js:** `npm install @sendexa/email-sdk`
+**Python:** `pip install sendexa-email`
+**PHP:** `composer require sendexa/email-sdk`

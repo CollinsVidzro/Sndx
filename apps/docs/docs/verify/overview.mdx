@@ -1,0 +1,646 @@
+---
+title: Verify API Overview
+description: Advanced one-time password solution with customizable PINs, templates, and fintech-grade security for Ghana.
+date: 2025-03-12
+---
+
+# Verify API Overview
+
+Welcome to the **Sendexa Verify API v1**. A fintech-grade one-time password solution with customizable PIN lengths, message templates, and advanced security features built for Ghana.
+
+---
+
+## Why Choose Verify API?
+
+### Advanced Customization
+
+- **Flexible PIN Lengths** - 4 to 10 characters
+- **Multiple PIN Types** - Numeric, Alphanumeric, Alphabetic
+- **Custom Templates** - Dynamic message placeholders
+- **Configurable Expiry** - 1 minute to 24 hours
+- **Ghana-Optimized** - Built for local phone formats
+
+### Fintech-Grade Security
+
+- **Attempt Tracking** - Monitor verification attempts
+- **Automatic Blocking** - Prevent brute force attacks
+- **Expiry Validation** - Time-bound codes
+- **Single-Use Codes** - Automatic invalidation
+- **Metadata Support** - Track transaction context
+
+### Enterprise Features
+
+- **Template Variables** - `{code}`, `{amount}`, `{duration}`
+- **Retry Control** - Configurable max attempts
+- **Cooldown Periods** - Rate limiting between resends
+- **Detailed Responses** - Comprehensive error messages
+- **Webhook Support** - Real-time notifications
+
+---
+
+## Key Features
+
+### Request OTP
+
+Generate and send customizable OTPs:
+
+- PIN lengths from 4-10 characters
+- Numeric, alphanumeric, or alphabetic codes
+- Custom message templates
+- Flexible expiration times (1 min to 24 hours)
+- Transaction metadata tracking
+
+**Endpoint:** `POST /v1/otp/request`
+
+```json
+{
+  "phone": "0555539152",
+  "from": "YourBrand",
+  "message": "Your verification code is {code}, it expires in {amount} {duration}",
+  "pinLength": 4,
+  "pinType": "NUMERIC",
+  "expiry": {
+    "amount": 12,
+    "duration": "minutes"
+  },
+  "metadata": {
+    "transactionId": "txn_12345",
+    "amount": 500
+  }
+}
+```
+
+### Verify OTP
+
+Validate codes with security tracking:
+
+- Attempt counting
+- Automatic blocking after max attempts
+- Expiry validation
+- Single-use enforcement
+- Metadata retrieval
+
+**Endpoint:** `POST /v1/otp/verify`
+
+```json
+{
+  "phone": "0555539152",
+  "code": "1234"
+}
+```
+
+### Resend OTP
+
+Resend with same configuration:
+
+- Maintains original settings
+- New code generation
+- Reset expiration timer
+- 30-second cooldown
+- Invalidates previous OTP
+
+**Endpoint:** `POST /v1/otp/resend`
+
+```json
+{
+  "phone": "0555539152"
+}
+```
+
+---
+
+## Getting Started
+
+### 1. Create an Account
+
+Sign up at [auth.sendexa.co](https://auth.sendexa.co) and verify your account.
+
+### 2. Get API Credentials
+
+1. Navigate to **Settings → API Keys**
+2. Generate API Key and Secret
+3. Store credentials securely
+4. Encode in Base64 for Basic Auth
+
+### 3. Encode Credentials
+
+**Format:**
+
+```
+base64(api_key:api_secret)
+```
+
+**JavaScript:**
+
+```javascript
+const apiKey = 'your_api_key';
+const apiSecret = 'your_api_secret';
+const credentials = btoa(`${apiKey}:${apiSecret}`);
+```
+
+**Python:**
+
+```python
+import base64
+api_key = 'your_api_key'
+api_secret = 'your_api_secret'
+credentials = base64.b64encode(f'{api_key}:{api_secret}'.encode()).decode()
+```
+
+### 4. Register Sender ID
+
+1. Go to **Settings → Sender IDs**
+2. Submit your desired Sender ID
+3. Wait for approval (24 hours)
+4. Use approved Sender ID in requests
+
+### 5. Send Your First OTP
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "from": "YourBrand",
+    "message": "Your code is {code}",
+    "pinLength": 6
+  }'
+```
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environment URLs:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Use **Basic Authentication** with Base64-encoded credentials:
+
+```http
+Authorization: Basic base64(api_key:api_secret)
+```
+
+**Example:**
+
+```javascript
+const auth = btoa('sk_live_abc123:sk_secret_xyz789');
+// Authorization: Basic c2tfbGl2ZV9hYmMxMjM6c2tfc2VjcmV0X3h5ejc4OQ==
+```
+
+**Security Best Practices:**
+
+- Never expose credentials in client-side code
+- Use environment variables
+- Rotate credentials regularly
+- Use different credentials per environment
+- Store credentials securely (e.g., AWS Secrets Manager)
+
+---
+
+## API Endpoints Summary
+
+| Endpoint          | Method | Purpose               | Rate Limit          |
+| ----------------- | ------ | --------------------- | ------------------- |
+| `/v1/otp/request` | POST   | Generate and send OTP | 60/hour per phone   |
+| `/v1/otp/verify`  | POST   | Verify OTP code       | 10 attempts per OTP |
+| `/v1/otp/resend`  | POST   | Resend OTP            | 30s cooldown        |
+
+---
+
+## PIN Configuration
+
+### PIN Length
+
+Choose from 4 to 10 characters:
+
+| Length | Security  | Use Case                      |
+| ------ | --------- | ----------------------------- |
+| 4      | Standard  | Quick verification, low-value |
+| 6      | High      | Default, most transactions    |
+| 8      | Very High | Sensitive operations          |
+| 10     | Maximum   | Critical financial operations |
+
+### PIN Type
+
+Choose character composition:
+
+| Type           | Format           | Example  | Use Case               |
+| -------------- | ---------------- | -------- | ---------------------- |
+| `NUMERIC`      | Digits only      | `123456` | Standard OTP           |
+| `ALPHANUMERIC` | Letters + digits | `A3B7K9` | High security          |
+| `ALPHABETIC`   | Letters only     | `ABCDEF` | Non-numeric preference |
+
+---
+
+## Message Templates
+
+### Template Placeholders
+
+Use dynamic placeholders in your message:
+
+| Placeholder  | Description     | Example   |
+| ------------ | --------------- | --------- |
+| `{code}`     | The OTP code    | `123456`  |
+| `{amount}`   | Expiry amount   | `12`      |
+| `{duration}` | Expiry duration | `minutes` |
+
+### Template Examples
+
+**Standard Verification:**
+
+```
+Your {from} verification code is {code}. Valid for {amount} {duration}.
+```
+
+**Output:** `Your YourBrand verification code is 123456. Valid for 5 minutes.`
+
+**Transaction Confirmation:**
+
+```
+Complete your GHS 500 withdrawal with code {code}. Expires in {amount} {duration}.
+```
+
+**Output:** `Complete your GHS 500 withdrawal with code 1234. Expires in 3 minutes.`
+
+**Account Security:**
+
+```
+Security code: {code}. If you didn't request this, contact support immediately.
+```
+
+**Output:** `Security code: 789012. If you didn't request this, contact support immediately.`
+
+---
+
+## Expiry Configuration
+
+### Duration Options
+
+| Duration  | Range  | Use Case                     |
+| --------- | ------ | ---------------------------- |
+| `minutes` | 1-1440 | Standard (1 min to 24 hours) |
+| `hours`   | 1-24   | Extended workflows           |
+
+### Common Configurations
+
+**Quick Actions (1-3 minutes):**
+
+```json
+{
+  "expiry": {
+    "amount": 3,
+    "duration": "minutes"
+  }
+}
+```
+
+**Standard (5-10 minutes):**
+
+```json
+{
+  "expiry": {
+    "amount": 10,
+    "duration": "minutes"
+  }
+}
+```
+
+**Extended (30-60 minutes):**
+
+```json
+{
+  "expiry": {
+    "amount": 30,
+    "duration": "minutes"
+  }
+}
+```
+
+---
+
+## Common Use Cases
+
+### 1. User Registration
+
+```javascript
+// Step 1: Send OTP for phone verification
+async function registerUser(phone, userData) {
+  // Create user account
+  const user = await createUser(userData);
+
+  // Send OTP
+  await sendOTP({
+    phone,
+    from: 'YourApp',
+    message: 'Welcome! Your verification code is {code}',
+    pinLength: 6,
+    expiry: { amount: 10, duration: 'minutes' },
+  });
+
+  return user;
+}
+
+// Step 2: Verify phone
+async function verifyPhone(phone, code) {
+  const verified = await verifyOTP(phone, code);
+
+  if (verified) {
+    await markPhoneAsVerified(phone);
+  }
+
+  return verified;
+}
+```
+
+### 2. Transaction Authentication
+
+```javascript
+// Fintech transaction with 4-digit PIN
+async function confirmTransaction(phone, transactionData) {
+  const otp = await sendOTP({
+    phone,
+    from: 'YourBank',
+    message: `Approve GHS ${transactionData.amount} transfer with code {code}`,
+    pinLength: 4,
+    pinType: 'NUMERIC',
+    expiry: { amount: 3, duration: 'minutes' },
+    maxAmountOfValidationRetries: 3,
+    metadata: {
+      transactionId: transactionData.id,
+      amount: transactionData.amount,
+      type: 'transfer',
+    },
+  });
+
+  return otp;
+}
+
+async function processTransaction(phone, code, transactionId) {
+  try {
+    const result = await verifyOTP(phone, code);
+
+    if (result.success) {
+      // Process the transaction
+      await executeTransaction(transactionId);
+      return { success: true };
+    }
+  } catch (error) {
+    // Handle verification failure
+    if (error.errorType === 'MAX_ATTEMPTS_EXCEEDED') {
+      await blockTransaction(transactionId);
+    }
+    throw error;
+  }
+}
+```
+
+### 3. Two-Factor Authentication (2FA)
+
+```javascript
+// Step 1: User logs in with password
+async function login(username, password) {
+  const user = await authenticateUser(username, password);
+
+  if (!user) throw new Error('Invalid credentials');
+
+  // Send 2FA OTP
+  await sendOTP({
+    phone: user.phone,
+    from: 'YourApp',
+    message: 'Your login code is {code}',
+    pinLength: 6,
+    expiry: { amount: 5, duration: 'minutes' },
+  });
+
+  return { userId: user.id, requires2FA: true };
+}
+
+// Step 2: Verify 2FA
+async function verify2FA(phone, code) {
+  const result = await verifyOTP(phone, code);
+
+  if (result.success) {
+    return generateSessionToken(result.data.metadata.userId);
+  }
+
+  throw new Error('Invalid OTP');
+}
+```
+
+### 4. Password Reset
+
+```javascript
+async function requestPasswordReset(phone) {
+  const user = await findUserByPhone(phone);
+
+  if (!user) throw new Error('User not found');
+
+  await sendOTP({
+    phone,
+    from: 'YourApp',
+    message: 'Reset your password with code {code}',
+    pinLength: 6,
+    expiry: { amount: 15, duration: 'minutes' },
+    metadata: { userId: user.id, action: 'password_reset' },
+  });
+}
+
+async function resetPassword(phone, code, newPassword) {
+  const result = await verifyOTP(phone, code);
+
+  if (!result.success) {
+    throw new Error('Invalid OTP');
+  }
+
+  const userId = result.data.metadata.userId;
+  await updatePassword(userId, newPassword);
+
+  return { success: true };
+}
+```
+
+### 5. Account Deletion Confirmation
+
+```javascript
+async function requestAccountDeletion(phone, userId) {
+  await sendOTP({
+    phone,
+    from: 'YourApp',
+    message:
+      'Confirm account deletion with code {code}. This action is permanent.',
+    pinLength: 8, // Higher security for destructive action
+    pinType: 'ALPHANUMERIC',
+    expiry: { amount: 10, duration: 'minutes' },
+    maxAmountOfValidationRetries: 3,
+    metadata: { userId, action: 'delete_account' },
+  });
+}
+
+async function confirmAccountDeletion(phone, code) {
+  const result = await verifyOTP(phone, code);
+
+  if (result.success) {
+    const userId = result.data.metadata.userId;
+    await deleteUserAccount(userId);
+    return { success: true, message: 'Account deleted successfully' };
+  }
+
+  throw new Error('Invalid verification code');
+}
+```
+
+---
+
+## Rate Limits
+
+### Request OTP
+
+| Limit Type  | Value         | Window   |
+| ----------- | ------------- | -------- |
+| Per phone   | 60 requests   | 1 hour   |
+| Per API key | 1000 requests | 1 hour   |
+| Burst limit | 10 requests   | 1 minute |
+
+### Verify OTP
+
+| Limit Type | Value             | Notes                                       |
+| ---------- | ----------------- | ------------------------------------------- |
+| Per OTP    | 10 attempts       | Configurable (maxAmountOfValidationRetries) |
+| Per phone  | 100 verifications | Per hour                                    |
+
+### Resend OTP
+
+| Limit Type | Value      | Notes           |
+| ---------- | ---------- | --------------- |
+| Cooldown   | 30 seconds | Between resends |
+| Per phone  | 10 resends | Per hour        |
+
+---
+
+## Pricing
+
+### Ghana (GHS)
+
+| Service                     | Price     |
+| --------------------------- | --------- |
+| OTP via SMS                 | 0.035 GHS |
+| Additional metadata storage | Free      |
+| Webhook notifications       | Free      |
+
+**Volume Discounts:**
+
+- 10,000+ OTPs/month: 5% discount
+- 50,000+ OTPs/month: 10% discount
+- 100,000+ OTPs/month: Custom pricing
+
+Contact **sales@sendexa.co** for enterprise pricing.
+
+---
+
+## Best Practices
+
+### Security
+
+1. **Use appropriate PIN length** - 6+ for financial transactions
+2. **Set reasonable expiry** - 5 minutes for most cases
+3. **Implement attempt limiting** - Default 3 attempts
+4. **Log verification events** - Track suspicious activity
+5. **Use metadata** - Store transaction context
+
+### User Experience
+
+1. **Clear messages** - Tell users what the OTP is for
+2. **Show countdown** - Display remaining time
+3. **Enable resend** - Allow users to request new code
+4. **Provide feedback** - Clear error messages
+5. **Auto-detection** - Use SMS auto-fill APIs where available
+
+### Performance
+
+1. **Cache verification status** - Reduce API calls
+2. **Implement timeouts** - Don't wait indefinitely
+3. **Handle errors gracefully** - Provide fallback options
+4. **Use webhooks** - Get instant notifications
+5. **Monitor success rates** - Track and optimize
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Phone Numbers:**
+| Number | Behavior |
+|--------|----------|
+| `0555539152` | Always succeeds |
+| `0555539153` | Always fails (invalid) |
+| `0555539154` | Delayed delivery (30s) |
+
+**Test OTP Codes:**
+
+- `123456` - Always valid in sandbox
+- `000000` - Always invalid
+- `999999` - Triggers max attempts exceeded
+
+---
+
+## Error Handling
+
+### Common Errors
+
+| Error Type               | HTTP Status | Description                    |
+| ------------------------ | ----------- | ------------------------------ |
+| `INVALID_PHONE`          | 400         | Phone format invalid           |
+| `SENDER_ID_NOT_APPROVED` | 400         | Sender ID pending approval     |
+| `ACTIVE_OTP_EXISTS`      | 429         | Wait for current OTP to expire |
+| `INVALID_OTP`            | 400         | Wrong OTP code                 |
+| `EXPIRED_OTP`            | 400         | OTP has expired                |
+| `MAX_ATTEMPTS_EXCEEDED`  | 400         | Too many failed attempts       |
+| `NO_PREVIOUS_OTP`        | 400         | No OTP to resend               |
+| `RESEND_COOLDOWN`        | 429         | Wait before resending          |
+
+---
+
+## Support
+
+### Documentation
+
+- [Request OTP](/docs/verify/request)
+- [Verify OTP](/docs/verify/verify)
+- [Resend OTP](/docs/verify/resend)
+- [Webhooks](/docs/verify/webhooks)
+- [API Reference](/docs/verify/v1)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join community](https://discord.gg/sendexa)
+- **Phone:** +233 55 553 9152
+
+### Report Issues
+
+- **GitHub:** [github.com/sendexa/otp-issues](https://github.com/sendexa/otp-issues)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+
+---
+
+## Next Steps
+
+1. 📝 **[Request OTP](/docs/verify/request)** - Send customizable OTPs
+2. ✅ **[Verify OTP](/docs/verify/verify)** - Validate user codes
+3. 🔄 **[Resend OTP](/docs/verify/resend)** - Handle resend requests
+4. 🔔 **[Webhooks](/docs/verify/webhooks)** - Real-time notifications
+5. 🛠️ **[API Reference](/docs/verify/v1)** - Complete documentation

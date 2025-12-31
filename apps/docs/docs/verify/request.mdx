@@ -1,0 +1,722 @@
+---
+title: Request OTP
+description: Generate and send customizable OTP codes via SMS or Email with advanced features including custom PIN lengths, templates, and metadata.
+date: 2025-03-12
+---
+
+# Request OTP
+
+Generate and deliver one-time password (OTP) codes with advanced customization options. Supports both SMS and Email delivery channels with flexible PIN configurations, custom message templates, and fintech-grade security features.
+
+---
+
+## Endpoint
+
+### POST /v1/otp/request
+
+Generate and send a customizable OTP to a phone number or email address.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:**
+
+- 60 requests per hour per phone/email
+- 1000 requests per hour per API key
+
+---
+
+## Authentication
+
+```http
+Authorization: Basic base64(api_key:api_secret)
+Content-Type: application/json
+```
+
+**Example:**
+
+```javascript
+const credentials = btoa('sk_live_abc123:sk_secret_xyz789');
+// Authorization: Basic c2tfbGl2ZV9hYmMxMjM6c2tfc2VjcmV0X3h5ejc4OQ==
+```
+
+---
+
+## Request Body
+
+| Parameter                      | Type    | Required    | Description                                                            |
+| ------------------------------ | ------- | ----------- | ---------------------------------------------------------------------- |
+| `phone`                        | string  | Conditional | Phone number (required for SMS)                                        |
+| `email`                        | string  | Conditional | Email address (required for Email)                                     |
+| `from`                         | string  | Yes         | Registered Sender ID name                                              |
+| `message`                      | string  | No          | Custom message template with placeholders                              |
+| `pinLength`                    | integer | No          | PIN length: 4-10 characters (default: 6)                               |
+| `pinType`                      | string  | No          | PIN type: `NUMERIC`, `ALPHANUMERIC`, `ALPHABETIC` (default: `NUMERIC`) |
+| `expiry`                       | object  | No          | Expiration configuration                                               |
+| `expiry.amount`                | integer | No          | Expiry amount: 1-1440 (default: 10)                                    |
+| `expiry.duration`              | string  | No          | Duration: `minutes` or `hours` (default: `minutes`)                    |
+| `maxAmountOfValidationRetries` | integer | No          | Max verification attempts (default: 3)                                 |
+| `metadata`                     | object  | No          | Additional context for tracking                                        |
+
+### Channel Selection
+
+You must provide either `phone` (for SMS) or `email` (for Email channel):
+
+**SMS Channel:**
+
+```json
+{
+  "phone": "0555539152",
+  "from": "YourBrand"
+}
+```
+
+**Email Channel:**
+
+```json
+{
+  "email": "user@example.com",
+  "from": "YourBrand"
+}
+```
+
+---
+
+## Request Examples
+
+### SMS OTP - Basic
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "from": "YourApp",
+    "message": "Your verification code is {code}",
+    "pinLength": 6
+  }'
+```
+
+### SMS OTP - Advanced (Fintech)
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "from": "BankApp",
+    "message": "Your withdrawal code is {code}, valid for {amount} {duration}",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes"
+    },
+    "maxAmountOfValidationRetries": 3,
+    "metadata": {
+      "transactionId": "txn_12345",
+      "amount": 500,
+      "currency": "GHS",
+      "type": "withdrawal"
+    }
+  }'
+```
+
+### Email OTP
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com",
+    "from": "YourApp",
+    "message": "Your account verification code is {code}",
+    "pinLength": 6,
+    "pinType": "ALPHANUMERIC",
+    "expiry": {
+      "amount": 15,
+      "duration": "minutes"
+    }
+  }'
+```
+
+---
+
+## Response
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "data": {
+    "id": "clxyz123abc",
+    "phone": "233555539152",
+    "email": null,
+    "channel": "SMS",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes",
+      "expiresAt": "2024-01-15T10:35:00.000Z"
+    },
+    "maxValidationAttempts": 3,
+    "metadata": {
+      "transactionId": "txn_12345",
+      "amount": 500,
+      "currency": "GHS"
+    }
+  }
+}
+```
+
+### Response Fields
+
+| Field                        | Type    | Description                        |
+| ---------------------------- | ------- | ---------------------------------- |
+| `success`                    | boolean | Whether OTP was sent successfully  |
+| `message`                    | string  | Human-readable status message      |
+| `data.id`                    | string  | Unique OTP record identifier       |
+| `data.phone`                 | string  | Normalized phone number (if SMS)   |
+| `data.email`                 | string  | Email address (if Email)           |
+| `data.channel`               | string  | Delivery channel: `SMS` or `EMAIL` |
+| `data.pinLength`             | integer | Generated PIN length               |
+| `data.pinType`               | string  | Generated PIN type                 |
+| `data.expiry`                | object  | Expiration details                 |
+| `data.maxValidationAttempts` | integer | Max verification attempts allowed  |
+| `data.metadata`              | object  | Your custom metadata               |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+class EnhancedOTPClient {
+  constructor(apiKey, apiSecret) {
+    this.baseUrl = 'https://api.sendexa.co/v1/otp';
+    this.credentials = btoa(`${apiKey}:${apiSecret}`);
+  }
+
+  async requestOTP(options) {
+    const {
+      phone,
+      email,
+      from,
+      message,
+      pinLength = 6,
+      pinType = 'NUMERIC',
+      expiryAmount = 10,
+      expiryDuration = 'minutes',
+      maxAttempts = 3,
+      metadata,
+    } = options;
+
+    // Validate channel
+    if (!phone && !email) {
+      throw new Error('Either phone or email is required');
+    }
+
+    const payload = {
+      from,
+      pinLength,
+      pinType,
+      expiry: {
+        amount: expiryAmount,
+        duration: expiryDuration,
+      },
+      maxAmountOfValidationRetries: maxAttempts,
+    };
+
+    if (phone) payload.phone = phone;
+    if (email) payload.email = email;
+    if (message) payload.message = message;
+    if (metadata) payload.metadata = metadata;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/request`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${this.credentials}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('OTP Request Error:', error);
+      throw error;
+    }
+  }
+
+  // Send SMS OTP
+  async sendSMSOTP(phone, from, options = {}) {
+    return this.requestOTP({ phone, from, ...options });
+  }
+
+  // Send Email OTP
+  async sendEmailOTP(email, from, options = {}) {
+    return this.requestOTP({ email, from, ...options });
+  }
+}
+
+// Usage Examples
+
+const otpClient = new EnhancedOTPClient('your_api_key', 'your_api_secret');
+
+// SMS OTP for transaction
+await otpClient.sendSMSOTP('0555539152', 'BankApp', {
+  message: 'Complete GHS 500 withdrawal with code {code}',
+  pinLength: 4,
+  expiryAmount: 3,
+  expiryDuration: 'minutes',
+  metadata: {
+    transactionId: 'txn_789',
+    amount: 500,
+  },
+});
+
+// Email OTP for registration
+await otpClient.sendEmailOTP('user@example.com', 'MyApp', {
+  message: 'Welcome! Verify your email with code {code}',
+  pinLength: 6,
+  pinType: 'ALPHANUMERIC',
+  expiryAmount: 15,
+  expiryDuration: 'minutes',
+});
+```
+
+### Python
+
+```python
+import requests
+import base64
+from typing import Optional, Dict, Any
+
+class EnhancedOTPClient:
+    def __init__(self, api_key: str, api_secret: str):
+        self.base_url = "https://api.sendexa.co/v1/otp"
+        credentials = f"{api_key}:{api_secret}"
+        self.auth_header = base64.b64encode(credentials.encode()).decode()
+        self.headers = {
+            "Authorization": f"Basic {self.auth_header}",
+            "Content-Type": "application/json"
+        }
+
+    def request_otp(
+        self,
+        from_name: str,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        message: Optional[str] = None,
+        pin_length: int = 6,
+        pin_type: str = "NUMERIC",
+        expiry_amount: int = 10,
+        expiry_duration: str = "minutes",
+        max_attempts: int = 3,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        # Validate channel
+        if not phone and not email:
+            raise ValueError("Either phone or email is required")
+
+        payload = {
+            "from": from_name,
+            "pinLength": pin_length,
+            "pinType": pin_type,
+            "expiry": {
+                "amount": expiry_amount,
+                "duration": expiry_duration
+            },
+            "maxAmountOfValidationRetries": max_attempts
+        }
+
+        if phone:
+            payload["phone"] = phone
+        if email:
+            payload["email"] = email
+        if message:
+            payload["message"] = message
+        if metadata:
+            payload["metadata"] = metadata
+
+        response = requests.post(
+            f"{self.base_url}/request",
+            json=payload,
+            headers=self.headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def send_sms_otp(self, phone: str, from_name: str, **kwargs):
+        """Send OTP via SMS"""
+        return self.request_otp(from_name=from_name, phone=phone, **kwargs)
+
+    def send_email_otp(self, email: str, from_name: str, **kwargs):
+        """Send OTP via Email"""
+        return self.request_otp(from_name=from_name, email=email, **kwargs)
+
+# Usage Examples
+
+client = EnhancedOTPClient("your_api_key", "your_api_secret")
+
+# SMS OTP for transaction
+sms_result = client.send_sms_otp(
+    phone="0555539152",
+    from_name="BankApp",
+    message="Approve GHS 1000 transfer with code {code}",
+    pin_length=4,
+    expiry_amount=3,
+    expiry_duration="minutes",
+    metadata={
+        "transaction_id": "txn_456",
+        "amount": 1000,
+        "type": "transfer"
+    }
+)
+
+# Email OTP for password reset
+email_result = client.send_email_otp(
+    email="user@example.com",
+    from_name="MyApp",
+    message="Reset your password with code {code}",
+    pin_length=6,
+    pin_type="ALPHANUMERIC",
+    expiry_amount=20,
+    expiry_duration="minutes"
+)
+
+print("SMS OTP sent:", sms_result)
+print("Email OTP sent:", email_result)
+```
+
+### PHP
+
+```php
+<?php
+
+class EnhancedOTPClient {
+    private $baseUrl;
+    private $credentials;
+
+    public function __construct($apiKey, $apiSecret) {
+        $this->baseUrl = 'https://api.sendexa.co/v1/otp';
+        $this->credentials = base64_encode("$apiKey:$apiSecret");
+    }
+
+    public function requestOTP($options) {
+        // Validate channel
+        if (empty($options['phone']) && empty($options['email'])) {
+            throw new Exception('Either phone or email is required');
+        }
+
+        $payload = [
+            'from' => $options['from'],
+            'pinLength' => $options['pinLength'] ?? 6,
+            'pinType' => $options['pinType'] ?? 'NUMERIC',
+            'expiry' => [
+                'amount' => $options['expiryAmount'] ?? 10,
+                'duration' => $options['expiryDuration'] ?? 'minutes'
+            ],
+            'maxAmountOfValidationRetries' => $options['maxAttempts'] ?? 3
+        ];
+
+        if (!empty($options['phone'])) {
+            $payload['phone'] = $options['phone'];
+        }
+        if (!empty($options['email'])) {
+            $payload['email'] = $options['email'];
+        }
+        if (!empty($options['message'])) {
+            $payload['message'] = $options['message'];
+        }
+        if (!empty($options['metadata'])) {
+            $payload['metadata'] = $options['metadata'];
+        }
+
+        $ch = curl_init("{$this->baseUrl}/request");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Basic {$this->credentials}",
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            throw new Exception("OTP request failed: $response");
+        }
+
+        return json_decode($response, true);
+    }
+
+    public function sendSMSOTP($phone, $from, $options = []) {
+        $options['phone'] = $phone;
+        $options['from'] = $from;
+        return $this->requestOTP($options);
+    }
+
+    public function sendEmailOTP($email, $from, $options = []) {
+        $options['email'] = $email;
+        $options['from'] = $from;
+        return $this->requestOTP($options);
+    }
+}
+
+// Usage Examples
+
+$client = new EnhancedOTPClient('your_api_key', 'your_api_secret');
+
+// SMS OTP
+$smsResult = $client->sendSMSOTP('0555539152', 'MyApp', [
+    'message' => 'Your login code is {code}',
+    'pinLength' => 6,
+    'expiryAmount' => 5,
+    'metadata' => ['userId' => '123']
+]);
+
+// Email OTP
+$emailResult = $client->sendEmailOTP('user@example.com', 'MyApp', [
+    'message' => 'Verify your email with {code}',
+    'pinLength' => 6,
+    'pinType' => 'ALPHANUMERIC',
+    'expiryAmount' => 15
+]);
+
+echo "SMS OTP sent: " . json_encode($smsResult) . "\n";
+echo "Email OTP sent: " . json_encode($emailResult) . "\n";
+
+?>
+```
+
+---
+
+## Template Messages
+
+### Template Placeholders
+
+| Placeholder  | Description            | Example   |
+| ------------ | ---------------------- | --------- |
+| `{code}`     | The generated OTP code | `123456`  |
+| `{amount}`   | Expiry amount          | `10`      |
+| `{duration}` | Expiry duration        | `minutes` |
+
+### SMS Template Examples
+
+**Standard Verification:**
+
+```json
+{
+  "message": "Your {from} verification code is {code}. Valid for {amount} {duration}."
+}
+```
+
+Output: `Your MyApp verification code is 123456. Valid for 10 minutes.`
+
+**Transaction Confirmation:**
+
+```json
+{
+  "message": "Approve GHS 500 transfer with code {code}. Expires in {amount} {duration}."
+}
+```
+
+Output: `Approve GHS 500 transfer with code 1234. Expires in 3 minutes.`
+
+**Login 2FA:**
+
+```json
+{
+  "message": "Login code: {code}. Don't share this code with anyone."
+}
+```
+
+Output: `Login code: 789012. Don't share this code with anyone.`
+
+### Email Template Example
+
+When using the Email channel, the message appears in the email body with proper formatting:
+
+```json
+{
+  "email": "user@example.com",
+  "message": "Welcome to MyApp! Your verification code is {code}. This code will expire in {amount} {duration}."
+}
+```
+
+The email will be sent with:
+
+- **Subject:** `Your MyApp Verification Code`
+- **Body:** Formatted HTML with your message
+
+---
+
+## PIN Configuration
+
+### PIN Types
+
+**NUMERIC (default):**
+
+```json
+{
+  "pinType": "NUMERIC",
+  "pinLength": 6
+}
+```
+
+Output: `123456`, `789012`, `456789`
+
+**ALPHANUMERIC:**
+
+```json
+{
+  "pinType": "ALPHANUMERIC",
+  "pinLength": 6
+}
+```
+
+Output: `A3B7K9`, `X5Y2M8`, `P4Q1R7`
+
+**ALPHABETIC:**
+
+```json
+{
+  "pinType": "ALPHABETIC",
+  "pinLength": 6
+}
+```
+
+Output: `ABCDEF`, `XYZKLM`, `PQRSTU`
+
+### Security Recommendations
+
+| Scenario                  | Recommended Config              |
+| ------------------------- | ------------------------------- |
+| **Quick Login**           | 4 digits, NUMERIC, 3 min        |
+| **Standard Auth**         | 6 digits, NUMERIC, 5 min        |
+| **Financial Transaction** | 4-6 digits, NUMERIC, 3 min      |
+| **Password Reset**        | 6 digits, ALPHANUMERIC, 15 min  |
+| **Critical Operations**   | 8-10 chars, ALPHANUMERIC, 5 min |
+
+---
+
+## Error Responses
+
+### 400 Bad Request - Missing Channel
+
+```json
+{
+  "success": false,
+  "message": "Either phone or email is required"
+}
+```
+
+### 400 Bad Request - Invalid Phone
+
+```json
+{
+  "success": false,
+  "message": "Invalid phone number format"
+}
+```
+
+### 400 Bad Request - Sender ID Not Approved
+
+```json
+{
+  "success": false,
+  "message": "Sender ID 'YourBrand' is pending approval",
+  "errorType": "SENDER_ID_NOT_APPROVED",
+  "data": {
+    "name": "YourBrand",
+    "status": "pending"
+  }
+}
+```
+
+### 429 Too Many Requests - Active OTP Exists
+
+```json
+{
+  "success": false,
+  "message": "An active OTP already exists for this phone number",
+  "data": {
+    "retryAfter": 583,
+    "expiresAt": "2024-01-15T10:15:00.000Z"
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### Channel Selection
+
+1. **Use SMS for:**
+   - Time-sensitive operations
+   - Mobile-first users
+   - Transaction confirmations
+   - Instant delivery requirements
+
+2. **Use Email for:**
+   - Desktop users
+   - Non-urgent verifications
+   - Cost-sensitive operations
+   - Users without phone access
+
+### Security
+
+1. **Use appropriate PIN length** - 6+ for financial transactions
+2. **Set short expiry for sensitive ops** - 3-5 minutes for transactions
+3. **Limit validation attempts** - Default 3 attempts
+4. **Include context in metadata** - Track transaction details
+5. **Use alphanumeric for high security** - Harder to guess
+
+### User Experience
+
+1. **Clear message templates** - Tell users what the OTP is for
+2. **Show expiry in message** - Use `{amount} {duration}` placeholders
+3. **Provide resend option** - Allow users to request new code
+4. **Consistent sender ID** - Use recognizable brand name
+
+---
+
+## Testing
+
+### Test Destinations
+
+**SMS Test Numbers:**
+
+- `0555539152` - Always succeeds
+- `0555539153` - Always fails (invalid)
+
+**Email Test Addresses:**
+
+- `test-success@sendexa.co` - Always succeeds
+- `test-fail@sendexa.co` - Always fails
+
+---
+
+## Next Steps
+
+- ✅ **[Verify OTP](/docs/verify/verify)** - Validate user codes
+- 🔄 **[Resend OTP](/docs/verify/resend)** - Handle resend requests
+- 🔔 **[Webhooks](/docs/verify/webhooks)** - Real-time notifications
+- 📖 **[API Reference](/docs/verify/v1)** - Complete documentation

@@ -1,0 +1,721 @@
+---
+title: SMPP Webhooks
+description: Receive HTTP webhooks for SMPP delivery reports as an alternative to native SMPP DLRs.
+date: 2025-03-12
+---
+
+# SMPP Webhooks
+
+Receive delivery reports and status updates via HTTP webhooks as a convenient alternative to native SMPP DLRs.
+
+---
+
+## Overview
+
+### Why Use Webhooks?
+
+Webhooks provide an HTTP-based alternative to SMPP DLRs:
+
+- **No Active Connection Required** - Receive notifications without maintaining SMPP session
+- **Simpler Implementation** - Standard HTTP endpoint vs SMPP client
+- **Automatic Retries** - Built-in retry mechanism
+- **Firewall Friendly** - Standard HTTPS traffic
+- **Easy Testing** - Test with tools like ngrok
+
+### Webhook vs SMPP DLR
+
+| Feature        | HTTP Webhook    | SMPP DLR             |
+| -------------- | --------------- | -------------------- |
+| **Connection** | One-way HTTP    | Active SMPP session  |
+| **Complexity** | Simple endpoint | SMPP client required |
+| **Retries**    | Automatic       | Manual handling      |
+| **Latency**    | Near real-time  | Real-time            |
+| **Setup**      | Easy            | Complex              |
+
+---
+
+## Configuration
+
+### Set Up Webhook URL
+
+1. **Log in** to [auth.sendexa.co](https://auth.sendexa.co)
+2. Navigate to **SMPP → Settings → Webhooks**
+3. Click **Add Webhook**
+4. Configure:
+   - **URL:** Your HTTPS endpoint
+   - **Events:** Select events to receive
+   - **Secret:** Generate webhook secret
+5. Click **Save & Test**
+
+### URL Requirements
+
+✅ **Required:**
+
+- Must use HTTPS (not HTTP)
+- Must be publicly accessible
+- Should respond within 5 seconds
+- Should return 200 OK on success
+
+❌ **Not Allowed:**
+
+- HTTP URLs
+- Localhost/private IPs
+- URLs requiring authentication
+
+---
+
+## Webhook Events
+
+### message.sent
+
+Triggered when message is sent to mobile network.
+
+```json
+{
+  "event": "message.sent",
+  "messageId": "msg_abc123def456",
+  "smppMessageId": "1234567890",
+  "to": "233501234567",
+  "from": "Sendexa",
+  "status": "sent",
+  "timestamp": "2025-03-12T14:20:02Z",
+  "smpp": {
+    "systemId": "your_username",
+    "sourceAddrTon": 5,
+    "destAddrTon": 1
+  }
+}
+```
+
+### message.delivered
+
+Triggered when message is delivered to recipient.
+
+```json
+{
+  "event": "message.delivered",
+  "messageId": "msg_abc123def456",
+  "smppMessageId": "1234567890",
+  "to": "233501234567",
+  "from": "Sendexa",
+  "status": "delivered",
+  "deliveredAt": "2025-03-12T14:20:05Z",
+  "timestamp": "2025-03-12T14:20:05Z",
+  "parts": 1,
+  "cost": 0.03,
+  "currency": "GHS",
+  "provider": "MTN"
+}
+```
+
+### message.failed
+
+Triggered when message delivery fails.
+
+```json
+{
+  "event": "message.failed",
+  "messageId": "msg_abc123def456",
+  "smppMessageId": "1234567890",
+  "to": "233501234567",
+  "from": "Sendexa",
+  "status": "failed",
+  "error": {
+    "code": "INVALID_NUMBER",
+    "message": "Invalid phone number",
+    "networkCode": "001"
+  },
+  "timestamp": "2025-03-12T14:20:03Z"
+}
+```
+
+### message.expired
+
+Triggered when message expires before delivery.
+
+```json
+{
+  "event": "message.expired",
+  "messageId": "msg_abc123def456",
+  "smppMessageId": "1234567890",
+  "to": "233501234567",
+  "from": "Sendexa",
+  "status": "expired",
+  "expiredAt": "2025-03-13T14:20:00Z",
+  "timestamp": "2025-03-13T14:20:00Z"
+}
+```
+
+---
+
+## Implementation
+
+### Node.js / Express
+
+```javascript
+const express = require('express');
+const crypto = require('crypto');
+
+const app = express();
+app.use(express.json());
+
+const WEBHOOK_SECRET = 'your_webhook_secret_from_dashboard';
+
+// Verify webhook signature
+function verifySignature(payload, signature) {
+  const expectedSignature = crypto
+    .createHmac('sha256', WEBHOOK_SECRET)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Webhook endpoint
+app.post('/webhooks/sendexa/smpp', async (req, res) => {
+  const signature = req.headers['x-sendexa-signature'];
+
+  // Verify signature
+  if (!verifySignature(req.body, signature)) {
+    console.error('Invalid signature');
+    return res.status(401).send('Unauthorized');
+  }
+
+  const event = req.body;
+  console.log('Received event:', event.event);
+
+  // Handle different event types
+  try {
+    switch (event.event) {
+      case 'message.sent':
+        await handleMessageSent(event);
+        break;
+
+      case 'message.delivered':
+        await handleMessageDelivered(event);
+        break;
+
+      case 'message.failed':
+        await handleMessageFailed(event);
+        break;
+
+      case 'message.expired':
+        await handleMessageExpired(event);
+        break;
+
+      default:
+        console.log('Unknown event:', event.event);
+    }
+
+    // Respond quickly
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).send('Error');
+  }
+});
+
+async function handleMessageSent(event) {
+  console.log(`Message sent: ${event.messageId}`);
+
+  await db.messages.update({
+    where: { messageId: event.smppMessageId },
+    data: { status: 'sent', sentAt: event.timestamp },
+  });
+}
+
+async function handleMessageDelivered(event) {
+  console.log(`Message delivered: ${event.messageId}`);
+
+  await db.messages.update({
+    where: { messageId: event.smppMessageId },
+    data: {
+      status: 'delivered',
+      deliveredAt: event.deliveredAt,
+      cost: event.cost,
+    },
+  });
+
+  // Notify user
+  await notifyUser(event.messageId, 'delivered');
+}
+
+async function handleMessageFailed(event) {
+  console.error(`Message failed: ${event.messageId}`, event.error);
+
+  await db.messages.update({
+    where: { messageId: event.smppMessageId },
+    data: {
+      status: 'failed',
+      errorCode: event.error.code,
+      errorMessage: event.error.message,
+    },
+  });
+
+  // Alert admin
+  await alertAdmin(`Message ${event.messageId} failed: ${event.error.message}`);
+}
+
+async function handleMessageExpired(event) {
+  console.log(`Message expired: ${event.messageId}`);
+
+  await db.messages.update({
+    where: { messageId: event.smppMessageId },
+    data: {
+      status: 'expired',
+      expiredAt: event.expiredAt,
+    },
+  });
+}
+
+app.listen(3000, () => {
+  console.log('Webhook server listening on port 3000');
+});
+```
+
+### Python / Flask
+
+```python
+from flask import Flask, request, jsonify
+import hmac
+import hashlib
+import json
+
+app = Flask(__name__)
+
+WEBHOOK_SECRET = 'your_webhook_secret_from_dashboard'
+
+def verify_signature(payload, signature):
+    """Verify webhook signature"""
+    expected_signature = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected_signature)
+
+@app.route('/webhooks/sendexa/smpp', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Sendexa-Signature')
+    payload = request.get_json()
+
+    # Verify signature
+    if not verify_signature(payload, signature):
+        return jsonify({'error': 'Invalid signature'}), 401
+
+    event_type = payload.get('event')
+    print(f"Received event: {event_type}")
+
+    # Handle different event types
+    try:
+        if event_type == 'message.sent':
+            handle_message_sent(payload)
+        elif event_type == 'message.delivered':
+            handle_message_delivered(payload)
+        elif event_type == 'message.failed':
+            handle_message_failed(payload)
+        elif event_type == 'message.expired':
+            handle_message_expired(payload)
+        else:
+            print(f"Unknown event: {event_type}")
+
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        print(f"Error processing webhook: {e}")
+        return jsonify({'error': 'Processing failed'}), 500
+
+def handle_message_sent(event):
+    print(f"Message sent: {event['messageId']}")
+    # Update database
+
+def handle_message_delivered(event):
+    print(f"Message delivered: {event['messageId']}")
+    # Update database, notify user
+
+def handle_message_failed(event):
+    print(f"Message failed: {event['messageId']}", event['error'])
+    # Update database, alert admin
+
+def handle_message_expired(event):
+    print(f"Message expired: {event['messageId']}")
+    # Update database
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+### PHP
+
+```php
+<?php
+
+$webhookSecret = 'your_webhook_secret_from_dashboard';
+
+// Get payload and signature
+$payload = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_SENDEXA_SIGNATURE'] ?? '';
+
+// Verify signature
+$expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
+
+if (!hash_equals($signature, $expectedSignature)) {
+    http_response_code(401);
+    die('Unauthorized');
+}
+
+// Parse event
+$event = json_decode($payload, true);
+
+// Handle event
+try {
+    switch ($event['event']) {
+        case 'message.sent':
+            handleMessageSent($event);
+            break;
+
+        case 'message.delivered':
+            handleMessageDelivered($event);
+            break;
+
+        case 'message.failed':
+            handleMessageFailed($event);
+            break;
+
+        case 'message.expired':
+            handleMessageExpired($event);
+            break;
+
+        default:
+            error_log("Unknown event: " . $event['event']);
+    }
+
+    http_response_code(200);
+    echo 'OK';
+} catch (Exception $e) {
+    error_log("Error processing webhook: " . $e->getMessage());
+    http_response_code(500);
+    echo 'Error';
+}
+
+function handleMessageSent($event) {
+    error_log("Message sent: " . $event['messageId']);
+    // Update database
+}
+
+function handleMessageDelivered($event) {
+    error_log("Message delivered: " . $event['messageId']);
+    // Update database, notify user
+}
+
+function handleMessageFailed($event) {
+    error_log("Message failed: " . $event['messageId']);
+    // Update database, alert admin
+}
+
+function handleMessageExpired($event) {
+    error_log("Message expired: " . $event['messageId']);
+    // Update database
+}
+
+?>
+```
+
+---
+
+## Security
+
+### Signature Verification
+
+Always verify the `X-Sendexa-Signature` header:
+
+```javascript
+function verifySignature(payload, signature) {
+  const expectedSignature = crypto
+    .createHmac('sha256', WEBHOOK_SECRET)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+```
+
+### Best Practices
+
+1. **Always use HTTPS**
+2. **Verify signatures**
+3. **Use timing-safe comparison**
+4. **Validate payload structure**
+5. **Process asynchronously**
+6. **Log all webhooks**
+7. **Implement idempotency**
+
+---
+
+## Retry Policy
+
+If your endpoint doesn't respond with `200 OK`, Sendexa will retry:
+
+| Attempt | Delay      | Total Elapsed |
+| ------- | ---------- | ------------- |
+| 1       | Immediate  | 0s            |
+| 2       | 30 seconds | 30s           |
+| 3       | 2 minutes  | 2.5 min       |
+| 4       | 10 minutes | 12.5 min      |
+| 5       | 1 hour     | 1h 12.5min    |
+
+### Idempotency
+
+```javascript
+const processedEvents = new Set();
+
+app.post('/webhooks/sendexa/smpp', (req, res) => {
+  const deliveryId = req.headers['x-sendexa-delivery-id'];
+
+  // Check if already processed
+  if (processedEvents.has(deliveryId)) {
+    return res.status(200).send('OK');
+  }
+
+  // Process event
+  handleEvent(req.body);
+
+  // Mark as processed
+  processedEvents.add(deliveryId);
+
+  res.status(200).send('OK');
+});
+```
+
+---
+
+## Testing
+
+### Local Development with ngrok
+
+```bash
+# Install ngrok
+npm install -g ngrok
+
+# Start local server
+node server.js
+
+# Create tunnel
+ngrok http 3000
+
+# Use HTTPS URL in dashboard
+# https://abc123.ngrok.io/webhooks/sendexa/smpp
+```
+
+### Test Event
+
+Send test events from dashboard:
+
+1. Go to **SMPP → Settings → Webhooks**
+2. Select webhook
+3. Click **Send Test Event**
+4. Choose event type
+5. View response
+
+---
+
+## Hybrid Approach
+
+Use both SMPP DLRs and webhooks for redundancy:
+
+```javascript
+class HybridDLRHandler {
+  constructor() {
+    this.received = new Map();
+  }
+
+  // Handle SMPP DLR
+  handleSMPPDLR(dlr) {
+    const key = `${dlr.messageId}-${dlr.status}`;
+
+    if (!this.received.has(key)) {
+      this.received.set(key, 'smpp');
+      this.processDLR(dlr);
+    } else {
+      console.log('Already processed via webhook');
+    }
+  }
+
+  // Handle webhook DLR
+  handleWebhookDLR(event) {
+    const key = `${event.smppMessageId}-${event.status}`;
+
+    if (!this.received.has(key)) {
+      this.received.set(key, 'webhook');
+      this.processDLR(event);
+    } else {
+      console.log('Already processed via SMPP');
+    }
+  }
+
+  processDLR(dlr) {
+    console.log('Processing DLR:', dlr);
+    // Update database, notify users, etc.
+  }
+}
+```
+
+---
+
+## Monitoring & Debugging
+
+### Dashboard Monitoring
+
+View webhook delivery logs:
+
+1. Navigate to **SMPP → Webhooks → Logs**
+2. See:
+   - Delivery attempts
+   - Response codes
+   - Response times
+   - Retry status
+
+### Failed Webhooks
+
+View and retry failed webhooks:
+
+1. Go to **Webhooks → Failed Deliveries**
+2. View error details
+3. Click **Retry** to resend
+
+---
+
+## Best Practices
+
+### 1. Respond Quickly
+
+```javascript
+app.post('/webhooks/sendexa/smpp', async (req, res) => {
+  // Respond immediately
+  res.status(200).send('OK');
+
+  // Process asynchronously
+  processWebhook(req.body).catch(console.error);
+});
+
+async function processWebhook(event) {
+  // Heavy processing here
+  await updateDatabase(event);
+  await sendNotifications(event);
+}
+```
+
+### 2. Queue Processing
+
+```javascript
+const Queue = require('bull');
+const webhookQueue = new Queue('webhooks');
+
+app.post('/webhooks/sendexa/smpp', async (req, res) => {
+  // Add to queue
+  await webhookQueue.add(req.body);
+
+  // Respond immediately
+  res.status(200).send('OK');
+});
+
+// Process queue
+webhookQueue.process(async (job) => {
+  const event = job.data;
+  await handleWebhook(event);
+});
+```
+
+### 3. Error Handling
+
+```javascript
+app.post('/webhooks/sendexa/smpp', async (req, res) => {
+  try {
+    await handleWebhook(req.body);
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+
+    // Return 200 anyway to prevent retries for permanent errors
+    if (error.code === 'PERMANENT_ERROR') {
+      res.status(200).send('OK');
+    } else {
+      res.status(500).send('Retry');
+    }
+  }
+});
+```
+
+---
+
+## Common Errors
+
+### Error: Signature Mismatch
+
+**Cause:** Wrong webhook secret or modified payload
+
+**Solution:**
+
+- Verify secret from dashboard
+- Check raw request body
+- Use UTF-8 encoding
+
+### Error: Timeout
+
+**Cause:** Processing takes too long
+
+**Solution:**
+
+- Return 200 OK immediately
+- Process asynchronously
+- Optimize slow operations
+
+### Error: Duplicate Events
+
+**Cause:** Retries due to slow response
+
+**Solution:**
+
+- Implement idempotency using delivery IDs
+- Store processed event IDs
+
+---
+
+## Webhook vs SMPP DLR Comparison
+
+### Latency
+
+```
+SMPP DLR:     Send ──▶ Network ──▶ DLR (100ms)
+HTTP Webhook: Send ──▶ Network ──▶ Queue ──▶ HTTP (500ms)
+```
+
+### Reliability
+
+- **SMPP DLR:** Requires active connection
+- **Webhook:** Automatic retries, no active connection needed
+
+### Complexity
+
+- **SMPP DLR:** Requires SMPP client and handler
+- **Webhook:** Simple HTTP endpoint
+
+### Recommendation
+
+- **High Volume + Low Latency:** SMPP DLR
+- **Simplicity + Reliability:** HTTP Webhook
+- **Best of Both:** Use hybrid approach
+
+---
+
+## Next Steps
+
+- 📊 **[Delivery Reports](/docs/smpp/dlr)** - Native SMPP DLRs
+- 🛠️ **[API Reference](/docs/smpp/v1)** - Complete specification
+- 📤 **[Send SMS](/docs/smpp/send)** - Submit messages

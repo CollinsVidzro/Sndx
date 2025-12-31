@@ -1,0 +1,659 @@
+---
+title: Lookup API v1 Reference
+description: Complete API reference for the Sendexa Lookup API v1 with all endpoints, parameters, and response formats.
+date: 2025-03-12
+---
+
+# Lookup API v1 Reference
+
+Complete reference documentation for all Sendexa Lookup API v1 endpoints. This guide provides detailed information about every endpoint, parameter, response format, and error code.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+All API requests require authentication using Bearer tokens in the `Authorization` header.
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Generate tokens:** [Dashboard → Developers → API Keys](https://auth.sendexa.co/developers/api-keys)
+
+---
+
+## Endpoints Overview
+
+| Endpoint               | Method | Purpose               | Rate Limit | Cost     |
+| ---------------------- | ------ | --------------------- | ---------- | -------- |
+| `/v1/lookup/carrier`   | POST   | Get carrier info      | 100/min    | $0.005   |
+| `/v1/lookup/validate`  | POST   | Validate phone number | 100/min    | $0.005   |
+| `/v1/lookup/email`     | POST   | Verify email          | 100/min    | $0.002   |
+| `/v1/lookup/line-type` | POST   | Detect line type      | 100/min    | $0.005   |
+| `/v1/lookup/bulk`      | POST   | Bulk lookup           | 30/min     | Variable |
+
+---
+
+## Carrier Lookup
+
+### POST /v1/lookup/carrier
+
+Get carrier information for a phone number.
+
+#### Request Body
+
+| Parameter      | Type   | Required | Description            |
+| -------------- | ------ | -------- | ---------------------- |
+| `phone_number` | string | Yes      | Phone number to lookup |
+| `country_hint` | string | No       | 2-letter country code  |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/carrier' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_number": "233501234567"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "valid": true,
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "e164_format": "+233501234567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "country_prefix": "233",
+  "carrier": "MTN Ghana",
+  "carrier_code": "MTN",
+  "line_type": "mobile",
+  "ported": false,
+  "original_carrier": null,
+  "roaming": false,
+  "mcc": "620",
+  "mnc": "01"
+}
+```
+
+---
+
+## Phone Number Validation
+
+### POST /v1/lookup/validate
+
+Validate a phone number and check reachability.
+
+#### Request Body
+
+| Parameter      | Type   | Required | Description              |
+| -------------- | ------ | -------- | ------------------------ |
+| `phone_number` | string | Yes      | Phone number to validate |
+| `country_hint` | string | No       | 2-letter country code    |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/validate' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_number": "233501234567"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "valid": true,
+  "reachable": true,
+  "active": true,
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "e164_format": "+233501234567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "country_prefix": "233",
+  "line_type": "mobile",
+  "carrier": "MTN Ghana",
+  "timezone": "Africa/Accra"
+}
+```
+
+---
+
+## Email Verification
+
+### POST /v1/lookup/email
+
+Verify an email address.
+
+#### Request Body
+
+| Parameter         | Type    | Required | Description                         |
+| ----------------- | ------- | -------- | ----------------------------------- |
+| `email`           | string  | Yes      | Email address to verify             |
+| `smtp_check`      | boolean | No       | Perform SMTP check (default: true)  |
+| `catch_all_check` | boolean | No       | Check for catch-all (default: true) |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/email' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "email": "user@example.com",
+  "valid": true,
+  "deliverable": true,
+  "disposable": false,
+  "role_based": false,
+  "free_provider": false,
+  "domain": "example.com",
+  "username": "user",
+  "mx_records": true,
+  "mx_servers": ["mail.example.com", "mail2.example.com"],
+  "smtp_check": true,
+  "catch_all": false,
+  "score": 95,
+  "risk": "low",
+  "suggestions": null
+}
+```
+
+---
+
+## Line Type Detection
+
+### POST /v1/lookup/line-type
+
+Detect the type of phone line.
+
+#### Request Body
+
+| Parameter      | Type   | Required | Description           |
+| -------------- | ------ | -------- | --------------------- |
+| `phone_number` | string | Yes      | Phone number to check |
+| `country_hint` | string | No       | 2-letter country code |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/line-type' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_number": "233501234567"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "line_type": "mobile",
+  "carrier": "MTN Ghana",
+  "sms_capable": true,
+  "voice_capable": true,
+  "mms_capable": true,
+  "capabilities": {
+    "sms": true,
+    "voice": true,
+    "mms": true,
+    "fax": false
+  }
+}
+```
+
+---
+
+## Bulk Lookup
+
+### POST /v1/lookup/bulk
+
+Perform multiple lookups in one request.
+
+#### Request Body
+
+| Parameter       | Type   | Required | Description                                    |
+| --------------- | ------ | -------- | ---------------------------------------------- |
+| `phone_numbers` | array  | Yes\*    | Array of phone numbers (max 100)               |
+| `emails`        | array  | Yes\*    | Array of emails (max 100)                      |
+| `lookup_type`   | string | Yes      | `carrier`, `validate`, `line-type`, or `email` |
+
+\*Either `phone_numbers` or `emails` required depending on `lookup_type`
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/bulk' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "lookup_type": "carrier",
+    "phone_numbers": [
+      "233501234567",
+      "233509876543",
+      "254712345678"
+    ]
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "lookup_type": "carrier",
+  "results": [
+    {
+      "phone_number": "233501234567",
+      "valid": true,
+      "carrier": "MTN Ghana",
+      "line_type": "mobile",
+      "country_code": "GH"
+    },
+    {
+      "phone_number": "233509876543",
+      "valid": true,
+      "carrier": "Vodafone Ghana",
+      "line_type": "mobile",
+      "country_code": "GH"
+    },
+    {
+      "phone_number": "254712345678",
+      "valid": true,
+      "carrier": "Safaricom",
+      "line_type": "mobile",
+      "country_code": "KE"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "valid": 3,
+    "invalid": 0,
+    "cost": 0.015
+  }
+}
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description                  |
+| ---- | --------------------- | ---------------------------- |
+| 200  | OK                    | Request successful           |
+| 400  | Bad Request           | Invalid parameters           |
+| 401  | Unauthorized          | Invalid or missing API token |
+| 402  | Payment Required      | Insufficient balance         |
+| 403  | Forbidden             | Access denied                |
+| 404  | Not Found             | Resource not found           |
+| 422  | Unprocessable Entity  | Validation errors            |
+| 429  | Too Many Requests     | Rate limit exceeded          |
+| 500  | Internal Server Error | Server error                 |
+| 503  | Service Unavailable   | Temporary unavailability     |
+
+### Application Error Codes
+
+#### Phone Number Errors
+
+| Code                    | HTTP | Description                 |
+| ----------------------- | ---- | --------------------------- |
+| `INVALID_PHONE_NUMBER`  | 400  | Phone number format invalid |
+| `INVALID_LENGTH`        | 400  | Phone number length invalid |
+| `INVALID_COUNTRY_CODE`  | 400  | Country code invalid        |
+| `COUNTRY_NOT_SUPPORTED` | 400  | Country not supported       |
+| `NUMBER_NOT_REACHABLE`  | 400  | Number not reachable        |
+| `DISCONNECTED`          | 400  | Number disconnected         |
+
+#### Email Errors
+
+| Code                   | HTTP | Description               |
+| ---------------------- | ---- | ------------------------- |
+| `INVALID_EMAIL_FORMAT` | 400  | Email format invalid      |
+| `DOMAIN_NOT_FOUND`     | 400  | Domain does not exist     |
+| `NO_MX_RECORDS`        | 400  | No MX records found       |
+| `SMTP_TIMEOUT`         | 500  | SMTP check timeout        |
+| `DISPOSABLE_EMAIL`     | 400  | Disposable email detected |
+
+#### General Errors
+
+| Code                   | HTTP | Description                  |
+| ---------------------- | ---- | ---------------------------- |
+| `INVALID_TOKEN`        | 401  | API token invalid or expired |
+| `INSUFFICIENT_BALANCE` | 402  | Not enough credits           |
+| `RATE_LIMIT_EXCEEDED`  | 429  | Too many requests            |
+| `SERVER_ERROR`         | 500  | Internal error               |
+
+---
+
+## Rate Limits
+
+| Endpoint               | Rate Limit   | Window   | Burst |
+| ---------------------- | ------------ | -------- | ----- |
+| `/v1/lookup/carrier`   | 100 requests | 1 minute | 200   |
+| `/v1/lookup/validate`  | 100 requests | 1 minute | 200   |
+| `/v1/lookup/email`     | 100 requests | 1 minute | 200   |
+| `/v1/lookup/line-type` | 100 requests | 1 minute | 200   |
+| `/v1/lookup/bulk`      | 30 requests  | 1 minute | 60    |
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 85
+X-RateLimit-Reset: 1678627800
+```
+
+### Rate Limit Exceeded Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Try again in 60 seconds.",
+    "retry_after": 60
+  }
+}
+```
+
+---
+
+## Response Field Reference
+
+### Phone Number Fields
+
+| Field                  | Type    | Description                      |
+| ---------------------- | ------- | -------------------------------- |
+| `phone_number`         | string  | Original phone number            |
+| `valid`                | boolean | Whether number is valid          |
+| `reachable`            | boolean | Whether number is reachable      |
+| `international_format` | string  | International format (+XXX...)   |
+| `national_format`      | string  | National format (0XX...)         |
+| `e164_format`          | string  | E.164 format                     |
+| `country_code`         | string  | 2-letter country code            |
+| `country_name`         | string  | Full country name                |
+| `country_prefix`       | string  | Country calling code             |
+| `carrier`              | string  | Carrier/operator name            |
+| `carrier_code`         | string  | Short carrier code               |
+| `line_type`            | string  | Line type (mobile/landline/voip) |
+| `ported`               | boolean | Whether number has been ported   |
+| `original_carrier`     | string  | Original carrier (if ported)     |
+| `timezone`             | string  | Timezone                         |
+| `mcc`                  | string  | Mobile Country Code              |
+| `mnc`                  | string  | Mobile Network Code              |
+
+### Email Fields
+
+| Field           | Type    | Description                    |
+| --------------- | ------- | ------------------------------ |
+| `email`         | string  | Email address                  |
+| `valid`         | boolean | Whether email is valid         |
+| `deliverable`   | boolean | Whether email can receive mail |
+| `disposable`    | boolean | Whether it's disposable        |
+| `role_based`    | boolean | Whether it's role-based        |
+| `free_provider` | boolean | Whether it's free provider     |
+| `domain`        | string  | Email domain                   |
+| `username`      | string  | Email username                 |
+| `mx_records`    | boolean | Whether MX records exist       |
+| `mx_servers`    | array   | List of MX servers             |
+| `smtp_check`    | boolean | Whether SMTP check passed      |
+| `catch_all`     | boolean | Whether domain is catch-all    |
+| `score`         | integer | Quality score (0-100)          |
+| `risk`          | string  | Risk level (low/medium/high)   |
+| `suggestions`   | string  | Suggested correction           |
+
+---
+
+## SDKs
+
+### Official SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+```javascript
+const Sendexa = require('@sendexa/node-sdk');
+const client = new Sendexa('your_token');
+
+// Carrier lookup
+const carrier = await client.lookup.carrier('233501234567');
+
+// Email verification
+const email = await client.lookup.email('user@example.com');
+
+// Line type
+const lineType = await client.lookup.lineType('233501234567');
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+```python
+from sendexa import Sendexa
+
+client = Sendexa('your_token')
+
+# Carrier lookup
+carrier = client.lookup.carrier('233501234567')
+
+# Email verification
+email = client.lookup.email('user@example.com')
+
+# Line type
+line_type = client.lookup.line_type('233501234567')
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+```php
+<?php
+use Sendexa\Client;
+
+$client = new Client('your_token');
+
+// Carrier lookup
+$carrier = $client->lookup->carrier('233501234567');
+
+// Email verification
+$email = $client->lookup->email('user@example.com');
+
+// Line type
+$lineType = $client->lookup->lineType('233501234567');
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Phone Numbers:**
+
+| Number         | Result                |
+| -------------- | --------------------- |
+| `233500000001` | Valid MTN mobile      |
+| `233500000002` | Valid Vodafone mobile |
+| `233500000003` | Invalid number        |
+| `233500000004` | Ported number         |
+| `233500000005` | Landline              |
+| `233500000006` | VoIP                  |
+
+**Test Emails:**
+
+| Email                 | Result             |
+| --------------------- | ------------------ |
+| `valid@test.com`      | Valid, deliverable |
+| `invalid@test.com`    | Invalid format     |
+| `disposable@test.com` | Disposable email   |
+| `role@test.com`       | Role-based email   |
+| `bounce@test.com`     | High bounce risk   |
+
+---
+
+## Best Practices
+
+### 1. Cache Results
+
+```javascript
+// Cache lookup results for 30-90 days
+const cache = new Map();
+const CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+
+async function cachedLookup(phoneNumber) {
+  const key = phoneNumber.replace(/\D/g, '');
+  const cached = cache.get(key);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  const result = await carrierLookup(phoneNumber);
+  cache.set(key, { data: result, timestamp: Date.now() });
+
+  return result;
+}
+```
+
+### 2. Use Bulk Endpoints
+
+```javascript
+// Bad - Individual requests
+for (const number of phoneNumbers) {
+  await carrierLookup(number);
+}
+
+// Good - Bulk request
+await bulkCarrierLookup(phoneNumbers);
+```
+
+### 3. Handle Errors Gracefully
+
+```javascript
+async function safeLookup(phoneNumber) {
+  try {
+    return await carrierLookup(phoneNumber);
+  } catch (error) {
+    if (error.code === 'RATE_LIMIT_EXCEEDED') {
+      await new Promise((r) => setTimeout(r, error.retry_after * 1000));
+      return await carrierLookup(phoneNumber);
+    }
+    return { valid: false, error: error.message };
+  }
+}
+```
+
+### 4. Validate Before Expensive Operations
+
+```javascript
+// Validate before sending
+const lookup = await validateNumber(phoneNumber);
+if (lookup.valid && lookup.reachable) {
+  await sendSMS(phoneNumber, message);
+}
+```
+
+### 5. Monitor Costs
+
+```javascript
+// Track lookup costs
+let totalCost = 0;
+
+async function trackedLookup(phoneNumber) {
+  const result = await carrierLookup(phoneNumber);
+  totalCost += 0.005; // $0.005 per lookup
+
+  if (totalCost > 10) {
+    await alertAdmin('Lookup cost exceeded $10');
+  }
+
+  return result;
+}
+```
+
+---
+
+## Pricing Summary
+
+| Lookup Type         | Price per Request | Bulk Discount |
+| ------------------- | ----------------- | ------------- |
+| Carrier Lookup      | $0.005 (₵0.03)    | 10% off 10k+  |
+| Phone Validation    | $0.005 (₵0.03)    | 10% off 10k+  |
+| Email Verification  | $0.002 (₵0.01)    | 10% off 10k+  |
+| Line Type Detection | $0.005 (₵0.03)    | 10% off 10k+  |
+
+---
+
+## Support
+
+- **Documentation:** [docs.sendexa.co](https://docs.sendexa.co)
+- **API Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Email:** support@sendexa.co
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+- **GitHub:** [github.com/sendexa](https://github.com/sendexa)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Carrier lookup
+- Phone number validation
+- Email verification
+- Line type detection
+- Bulk lookup support

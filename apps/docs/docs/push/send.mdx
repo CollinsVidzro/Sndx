@@ -1,0 +1,961 @@
+---
+title: Send Push Notifications
+description: Learn how to send push notifications to mobile and web devices using the Sendexa API with detailed examples and best practices.
+date: 2025-03-12
+---
+
+# Send Push Notifications
+
+Learn how to send push notifications using the Sendexa API. This guide covers single device, bulk, and topic-based notifications with complete examples.
+
+---
+
+## Quick Start
+
+### Single Device
+
+Send a notification to one device:
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "title": "Order Shipped",
+    "body": "Your order #12345 is on the way!",
+    "data": {
+      "orderId": "12345"
+    }
+  }'
+```
+
+### Multiple Devices
+
+Send to multiple devices at once:
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_tokens": ["token1", "token2", "token3"],
+    "title": "Flash Sale!",
+    "body": "50% off all items. Limited time!"
+  }'
+```
+
+### Topic Broadcasting
+
+Send to all topic subscribers:
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send/topic' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": "breaking_news",
+    "title": "Breaking News",
+    "body": "Major announcement just released"
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/push/send
+
+Send push notifications to one or more devices.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Request Parameters
+
+### Single Device Request
+
+| Parameter      | Type    | Required | Description                              |
+| -------------- | ------- | -------- | ---------------------------------------- |
+| `device_token` | string  | Yes\*    | Target device token                      |
+| `title`        | string  | Yes      | Notification title                       |
+| `body`         | string  | Yes      | Notification message                     |
+| `data`         | object  | No       | Custom payload data                      |
+| `image`        | string  | No       | Image URL for rich notification          |
+| `icon`         | string  | No       | Icon URL (Android/Web)                   |
+| `badge`        | integer | No       | Badge count (iOS)                        |
+| `sound`        | string  | No       | Sound filename                           |
+| `actions`      | array   | No       | Action buttons                           |
+| `priority`     | string  | No       | `high` or `normal` (default: `normal`)   |
+| `ttl`          | integer | No       | Time to live in seconds (default: 86400) |
+| `scheduled_at` | string  | No       | ISO 8601 timestamp for scheduling        |
+| `collapse_key` | string  | No       | Group related notifications              |
+
+\*Either `device_token`, `device_tokens`, or `user_id` is required
+
+### Bulk Request
+
+| Parameter                               | Type  | Required | Description                       |
+| --------------------------------------- | ----- | -------- | --------------------------------- |
+| `device_tokens`                         | array | Yes\*    | Array of device tokens (max 1000) |
+| All other parameters from single device |       |          |                                   |
+
+### User Targeting
+
+| Parameter                               | Type   | Required | Description                   |
+| --------------------------------------- | ------ | -------- | ----------------------------- |
+| `user_id`                               | string | Yes\*    | Send to all devices of a user |
+| All other parameters from single device |        |          |                               |
+
+---
+
+## Parameter Details
+
+### device_token
+
+The unique device token obtained from the device:
+
+```json
+{
+  "device_token": "fL9x8K3mR2nQ5pW7hT6cX4vB9nM1sK0p..."
+}
+```
+
+**Token Format:**
+
+- iOS (APNs): 64 hexadecimal characters
+- Android (FCM): 152+ characters
+- Web: 100+ characters
+
+### title & body
+
+The notification content displayed to users:
+
+```json
+{
+  "title": "New Message",
+  "body": "John sent you a message"
+}
+```
+
+**Character Limits:**
+
+- **Title:** 50 characters recommended (iOS), 65 (Android)
+- **Body:** 150 characters recommended (both platforms)
+
+**Tips:**
+
+- Keep titles short and descriptive
+- Use emojis sparingly
+- Front-load important information
+- Avoid ALL CAPS
+
+### data
+
+Custom payload sent to your app:
+
+```json
+{
+  "data": {
+    "screen": "order_details",
+    "orderId": "12345",
+    "userId": "user-abc",
+    "timestamp": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+**Use Cases:**
+
+- Deep linking
+- Screen navigation
+- Custom actions
+- Tracking data
+
+### image
+
+URL to an image for rich notifications:
+
+```json
+{
+  "image": "https://cdn.yourapp.com/notification-image.jpg"
+}
+```
+
+**Requirements:**
+
+- HTTPS URL
+- Format: JPG, PNG, GIF
+- Max size: 1MB recommended
+- Dimensions: 1200x600 recommended
+
+### actions
+
+Interactive action buttons:
+
+```json
+{
+  "actions": [
+    {
+      "id": "accept",
+      "title": "Accept",
+      "icon": "checkmark"
+    },
+    {
+      "id": "decline",
+      "title": "Decline",
+      "icon": "close"
+    }
+  ]
+}
+```
+
+**Limits:**
+
+- Max 3 actions (iOS)
+- Max 3 actions (Android)
+- Max 2 actions (Web)
+
+### priority
+
+Control delivery urgency:
+
+```json
+{
+  "priority": "high"
+}
+```
+
+**Options:**
+
+- `high` - Immediate delivery, may wake device
+- `normal` - Standard delivery (default)
+
+**Use high priority for:**
+
+- Time-sensitive alerts
+- Incoming calls/messages
+- Payment confirmations
+- Security alerts
+
+**Use normal priority for:**
+
+- Marketing messages
+- Content updates
+- Non-urgent notifications
+
+### ttl (Time To Live)
+
+How long to keep notification if device is offline:
+
+```json
+{
+  "ttl": 3600
+}
+```
+
+**Values:**
+
+- Seconds from 0 to 2,419,200 (28 days)
+- Default: 86400 (24 hours)
+- 0 = deliver immediately or not at all
+
+### scheduled_at
+
+Schedule notification for future delivery:
+
+```json
+{
+  "scheduled_at": "2025-03-15T10:00:00Z"
+}
+```
+
+**Requirements:**
+
+- ISO 8601 format with timezone
+- Must be in the future
+- Maximum 30 days ahead
+- Timezone: UTC
+
+### collapse_key
+
+Group related notifications:
+
+```json
+{
+  "collapse_key": "message_thread_123"
+}
+```
+
+**Behavior:**
+
+- Only latest notification shown if device is offline
+- Useful for updating notifications
+- Max 64 characters
+
+---
+
+## Response Format
+
+### Success Response (Single)
+
+```json
+{
+  "success": true,
+  "message": "Push notification sent successfully",
+  "notification": {
+    "id": "notif_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "status": "sent",
+    "platform": "ios",
+    "scheduled": false
+  }
+}
+```
+
+### Success Response (Bulk)
+
+```json
+{
+  "success": true,
+  "message": "Bulk push notifications sent",
+  "notifications": [
+    {
+      "id": "notif_abc123",
+      "device_token": "token1",
+      "status": "sent",
+      "platform": "ios"
+    },
+    {
+      "id": "notif_def456",
+      "device_token": "token2",
+      "status": "sent",
+      "platform": "android"
+    },
+    {
+      "id": "notif_ghi789",
+      "device_token": "token3",
+      "status": "failed",
+      "error": "Invalid device token"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "sent": 2,
+    "failed": 1
+  }
+}
+```
+
+### Response Fields
+
+| Field                            | Type         | Description                       |
+| -------------------------------- | ------------ | --------------------------------- |
+| `success`                        | boolean      | Whether request succeeded         |
+| `message`                        | string       | Human-readable status             |
+| `notification` / `notifications` | object/array | Notification details              |
+| `id`                             | string       | Unique notification ID            |
+| `device_token`                   | string       | Target device token               |
+| `status`                         | string       | `sent`, `scheduled`, or `failed`  |
+| `platform`                       | string       | `ios`, `android`, or `web`        |
+| `scheduled`                      | boolean      | Whether notification is scheduled |
+| `error`                          | string       | Error message (if failed)         |
+| `summary`                        | object       | Bulk send summary                 |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function sendPushNotification(deviceToken, title, body, data = {}) {
+  try {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/push/send',
+      {
+        device_token: deviceToken,
+        title,
+        body,
+        data,
+        priority: 'high',
+      },
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Notification sent:', response.data.notification.id);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Send single notification
+await sendPushNotification(
+  'fL9x8K3mR2nQ5pW7...',
+  'Order Shipped',
+  'Your order is on the way!',
+  { orderId: '12345' }
+);
+
+// Send bulk notifications
+async function sendBulkPush(tokens, title, body) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/push/send',
+    {
+      device_tokens: tokens,
+      title,
+      body,
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+```
+
+### Python
+
+```python
+import requests
+from datetime import datetime
+
+def send_push_notification(device_token, title, body, data=None):
+    """Send push notification via Sendexa API"""
+    url = 'https://api.sendexa.co/v1/push/send'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'device_token': device_token,
+        'title': title,
+        'body': body,
+        'priority': 'high'
+    }
+
+    if data:
+        payload['data'] = data
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+
+        print(f"Notification sent: {result['notification']['id']}")
+        return result
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        raise
+
+# Send single notification
+send_push_notification(
+    'fL9x8K3mR2nQ5pW7...',
+    'Order Shipped',
+    'Your order is on the way!',
+    {'orderId': '12345'}
+)
+
+# Send bulk notifications
+def send_bulk_push(device_tokens, title, body):
+    """Send push to multiple devices"""
+    url = 'https://api.sendexa.co/v1/push/send'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'device_tokens': device_tokens,
+        'title': title,
+        'body': body
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()
+```
+
+### PHP
+
+```php
+<?php
+
+function sendPushNotification($deviceToken, $title, $body, $data = []) {
+    $url = 'https://api.sendexa.co/v1/push/send';
+    $token = 'your_token';
+
+    $payload = [
+        'device_token' => $deviceToken,
+        'title' => $title,
+        'body' => $body,
+        'priority' => 'high'
+    ];
+
+    if (!empty($data)) {
+        $payload['data'] = $data;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+        echo "Notification sent: " . $result['notification']['id'] . "\n";
+        return $result;
+    } else {
+        throw new Exception("Push send failed: " . $response);
+    }
+}
+
+// Send single notification
+sendPushNotification(
+    'fL9x8K3mR2nQ5pW7...',
+    'Order Shipped',
+    'Your order is on the way!',
+    ['orderId' => '12345']
+);
+
+// Send bulk notifications
+function sendBulkPush($deviceTokens, $title, $body) {
+    $url = 'https://api.sendexa.co/v1/push/send';
+    $token = 'your_token';
+
+    $payload = [
+        'device_tokens' => $deviceTokens,
+        'title' => $title,
+        'body' => $body
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    return json_decode($response, true);
+}
+?>
+```
+
+---
+
+## Topic Broadcasting
+
+### POST /v1/push/send/topic
+
+Send notifications to all subscribers of a topic.
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send/topic' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": "sports_football",
+    "title": "Goal Scored!",
+    "body": "Manchester United leads 2-1",
+    "data": {
+      "matchId": "match-123"
+    }
+  }'
+```
+
+### Request Parameters
+
+| Parameter                     | Type   | Required | Description         |
+| ----------------------------- | ------ | -------- | ------------------- |
+| `topic`                       | string | Yes      | Topic name          |
+| `title`                       | string | Yes      | Notification title  |
+| `body`                        | string | Yes      | Notification body   |
+| `data`                        | object | No       | Custom data         |
+| `image`                       | string | No       | Image URL           |
+| Other notification parameters |        |          | Same as device send |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Topic notification sent",
+  "topic": "sports_football",
+  "estimated_devices": 15420,
+  "notification_id": "notif_topic_abc123"
+}
+```
+
+---
+
+## Advanced Features
+
+### Rich Notifications with Images
+
+```javascript
+await axios.post(url, {
+  device_token: token,
+  title: 'New Product Launch',
+  body: 'Check out our latest collection',
+  image: 'https://cdn.shop.com/product-banner.jpg',
+  data: {
+    productId: 'prod-123',
+    category: 'clothing',
+  },
+});
+```
+
+### Interactive Notifications
+
+```javascript
+await axios.post(url, {
+  device_token: token,
+  title: 'Friend Request',
+  body: 'John wants to connect with you',
+  actions: [
+    { id: 'accept', title: 'Accept', icon: 'checkmark' },
+    { id: 'decline', title: 'Decline', icon: 'close' },
+  ],
+  data: {
+    userId: 'user-123',
+    requestId: 'req-456',
+  },
+});
+```
+
+### Scheduled Notifications
+
+```javascript
+await axios.post(url, {
+  device_token: token,
+  title: 'Appointment Reminder',
+  body: 'Your appointment is tomorrow at 2 PM',
+  scheduled_at: '2025-03-14T14:00:00Z',
+  data: {
+    appointmentId: 'apt-789',
+  },
+});
+```
+
+### Silent Notifications (Data-Only)
+
+```javascript
+await axios.post(url, {
+  device_token: token,
+  data: {
+    action: 'sync_data',
+    lastSync: '2025-03-12T10:00:00Z',
+  },
+  priority: 'high',
+  // No title/body = silent notification
+});
+```
+
+---
+
+## Platform-Specific Features
+
+### iOS-Specific
+
+```javascript
+await axios.post(url, {
+  device_token: iosToken,
+  title: 'New Message',
+  body: 'You have 3 unread messages',
+  badge: 3,
+  sound: 'message_sound.caf',
+  data: {
+    threadId: 'thread-123',
+  },
+});
+```
+
+### Android-Specific
+
+```javascript
+await axios.post(url, {
+  device_token: androidToken,
+  title: 'Download Complete',
+  body: 'Your file is ready',
+  icon: 'ic_download',
+  color: '#4CAF50',
+  data: {
+    fileId: 'file-456',
+  },
+});
+```
+
+### Web-Specific
+
+```javascript
+await axios.post(url, {
+  device_token: webToken,
+  title: 'New Article',
+  body: 'Check out our latest blog post',
+  icon: '/icon-192.png',
+  badge: '/badge-72.png',
+  image: '/article-preview.jpg',
+  actions: [
+    { id: 'read', title: 'Read Now' },
+    { id: 'save', title: 'Save for Later' },
+  ],
+  data: {
+    articleUrl: '/blog/latest-post',
+  },
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Personalization
+
+```javascript
+// Bad - Generic message
+await sendPush(token, 'New Order', 'An order was placed');
+
+// Good - Personalized message
+await sendPush(
+  token,
+  `Thanks, ${userName}!`,
+  `Your order #${orderId} is confirmed`,
+  { orderId, userId }
+);
+```
+
+### 2. Timing
+
+```javascript
+// Consider user timezone
+const userTimezone = 'Africa/Accra';
+const userTime = moment().tz(userTimezone);
+
+// Don't send notifications during quiet hours (10 PM - 8 AM)
+if (userTime.hour() >= 22 || userTime.hour() < 8) {
+  // Schedule for next morning
+  const scheduledTime = userTime.hour(9).minute(0);
+
+  await sendPush(token, title, body, {
+    scheduled_at: scheduledTime.toISOString(),
+  });
+}
+```
+
+### 3. Frequency Capping
+
+```javascript
+// Check last notification time
+const lastNotifTime = await db.getLastNotificationTime(userId);
+const hoursSinceLastNotif = (Date.now() - lastNotifTime) / 1000 / 3600;
+
+// Don't send if less than 4 hours ago
+if (hoursSinceLastNotif < 4) {
+  console.log('Too soon, skipping notification');
+  return;
+}
+
+// Send and update timestamp
+await sendPush(token, title, body);
+await db.updateLastNotificationTime(userId, Date.now());
+```
+
+### 4. A/B Testing
+
+```javascript
+// Variant A
+const variantA = {
+  title: 'New Feature Available',
+  body: 'Try our new dark mode',
+};
+
+// Variant B
+const variantB = {
+  title: 'Dark Mode is Here!',
+  body: 'Experience the app in a whole new way',
+};
+
+// Split users 50/50
+const variant = userId % 2 === 0 ? variantA : variantB;
+
+await sendPush(token, variant.title, variant.body, {
+  variant: userId % 2 === 0 ? 'A' : 'B',
+});
+```
+
+### 5. Delivery Confirmation
+
+```javascript
+async function sendWithConfirmation(token, title, body) {
+  // Send notification
+  const result = await sendPush(token, title, body);
+  const notifId = result.notification.id;
+
+  // Poll for delivery status (or use webhooks)
+  const maxAttempts = 5;
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 2000)); // Wait 2 seconds
+
+    const status = await checkNotificationStatus(notifId);
+
+    if (status.delivered) {
+      console.log('Notification delivered successfully');
+      return true;
+    }
+
+    if (status.failed) {
+      console.error('Notification failed:', status.error);
+      return false;
+    }
+  }
+
+  console.log('Delivery status unknown');
+  return null;
+}
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+#### Invalid Device Token
+
+```json
+{
+  "success": false,
+  "error": "INVALID_DEVICE_TOKEN",
+  "message": "The device token is invalid or expired",
+  "device_token": "fL9x..."
+}
+```
+
+**Solution:** Remove invalid token from database
+
+#### Device Unregistered
+
+```json
+{
+  "success": false,
+  "error": "DEVICE_UNREGISTERED",
+  "message": "Device has unregistered from push notifications"
+}
+```
+
+**Solution:** Remove from database, user likely uninstalled app
+
+#### Rate Limit Exceeded
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests. Please slow down.",
+  "retry_after": 60
+}
+```
+
+**Solution:** Implement exponential backoff
+
+### Error Handling Example
+
+```javascript
+async function sendPushWithRetry(token, title, body, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await sendPush(token, title, body);
+    } catch (error) {
+      const errorCode = error.response?.data?.error;
+
+      // Don't retry for these errors
+      if (['INVALID_DEVICE_TOKEN', 'DEVICE_UNREGISTERED'].includes(errorCode)) {
+        await removeDeviceToken(token);
+        throw error;
+      }
+
+      // Retry for rate limits and server errors
+      if (
+        errorCode === 'RATE_LIMIT_EXCEEDED' ||
+        error.response?.status >= 500
+      ) {
+        if (attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+      }
+
+      throw error;
+    }
+  }
+}
+```
+
+---
+
+## Testing
+
+### Test Tokens
+
+Use these in sandbox:
+
+| Token                  | Platform | Behavior                  |
+| ---------------------- | -------- | ------------------------- |
+| `test_ios_success`     | iOS      | Always delivers           |
+| `test_android_success` | Android  | Always delivers           |
+| `test_web_success`     | Web      | Always delivers           |
+| `test_invalid_token`   | Any      | Always fails              |
+| `test_offline_device`  | Any      | Queues for offline device |
+
+### Testing Checklist
+
+- [ ] Test on real iOS device
+- [ ] Test on real Android device
+- [ ] Test on web browser (Chrome/Firefox)
+- [ ] Test with app in foreground
+- [ ] Test with app in background
+- [ ] Test with app closed
+- [ ] Test with device offline
+- [ ] Test notification with image
+- [ ] Test notification with actions
+- [ ] Test deep linking
+- [ ] Test scheduled notifications
+- [ ] Test notification grouping
+
+---
+
+## Next Steps
+
+- 🔧 **[Manage Devices](/docs/push/devices)** - Device registration & management
+- 📊 **[View Analytics](/dashboard/push/analytics)** - Track performance
+- 🛠️ **[API Reference](/docs/push/v1)** - Complete endpoint documentation
+- 💡 **[View Examples](https://github.com/sendexa/examples/push)** - Code samples

@@ -1,0 +1,660 @@
+---
+title: Delivery Reports
+description: Track SMS delivery status in real-time using delivery reports and status checks.
+date: 2025-03-12
+---
+
+# Delivery Reports
+
+Track the delivery status of your SMS messages in real-time. Sendexa provides detailed delivery reports through both API status checks and webhook notifications.
+
+---
+
+## Overview
+
+Every SMS sent through Sendexa goes through a delivery lifecycle. You can track this lifecycle using:
+
+1. **Status Check API** - Poll for message status
+2. **Webhooks** - Receive real-time delivery notifications
+3. **Dashboard** - View delivery reports in web interface
+
+---
+
+## Message Lifecycle
+
+```
+┌──────────┐     ┌──────┐     ┌────────────┐     ┌───────────┐
+│  Queued  │────▶│ Sent │────▶│ Delivered  │────▶│  Success  │
+└──────────┘     └──────┘     └────────────┘     └───────────┘
+                    │
+                    │
+                    ▼
+              ┌──────────┐
+              │  Failed  │
+              └──────────┘
+```
+
+### Status Descriptions
+
+| Status        | Description              | Billable | Next Step                      |
+| ------------- | ------------------------ | -------- | ------------------------------ |
+| **queued**    | Message is in send queue | No       | Wait for processing            |
+| **sent**      | Message sent to carrier  | Yes      | Wait for delivery confirmation |
+| **delivered** | Successfully delivered   | Yes      | No action needed               |
+| **failed**    | Delivery failed          | No\*     | Check error & resend           |
+
+\*Failed messages are only billed if they reached the carrier before failing
+
+---
+
+## Check Delivery Status
+
+### GET /v1/sms/status/:messageId
+
+Query the current status of a specific message.
+
+**Endpoint:** `https://api.sendexa.co/v1/sms/status/:messageId`
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Request
+
+### Path Parameters
+
+| Parameter   | Type   | Required | Description                                  |
+| ----------- | ------ | -------- | -------------------------------------------- |
+| `messageId` | string | Yes      | Unique message identifier from send response |
+
+### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/sms/status/debd64cc-e2dd-4db7-94ee-0a3bfa6d912f' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## Response
+
+### Success Response
+
+```json
+{
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "to": "233501234567",
+  "from": "YourBrand",
+  "content": "Your OTP is 123456",
+  "status": "delivered",
+  "parts": 1,
+  "cost": 0.035,
+  "currency": "GHS",
+  "reference": "order-12345-otp",
+  "provider": "MTN",
+  "timestamps": {
+    "queued": "2025-03-12T14:20:00Z",
+    "sent": "2025-03-12T14:20:02Z",
+    "delivered": "2025-03-12T14:20:05Z"
+  }
+}
+```
+
+### Response Fields
+
+| Field        | Type    | Description                         |
+| ------------ | ------- | ----------------------------------- |
+| `messageId`  | string  | Unique message identifier           |
+| `to`         | string  | Recipient phone number              |
+| `from`       | string  | Sender ID used                      |
+| `content`    | string  | Message text sent                   |
+| `status`     | string  | Current delivery status             |
+| `parts`      | integer | Number of SMS parts                 |
+| `cost`       | float   | Cost for this message               |
+| `currency`   | string  | Currency code                       |
+| `reference`  | string  | Your custom reference (if provided) |
+| `provider`   | string  | Network provider                    |
+| `timestamps` | object  | Status change timestamps            |
+| `error`      | object  | Error details (if failed)           |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function checkMessageStatus(messageId) {
+  try {
+    const response = await axios.get(
+      `https://api.sendexa.co/v1/sms/status/${messageId}`,
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+        },
+      }
+    );
+
+    const { status, timestamps } = response.data;
+    console.log(`Status: ${status}`);
+
+    if (status === 'delivered') {
+      const deliveryTime = new Date(timestamps.delivered);
+      console.log(`Delivered at: ${deliveryTime.toLocaleString()}`);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Error checking status:',
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+// Usage
+const status = await checkMessageStatus('debd64cc-e2dd-4db7-94ee-0a3bfa6d912f');
+```
+
+### Python
+
+```python
+import requests
+from datetime import datetime
+
+def check_message_status(message_id):
+    """Check delivery status of a message"""
+    url = f'https://api.sendexa.co/v1/sms/status/{message_id}'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN'
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"Status: {data['status']}")
+
+        if data['status'] == 'delivered':
+            delivered_at = datetime.fromisoformat(
+                data['timestamps']['delivered'].replace('Z', '+00:00')
+            )
+            print(f"Delivered at: {delivered_at}")
+
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        raise
+
+# Usage
+status = check_message_status('debd64cc-e2dd-4db7-94ee-0a3bfa6d912f')
+```
+
+### PHP
+
+```php
+<?php
+
+function checkMessageStatus($messageId) {
+    $url = "https://api.sendexa.co/v1/sms/status/{$messageId}";
+    $token = 'your_token';
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $data = json_decode($response, true);
+        echo "Status: " . $data['status'] . "\n";
+
+        if ($data['status'] === 'delivered') {
+            echo "Delivered at: " . $data['timestamps']['delivered'] . "\n";
+        }
+
+        return $data;
+    } else {
+        throw new Exception("Status check failed: " . $response);
+    }
+}
+
+// Usage
+$status = checkMessageStatus('debd64cc-e2dd-4db7-94ee-0a3bfa6d912f');
+?>
+```
+
+---
+
+## Bulk Status Check
+
+Check status of multiple messages at once.
+
+### POST /v1/sms/status/bulk
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/status/bulk' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "messageIds": [
+      "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91"
+    ]
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "status": "delivered",
+      "timestamps": {
+        "delivered": "2025-03-12T14:20:05Z"
+      }
+    },
+    {
+      "messageId": "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91",
+      "status": "sent",
+      "timestamps": {
+        "sent": "2025-03-12T14:21:00Z"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Polling Best Practices
+
+If you need to poll for status (webhooks are recommended instead):
+
+### Exponential Backoff
+
+```javascript
+async function waitForDelivery(messageId, maxWait = 60000) {
+  const start = Date.now();
+  let delay = 1000; // Start with 1 second
+
+  while (Date.now() - start < maxWait) {
+    const status = await checkMessageStatus(messageId);
+
+    if (status.status === 'delivered' || status.status === 'failed') {
+      return status;
+    }
+
+    // Exponential backoff
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    delay = Math.min(delay * 2, 10000); // Max 10 seconds
+  }
+
+  throw new Error('Timeout waiting for delivery');
+}
+
+// Usage
+try {
+  const result = await waitForDelivery('debd64cc-e2dd-4db7-94ee-0a3bfa6d912f');
+  console.log('Delivered!', result);
+} catch (error) {
+  console.error('Timeout or error:', error);
+}
+```
+
+### Rate Limit Aware Polling
+
+```javascript
+class StatusPoller {
+  constructor(rateLimit = 100) {
+    // 100 requests per minute
+    this.queue = [];
+    this.processing = false;
+    this.interval = 60000 / rateLimit;
+  }
+
+  async check(messageId) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ messageId, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const { messageId, resolve, reject } = this.queue.shift();
+
+    try {
+      const status = await checkMessageStatus(messageId);
+      resolve(status);
+    } catch (error) {
+      reject(error);
+    }
+
+    setTimeout(() => {
+      this.processing = false;
+      this.process();
+    }, this.interval);
+  }
+}
+
+// Usage
+const poller = new StatusPoller();
+const status1 = await poller.check('msg-id-1');
+const status2 = await poller.check('msg-id-2');
+```
+
+---
+
+## Delivery Reports via Webhook
+
+**Recommended:** Use webhooks instead of polling for real-time updates.
+
+### Webhook Payload
+
+```json
+{
+  "event": "sms.delivered",
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "to": "233501234567",
+  "from": "YourBrand",
+  "status": "delivered",
+  "deliveredAt": "2025-03-12T14:20:05Z",
+  "provider": "MTN",
+  "cost": 0.035,
+  "currency": "GHS"
+}
+```
+
+See [Webhooks Documentation](/docs/sms/webhooks) for setup details.
+
+---
+
+## Error Handling
+
+### Failed Delivery
+
+When status is `failed`, the response includes error details:
+
+```json
+{
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "status": "failed",
+  "error": {
+    "code": "INVALID_NUMBER",
+    "message": "The phone number is invalid or does not exist",
+    "provider_code": "001",
+    "provider_message": "Invalid MSISDN"
+  },
+  "timestamps": {
+    "queued": "2025-03-12T14:20:00Z",
+    "failed": "2025-03-12T14:20:03Z"
+  }
+}
+```
+
+### Common Error Codes
+
+| Error Code       | Description                     | Solution              |
+| ---------------- | ------------------------------- | --------------------- |
+| `INVALID_NUMBER` | Phone number is invalid         | Verify number format  |
+| `NUMBER_BLOCKED` | Recipient has blocked sender    | Contact recipient     |
+| `NETWORK_ERROR`  | Carrier network issue           | Retry with resend API |
+| `EXPIRED`        | Message expired before delivery | Check queue times     |
+| `REJECTED`       | Message rejected by carrier     | Review content        |
+
+---
+
+## Message History
+
+### GET /v1/sms/history
+
+Retrieve historical message data with filters.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/sms/history?limit=50&status=delivered' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Query Parameters
+
+| Parameter   | Type    | Description                 |
+| ----------- | ------- | --------------------------- |
+| `limit`     | integer | Number of results (max 100) |
+| `offset`    | integer | Pagination offset           |
+| `status`    | string  | Filter by status            |
+| `from`      | string  | Filter by sender ID         |
+| `to`        | string  | Filter by recipient         |
+| `date_from` | string  | Start date (ISO 8601)       |
+| `date_to`   | string  | End date (ISO 8601)         |
+| `reference` | string  | Filter by reference         |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "from": "YourBrand",
+      "status": "delivered",
+      "cost": 0.035,
+      "timestamps": {
+        "sent": "2025-03-12T14:20:02Z",
+        "delivered": "2025-03-12T14:20:05Z"
+      }
+    }
+  ],
+  "pagination": {
+    "total": 1250,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Analytics
+
+### Delivery Metrics
+
+Calculate delivery rates from history:
+
+```javascript
+async function getDeliveryMetrics(dateFrom, dateTo) {
+  const response = await axios.get('https://api.sendexa.co/v1/sms/history', {
+    params: { date_from: dateFrom, date_to: dateTo, limit: 100 },
+    headers: { Authorization: 'Bearer YOUR_TOKEN' },
+  });
+
+  const messages = response.data.data;
+  const total = messages.length;
+  const delivered = messages.filter((m) => m.status === 'delivered').length;
+  const failed = messages.filter((m) => m.status === 'failed').length;
+
+  return {
+    total,
+    delivered,
+    failed,
+    deliveryRate: ((delivered / total) * 100).toFixed(2) + '%',
+    failureRate: ((failed / total) * 100).toFixed(2) + '%',
+  };
+}
+
+// Usage
+const metrics = await getDeliveryMetrics('2025-03-01', '2025-03-31');
+console.log('Delivery Rate:', metrics.deliveryRate);
+```
+
+---
+
+## Dashboard Reports
+
+View delivery reports in your dashboard:
+
+1. Log in to [auth.sendexa.co](https://auth.sendexa.co)
+2. Navigate to **Reports → SMS**
+3. View:
+   - Real-time delivery status
+   - Delivery rate charts
+   - Failed message analysis
+   - Cost breakdown by provider
+   - Export reports as CSV
+
+---
+
+## Best Practices
+
+### 1. Use Webhooks Over Polling
+
+**Why:**
+
+- Real-time notifications
+- Reduces API calls
+- Lower costs
+- More reliable
+
+**When to Poll:**
+
+- Testing/debugging
+- Webhook endpoint unavailable
+- Immediate status needed
+
+### 2. Handle All Status Types
+
+```javascript
+function handleDeliveryStatus(status) {
+  switch (status.status) {
+    case 'queued':
+      console.log('Message queued, waiting...');
+      break;
+    case 'sent':
+      console.log('Message sent to carrier');
+      break;
+    case 'delivered':
+      console.log('Message delivered successfully!');
+      // Update your database
+      break;
+    case 'failed':
+      console.error('Delivery failed:', status.error);
+      // Implement retry logic
+      // Notify admin
+      break;
+    default:
+      console.warn('Unknown status:', status.status);
+  }
+}
+```
+
+### 3. Store Message IDs
+
+Always store message IDs for tracking:
+
+```javascript
+// When sending
+const response = await sendSMS(to, content);
+const messageId = response.messages[0].messageId;
+
+// Store in database
+await db.messages.create({
+  id: messageId,
+  userId: userId,
+  to: to,
+  content: content,
+  status: 'queued',
+  createdAt: new Date(),
+});
+
+// Later, update when webhook received
+await db.messages.update({
+  where: { id: messageId },
+  data: { status: 'delivered', deliveredAt: new Date() },
+});
+```
+
+### 4. Monitor Delivery Rates
+
+Set up alerts for low delivery rates:
+
+```javascript
+async function monitorDeliveryRate() {
+  const metrics = await getDeliveryMetrics(
+    new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24h
+    new Date()
+  );
+
+  const rate = parseFloat(metrics.deliveryRate);
+
+  if (rate < 95) {
+    // Alert team
+    await sendAlert(`Low delivery rate: ${rate}%`);
+  }
+}
+
+// Run every hour
+setInterval(monitorDeliveryRate, 60 * 60 * 1000);
+```
+
+---
+
+## Troubleshooting
+
+### Message Stuck in "Sent" Status
+
+**Cause:** Waiting for carrier delivery confirmation
+
+**Solution:**
+
+- Wait up to 5 minutes
+- Check with carrier if persistent
+- Contact support with message ID
+
+### High Failure Rate
+
+**Possible Causes:**
+
+- Invalid phone numbers
+- Network issues
+- Content blocked by carriers
+
+**Solutions:**
+
+1. Validate phone numbers before sending
+2. Check dashboard for error patterns
+3. Review message content
+4. Contact support for investigation
+
+### Missing Delivery Reports
+
+**Check:**
+
+1. Webhook configuration
+2. Firewall rules
+3. Endpoint availability
+4. SSL certificate validity
+
+---
+
+## Next Steps
+
+- 🔔 **[Set Up Webhooks](/docs/sms/webhooks)** - Real-time delivery notifications
+- 🔄 **[Resend Failed Messages](/docs/sms/v1#resend)** - Retry logic
+- 📊 **[View Analytics](/dashboard/analytics)** - Detailed metrics
+- 💬 **[Get Support](/support)** - Need help?

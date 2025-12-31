@@ -1,0 +1,604 @@
+---
+title: Email Templates
+description: Create, manage, and use reusable email templates with dynamic variables and version control.
+date: 2025-03-12
+---
+
+# Email Templates
+
+Create and manage reusable email templates with dynamic variables. Templates enable consistent branding, faster sending, and easier maintenance of your email communications.
+
+---
+
+## Overview
+
+### Why Use Templates?
+
+- **Consistency** - Maintain brand consistency across emails
+- **Efficiency** - Send emails faster without rebuilding HTML
+- **Maintainability** - Update once, apply everywhere
+- **Personalization** - Dynamic variables for custom content
+- **Version Control** - Track and manage template versions
+
+### Template Features
+
+- HTML and plain text support
+- Variable substitution with `{{variable}}`
+- Conditional logic
+- Template versioning
+- Preview before sending
+- Template categories and tags
+
+---
+
+## Create Template
+
+### POST /v1/email/templates
+
+Create a new email template.
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/email/templates' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "welcome_email",
+    "subject": "Welcome to {{appName}}!",
+    "html": "<h1>Welcome {{name}}!</h1><p>Thanks for joining.</p>",
+    "text": "Welcome {{name}}! Thanks for joining.",
+    "category": "transactional"
+  }'
+```
+
+### Request Parameters
+
+| Parameter   | Type   | Required | Description                        |
+| ----------- | ------ | -------- | ---------------------------------- |
+| `name`      | string | Yes      | Unique template identifier         |
+| `subject`   | string | Yes      | Email subject (supports variables) |
+| `html`      | string | Yes      | HTML template content              |
+| `text`      | string | No       | Plain text version                 |
+| `category`  | string | No       | Template category                  |
+| `tags`      | array  | No       | Tags for organization              |
+| `variables` | array  | No       | List of required variables         |
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "templateId": "tpl_abc123",
+  "name": "welcome_email",
+  "version": 1,
+  "createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+---
+
+## List Templates
+
+### GET /v1/email/templates
+
+Get all templates with optional filtering.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/email/templates?category=transactional' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN'
+```
+
+### Query Parameters
+
+| Parameter  | Type    | Description                    |
+| ---------- | ------- | ------------------------------ |
+| `category` | string  | Filter by category             |
+| `tag`      | string  | Filter by tag                  |
+| `limit`    | integer | Results per page (default: 50) |
+| `offset`   | integer | Pagination offset              |
+
+### Response
+
+```json
+{
+  "success": true,
+  "templates": [
+    {
+      "id": "tpl_abc123",
+      "name": "welcome_email",
+      "subject": "Welcome to {{appName}}!",
+      "category": "transactional",
+      "version": 1,
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 10,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+---
+
+## Get Template
+
+### GET /v1/email/templates/:id
+
+Get a specific template by ID.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/email/templates/tpl_abc123' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "template": {
+    "id": "tpl_abc123",
+    "name": "welcome_email",
+    "subject": "Welcome to {{appName}}!",
+    "html": "<h1>Welcome {{name}}!</h1>",
+    "text": "Welcome {{name}}!",
+    "category": "transactional",
+    "tags": ["welcome", "onboarding"],
+    "variables": ["appName", "name"],
+    "version": 1,
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+## Update Template
+
+### PUT /v1/email/templates/:id
+
+Update an existing template (creates new version).
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/email/templates/tpl_abc123' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "subject": "Welcome to {{appName}}, {{name}}!",
+    "html": "<h1>Welcome {{name}}!</h1><p>We are glad you joined.</p>"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "templateId": "tpl_abc123",
+  "version": 2,
+  "updatedAt": "2024-01-15T11:00:00.000Z"
+}
+```
+
+---
+
+## Delete Template
+
+### DELETE /v1/email/templates/:id
+
+Delete a template.
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/email/templates/tpl_abc123' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Template deleted successfully",
+  "templateId": "tpl_abc123"
+}
+```
+
+---
+
+## Send Email with Template
+
+### Using Template ID
+
+```javascript
+await axios.post(
+  'https://api.sendexa.co/v1/email/send',
+  {
+    to: 'user@example.com',
+    from: 'hello@yourdomain.com',
+    templateId: 'tpl_abc123',
+    variables: {
+      appName: 'YourApp',
+      name: 'John Doe',
+      verificationLink: 'https://app.com/verify/123',
+    },
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.SENDEXA_API_TOKEN}`,
+    },
+  }
+);
+```
+
+---
+
+## Template Variables
+
+### Variable Syntax
+
+Use `{{variableName}}` in your templates:
+
+```html
+<h1>Hello {{name}}!</h1>
+<p>Your order #{{orderNumber}} has been {{status}}.</p>
+<p>Total: {{currency}}{{amount}}</p>
+```
+
+### Conditional Variables
+
+```html
+{{#if isPremium}}
+<p>Thanks for being a premium member!</p>
+{{/if}} {{#unless verified}}
+<a href="{{verificationLink}}">Verify your email</a>
+{{/unless}}
+```
+
+### Loops
+
+```html
+<h2>Your Orders:</h2>
+<ul>
+  {{#each orders}}
+  <li>Order #{{orderNumber}}: {{status}}</li>
+  {{/each}}
+</ul>
+```
+
+---
+
+## Code Examples
+
+### JavaScript
+
+```javascript
+const axios = require('axios');
+
+class EmailTemplateManager {
+  constructor(apiToken) {
+    this.apiToken = apiToken;
+    this.baseUrl = 'https://api.sendexa.co/v1/email';
+  }
+
+  async createTemplate(template) {
+    const response = await axios.post(`${this.baseUrl}/templates`, template, {
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  }
+
+  async sendWithTemplate(to, templateId, variables) {
+    const response = await axios.post(
+      `${this.baseUrl}/send`,
+      {
+        to,
+        from: 'noreply@yourdomain.com',
+        templateId,
+        variables,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data;
+  }
+}
+
+// Usage
+const manager = new EmailTemplateManager(process.env.SENDEXA_API_TOKEN);
+
+// Create template
+await manager.createTemplate({
+  name: 'order_confirmation',
+  subject: 'Order #{{orderNumber}} Confirmed',
+  html: `
+    <h1>Order Confirmed!</h1>
+    <p>Hi {{customerName}},</p>
+    <p>Your order #{{orderNumber}} has been confirmed.</p>
+    <p>Total: {{currency}}{{total}}</p>
+  `,
+  category: 'transactional',
+});
+
+// Send using template
+await manager.sendWithTemplate(
+  'customer@example.com',
+  'tpl_order_confirmation',
+  {
+    customerName: 'John Doe',
+    orderNumber: '12345',
+    currency: '$',
+    total: '99.99',
+  }
+);
+```
+
+### Python
+
+```python
+import requests
+
+class EmailTemplateManager:
+    def __init__(self, api_token):
+        self.api_token = api_token
+        self.base_url = 'https://api.sendexa.co/v1/email'
+        self.headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+
+    def create_template(self, template):
+        response = requests.post(
+            f'{self.base_url}/templates',
+            json=template,
+            headers=self.headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def send_with_template(self, to, template_id, variables):
+        response = requests.post(
+            f'{self.base_url}/send',
+            json={
+                'to': to,
+                'from': 'noreply@yourdomain.com',
+                'templateId': template_id,
+                'variables': variables
+            },
+            headers=self.headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+# Usage
+manager = EmailTemplateManager(os.getenv('SENDEXA_API_TOKEN'))
+
+# Create template
+manager.create_template({
+    'name': 'password_reset',
+    'subject': 'Reset Your Password',
+    'html': '''
+        <h2>Password Reset Request</h2>
+        <p>Hi {{name}},</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="{{resetLink}}">Reset Password</a>
+    ''',
+    'category': 'transactional'
+})
+
+# Send using template
+manager.send_with_template(
+    'user@example.com',
+    'tpl_password_reset',
+    {
+        'name': 'Jane Doe',
+        'resetLink': 'https://app.com/reset/token123'
+    }
+)
+```
+
+---
+
+## Template Examples
+
+### Welcome Email Template
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .header {
+        background: #4f46e5;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px 20px;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background: #4f46e5;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Welcome to {{appName}}!</h1>
+    </div>
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>Thanks for signing up! We're excited to have you on board.</p>
+      <p>To get started, verify your email address:</p>
+      <a href="{{verificationLink}}" class="button">Verify Email</a>
+      <p>If you have questions, reply to this email.</p>
+      <p>Best regards,<br />The {{appName}} Team</p>
+    </div>
+  </body>
+</html>
+```
+
+### Order Confirmation Template
+
+```html
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif;">
+    <h1>Order Confirmed!</h1>
+    <p>Hi {{customerName}},</p>
+    <p>
+      Your order #{{orderNumber}} has been confirmed and will be delivered to:
+    </p>
+    <div style="background: #f5f5f5; padding: 15px; margin: 20px 0;">
+      <strong>Shipping Address:</strong><br />
+      {{shippingAddress}}
+    </div>
+    <h3>Order Details:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      {{#each items}}
+      <tr>
+        <td>{{name}}</td>
+        <td>x{{quantity}}</td>
+        <td>{{currency}}{{price}}</td>
+      </tr>
+      {{/each}}
+      <tr style="font-weight: bold; border-top: 2px solid #000;">
+        <td colspan="2">Total:</td>
+        <td>{{currency}}{{total}}</td>
+      </tr>
+    </table>
+    <p>Track your order: <a href="{{trackingLink}}">{{trackingNumber}}</a></p>
+  </body>
+</html>
+```
+
+### Invoice Template
+
+```html
+<!DOCTYPE html>
+<html>
+  <body
+    style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"
+  >
+    <div style="text-align: center; padding: 20px;">
+      <h1>INVOICE</h1>
+      <p>Invoice #{{invoiceNumber}}</p>
+      <p>Date: {{invoiceDate}}</p>
+    </div>
+
+    <div
+      style="display: flex; justify-content: space-between; padding: 20px 0;"
+    >
+      <div>
+        <strong>From:</strong><br />
+        {{companyName}}<br />
+        {{companyAddress}}
+      </div>
+      <div>
+        <strong>To:</strong><br />
+        {{clientName}}<br />
+        {{clientAddress}}
+      </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <thead>
+        <tr style="background: #f5f5f5;">
+          <th style="padding: 10px; text-align: left;">Description</th>
+          <th style="padding: 10px; text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each items}}
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+            {{description}}
+          </td>
+          <td
+            style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;"
+          >
+            {{currency}}{{amount}}
+          </td>
+        </tr>
+        {{/each}}
+        <tr style="font-weight: bold;">
+          <td style="padding: 10px; text-align: right;">Total:</td>
+          <td style="padding: 10px; text-align: right;">
+            {{currency}}{{total}}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Payment due: {{dueDate}}</p>
+    <p>Thank you for your business!</p>
+  </body>
+</html>
+```
+
+---
+
+## Template Best Practices
+
+### Design
+
+1. **Keep it simple** - Avoid complex layouts
+2. **Use inline CSS** - Email clients don't support external stylesheets
+3. **Responsive design** - Test on mobile devices
+4. **Alt text for images** - Always provide alt text
+5. **Fallback fonts** - Use web-safe fonts
+
+### Variables
+
+1. **Document required variables** - List all required variables
+2. **Provide defaults** - Handle missing variables gracefully
+3. **Sanitize input** - Prevent XSS attacks
+4. **Test with real data** - Test with actual variable values
+5. **Use descriptive names** - Make variables self-explanatory
+
+### Maintenance
+
+1. **Version control** - Track template changes
+2. **Test before deploying** - Always preview changes
+3. **Keep backups** - Save previous versions
+4. **Document changes** - Note what changed and why
+5. **Regular audits** - Review and update periodically
+
+---
+
+## Template Categories
+
+Organize templates by category:
+
+- **Transactional** - Order confirmations, receipts, notifications
+- **Marketing** - Newsletters, promotions, announcements
+- **Onboarding** - Welcome emails, getting started guides
+- **Security** - Password resets, security alerts
+- **Support** - Help requests, feedback surveys
+
+---
+
+## Next Steps
+
+- 📧 **[Send Email](/docs/email/send)** - Use templates in emails
+- 📎 **[Attachments](/docs/email/attachments)** - Add files to templates
+- 🔔 **[Webhooks](/docs/email/webhooks)** - Track template usage
+- 📖 **[API Reference](/docs/email/v1)** - Complete documentation

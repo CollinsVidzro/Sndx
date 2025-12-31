@@ -1,0 +1,679 @@
+---
+title: Email API Overview
+description: Professional email delivery platform built for African developers with templates, attachments, and real-time tracking.
+date: 2025-03-12
+---
+
+# Email API Overview
+
+Welcome to the **Sendexa Email API**. A professional email delivery platform designed for African developers and businesses, offering reliable transactional and marketing email capabilities with advanced features.
+
+---
+
+## Why Choose Sendexa Email?
+
+### Built for Africa
+
+- **Local Infrastructure** - Fast delivery across African regions
+- **Multi-Currency Support** - GHS, NGN, KES, and more
+- **Affordable Pricing** - Competitive rates for African markets
+- **99.9% Uptime** - Reliable email infrastructure
+
+### Developer-Friendly
+
+- **Simple REST API** - Send emails in minutes
+- **Rich Templates** - HTML templates with variables
+- **File Attachments** - Support for multiple file types
+- **Real-time Webhooks** - Delivery and bounce notifications
+- **Comprehensive SDKs** - JavaScript, Python, PHP
+
+### Enterprise Features
+
+- **Template Engine** - Reusable email templates
+- **Batch Sending** - Send to multiple recipients
+- **Personalization** - Dynamic content per recipient
+- **Analytics** - Track opens, clicks, and bounces
+- **Bounce Handling** - Automatic bounce management
+
+---
+
+## Key Features
+
+### Send Email
+
+Send transactional and marketing emails:
+
+- Single or bulk sending
+- HTML and plain text support
+- Custom from name and email
+- CC and BCC recipients
+- Reply-to configuration
+
+**Endpoint:** `POST /v1/email/send`
+
+```json
+{
+  "to": "user@example.com",
+  "from": "noreply@yourdomain.com",
+  "subject": "Welcome to YourApp",
+  "html": "<h1>Welcome!</h1><p>Thanks for signing up.</p>",
+  "text": "Welcome! Thanks for signing up."
+}
+```
+
+### Email Templates
+
+Create and manage reusable templates:
+
+- HTML template editor
+- Variable substitution
+- Template versioning
+- Preview before sending
+
+**Endpoint:** `POST /v1/email/send` with `templateId`
+
+```json
+{
+  "to": "user@example.com",
+  "templateId": "welcome_email",
+  "variables": {
+    "name": "John Doe",
+    "verificationLink": "https://app.com/verify/123"
+  }
+}
+```
+
+### Attachments
+
+Send files with your emails:
+
+- Multiple file support
+- Base64 encoding
+- Common file types (PDF, images, documents)
+- Size limits: 10MB per email
+
+**Example:**
+
+```json
+{
+  "to": "user@example.com",
+  "subject": "Your Invoice",
+  "attachments": [
+    {
+      "filename": "invoice.pdf",
+      "content": "base64_encoded_content",
+      "type": "application/pdf"
+    }
+  ]
+}
+```
+
+### Webhooks
+
+Real-time email event notifications:
+
+- Email delivered
+- Email opened
+- Link clicked
+- Bounce notifications
+- Spam complaints
+
+---
+
+## Getting Started
+
+### 1. Create an Account
+
+Sign up at [auth.sendexa.co](https://auth.sendexa.co) and verify your email.
+
+### 2. Verify Your Domain
+
+1. Go to **Settings → Domains**
+2. Add your sending domain
+3. Add DNS records (SPF, DKIM, DMARC)
+4. Wait for verification (usually 24 hours)
+
+### 3. Generate API Token
+
+1. Navigate to **Settings → API Tokens**
+2. Click **Create New Token**
+3. Copy your token securely
+4. Use it in the `Authorization` header
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+### 4. Send Your First Email
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/email/send' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "user@example.com",
+    "from": "hello@yourdomain.com",
+    "fromName": "YourApp",
+    "subject": "Welcome!",
+    "html": "<h1>Welcome to YourApp!</h1>"
+  }'
+```
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environment URLs:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Use **Bearer Token authentication**:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Security Best Practices:**
+
+- Never expose API tokens in client-side code
+- Use environment variables
+- Rotate tokens regularly
+- Use different tokens per environment
+- Revoke unused tokens immediately
+
+---
+
+## API Endpoints Summary
+
+| Endpoint                  | Method | Purpose               | Rate Limit |
+| ------------------------- | ------ | --------------------- | ---------- |
+| `/v1/email/send`          | POST   | Send email            | 100/min    |
+| `/v1/email/send/batch`    | POST   | Send bulk emails      | 10/min     |
+| `/v1/email/status/:id`    | GET    | Check delivery status | 100/min    |
+| `/v1/email/templates`     | GET    | List templates        | 60/min     |
+| `/v1/email/templates`     | POST   | Create template       | 30/min     |
+| `/v1/email/templates/:id` | PUT    | Update template       | 30/min     |
+| `/v1/email/templates/:id` | DELETE | Delete template       | 30/min     |
+
+---
+
+## Email Types
+
+### Transactional Emails
+
+Time-sensitive, user-triggered emails:
+
+- Order confirmations
+- Password resets
+- Account notifications
+- Receipts and invoices
+- Welcome emails
+
+**Characteristics:**
+
+- High priority delivery
+- Personalized content
+- Immediate sending
+- High delivery rates
+
+### Marketing Emails
+
+Promotional and engagement emails:
+
+- Newsletters
+- Product announcements
+- Special offers
+- Event invitations
+- Re-engagement campaigns
+
+**Characteristics:**
+
+- Bulk sending
+- Unsubscribe links required
+- Template-based
+- Analytics tracking
+
+---
+
+## Pricing
+
+### Ghana (GHS)
+
+| Volume          | Price per Email |
+| --------------- | --------------- |
+| 0 - 10,000      | 0.02 GHS        |
+| 10,001 - 50,000 | 0.015 GHS       |
+| 50,001+         | Custom          |
+
+### Nigeria (NGN)
+
+| Volume          | Price per Email |
+| --------------- | --------------- |
+| 0 - 10,000      | 1.50 NGN        |
+| 10,001 - 50,000 | 1.20 NGN        |
+| 50,001+         | Custom          |
+
+### Kenya (KES)
+
+| Volume          | Price per Email |
+| --------------- | --------------- |
+| 0 - 10,000      | 0.50 KES        |
+| 10,001 - 50,000 | 0.40 KES        |
+| 50,001+         | Custom          |
+
+**Additional Costs:**
+
+- Attachments: +0.005 per email
+- Advanced analytics: +0.002 per email
+
+---
+
+## Common Use Cases
+
+### 1. Welcome Email
+
+```javascript
+await sendEmail({
+  to: 'newuser@example.com',
+  from: 'welcome@yourapp.com',
+  fromName: 'YourApp Team',
+  subject: 'Welcome to YourApp!',
+  templateId: 'welcome_email',
+  variables: {
+    name: 'John Doe',
+    verificationLink: 'https://app.com/verify/abc123',
+  },
+});
+```
+
+### 2. Order Confirmation
+
+```javascript
+await sendEmail({
+  to: 'customer@example.com',
+  from: 'orders@yourstore.com',
+  subject: 'Order #12345 Confirmed',
+  templateId: 'order_confirmation',
+  variables: {
+    orderNumber: '12345',
+    items: orderItems,
+    total: '500.00',
+    currency: 'GHS',
+  },
+  attachments: [
+    {
+      filename: 'invoice.pdf',
+      content: invoicePdfBase64,
+      type: 'application/pdf',
+    },
+  ],
+});
+```
+
+### 3. Password Reset
+
+```javascript
+await sendEmail({
+  to: 'user@example.com',
+  from: 'security@yourapp.com',
+  subject: 'Reset Your Password',
+  html: `
+    <h2>Password Reset Request</h2>
+    <p>Click the link below to reset your password:</p>
+    <a href="${resetLink}">Reset Password</a>
+    <p>This link expires in 1 hour.</p>
+  `,
+});
+```
+
+### 4. Weekly Newsletter
+
+```javascript
+const subscribers = await getNewsletterSubscribers();
+
+await sendBatchEmail({
+  from: 'newsletter@yourapp.com',
+  subject: 'This Week in Tech',
+  templateId: 'newsletter_weekly',
+  recipients: subscribers.map((sub) => ({
+    to: sub.email,
+    variables: {
+      name: sub.name,
+      unsubscribeLink: `https://app.com/unsubscribe/${sub.id}`,
+    },
+  })),
+});
+```
+
+### 5. Invoice Delivery
+
+```javascript
+await sendEmail({
+  to: 'client@company.com',
+  from: 'billing@yourcompany.com',
+  subject: `Invoice #${invoiceNumber}`,
+  html: `
+    <h2>Invoice #${invoiceNumber}</h2>
+    <p>Thank you for your business. Please find your invoice attached.</p>
+  `,
+  attachments: [
+    {
+      filename: `invoice-${invoiceNumber}.pdf`,
+      content: pdfBase64,
+      type: 'application/pdf',
+    },
+  ],
+});
+```
+
+---
+
+## Email Lifecycle
+
+```
+┌──────────┐     ┌──────────┐     ┌───────────┐     ┌────────────┐
+│  Queued  │────▶│   Sent   │────▶│ Delivered │────▶│   Opened   │
+└──────────┘     └──────────┘     └───────────┘     └────────────┘
+                      │                  │
+                      │                  │
+                      ▼                  ▼
+                 ┌─────────┐        ┌─────────┐
+                 │ Bounced │        │ Clicked │
+                 └─────────┘        └─────────┘
+```
+
+### Status Descriptions
+
+| Status         | Description                           |
+| -------------- | ------------------------------------- |
+| **queued**     | Email is in send queue                |
+| **sent**       | Email sent to recipient's mail server |
+| **delivered**  | Email accepted by recipient's server  |
+| **opened**     | Recipient opened the email            |
+| **clicked**    | Recipient clicked a link              |
+| **bounced**    | Email bounced (hard or soft)          |
+| **complained** | Marked as spam by recipient           |
+
+---
+
+## Domain Verification
+
+### Why Verify Your Domain?
+
+- **Higher deliverability** - Emails less likely to be marked as spam
+- **Custom sender** - Send from your own domain
+- **Professional appearance** - Build trust with recipients
+- **Better reputation** - Improve sender reputation
+
+### DNS Records Required
+
+**SPF Record:**
+
+```
+v=spf1 include:spf.sendexa.co ~all
+```
+
+**DKIM Record:**
+
+```
+sendexa._domainkey.yourdomain.com
+```
+
+**DMARC Record:**
+
+```
+v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com
+```
+
+### Verification Steps
+
+1. Add your domain in dashboard
+2. Copy provided DNS records
+3. Add records to your DNS provider
+4. Wait for propagation (up to 48 hours)
+5. Click "Verify" in dashboard
+
+---
+
+## Rate Limits
+
+### Sending Limits
+
+| Plan             | Emails/Minute | Emails/Day |
+| ---------------- | ------------- | ---------- |
+| **Free**         | 10            | 100        |
+| **Starter**      | 50            | 5,000      |
+| **Professional** | 100           | 50,000     |
+| **Business**     | 500           | 500,000    |
+| **Enterprise**   | Custom        | Custom     |
+
+### API Rate Limits
+
+| Endpoint Type       | Limit   |
+| ------------------- | ------- |
+| Send Email          | 100/min |
+| Batch Send          | 10/min  |
+| Status Check        | 100/min |
+| Template Operations | 30/min  |
+
+---
+
+## Best Practices
+
+### Deliverability
+
+1. **Verify your domain** - Essential for good deliverability
+2. **Warm up gradually** - Start with low volumes
+3. **Clean your list** - Remove invalid addresses
+4. **Monitor bounces** - Act on hard bounces immediately
+5. **Avoid spam triggers** - Test with spam checkers
+
+### Content
+
+1. **Clear subject lines** - Descriptive and concise
+2. **Responsive design** - Mobile-friendly templates
+3. **Plain text alternative** - Always provide text version
+4. **Unsubscribe link** - Required for marketing emails
+5. **Personalization** - Use recipient's name
+
+### Security
+
+1. **Use HTTPS links** - Secure all links in emails
+2. **No sensitive data** - Don't send passwords in plain text
+3. **Token authentication** - Secure API access
+4. **Rate limiting** - Prevent abuse
+5. **Monitor activity** - Track unusual patterns
+
+### Performance
+
+1. **Use templates** - Faster and consistent
+2. **Batch sending** - For multiple recipients
+3. **Optimize images** - Compress before sending
+4. **Async processing** - Don't block user flows
+5. **Cache results** - Reduce API calls
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Features:**
+
+- No credits consumed
+- No actual delivery
+- Test all endpoints
+- Same API structure
+
+### Test Email Addresses
+
+| Email                  | Behavior                 |
+| ---------------------- | ------------------------ |
+| `success@sendexa.test` | Always delivers          |
+| `bounce@sendexa.test`  | Simulates hard bounce    |
+| `spam@sendexa.test`    | Simulates spam complaint |
+| `delay@sendexa.test`   | Delayed delivery         |
+
+---
+
+## Supported Features
+
+### Email Content
+
+- ✅ HTML emails
+- ✅ Plain text emails
+- ✅ Inline images
+- ✅ Custom headers
+- ✅ Unicode support
+
+### Recipients
+
+- ✅ Single recipient
+- ✅ Multiple recipients
+- ✅ CC and BCC
+- ✅ Custom display names
+- ✅ Batch sending
+
+### Attachments
+
+- ✅ PDF documents
+- ✅ Images (JPEG, PNG, GIF)
+- ✅ Office documents (DOCX, XLSX)
+- ✅ Text files
+- ✅ Multiple attachments
+
+### Tracking
+
+- ✅ Open tracking
+- ✅ Click tracking
+- ✅ Bounce tracking
+- ✅ Spam complaints
+- ✅ Unsubscribe tracking
+
+---
+
+## SDKs & Libraries
+
+### Official SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/email-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa-email
+```
+
+**PHP**
+
+```bash
+composer require sendexa/email-sdk
+```
+
+### Quick Example
+
+```javascript
+const { EmailClient } = require('@sendexa/email-sdk');
+const client = new EmailClient('YOUR_API_TOKEN');
+
+await client.send({
+  to: 'user@example.com',
+  from: 'hello@yourdomain.com',
+  subject: 'Hello World',
+  html: '<h1>Hello from Sendexa!</h1>',
+});
+```
+
+---
+
+## Migration Guide
+
+### From Other Providers
+
+**From SendGrid:**
+
+```javascript
+// Before (SendGrid)
+sgMail.send({
+  to: 'user@example.com',
+  from: 'sender@example.com',
+  subject: 'Hello',
+  text: 'Hello World',
+});
+
+// After (Sendexa)
+sendexaClient.send({
+  to: 'user@example.com',
+  from: 'sender@example.com',
+  subject: 'Hello',
+  text: 'Hello World',
+});
+```
+
+**From Mailgun:**
+
+```javascript
+// Before (Mailgun)
+mg.messages.create('yourdomain.com', {
+  from: 'sender@example.com',
+  to: ['user@example.com'],
+  subject: 'Hello',
+  text: 'Hello World',
+});
+
+// After (Sendexa)
+sendexaClient.send({
+  to: 'user@example.com',
+  from: 'sender@example.com',
+  subject: 'Hello',
+  text: 'Hello World',
+});
+```
+
+---
+
+## Support
+
+### Documentation
+
+- [Send Email](/docs/email/send)
+- [Templates](/docs/email/templates)
+- [Attachments](/docs/email/attachments)
+- [Webhooks](/docs/email/webhooks)
+- [API Reference](/docs/email/v1)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join community](https://discord.gg/sendexa)
+- **Twitter:** [@sendexaHQ](https://twitter.com/sendexaHQ)
+
+### Report Issues
+
+- **GitHub:** [github.com/sendexa/email-issues](https://github.com/sendexa/email-issues)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+
+---
+
+## Next Steps
+
+1. 📧 **[Send Email](/docs/email/send)** - Send your first email
+2. 📝 **[Templates](/docs/email/templates)** - Create reusable templates
+3. 📎 **[Attachments](/docs/email/attachments)** - Send files
+4. 🔔 **[Webhooks](/docs/email/webhooks)** - Real-time notifications
+5. 🛠️ **[API Reference](/docs/email/v1)** - Complete documentation

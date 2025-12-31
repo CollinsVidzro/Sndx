@@ -1,0 +1,738 @@
+---
+title: SMPP Delivery Reports
+description: Handle delivery reports (DLRs) via SMPP to track message delivery status in real-time.
+date: 2025-03-12
+---
+
+# SMPP Delivery Reports
+
+Receive real-time delivery reports (DLRs) via SMPP to track the status of your SMS messages.
+
+---
+
+## Overview
+
+### What are DLRs?
+
+Delivery Reports (DLRs) are notifications sent by the network operator indicating whether your SMS was successfully delivered to the recipient.
+
+### DLR Flow
+
+```
+Your App          Sendexa SMPP          Mobile Network
+   │                    │                      │
+   │──submit_sm────────▶│                      │
+   │◀─submit_sm_resp────│                      │
+   │  (message_id)      │                      │
+   │                    │────SMS──────────────▶│
+   │                    │                      │
+   │                    │◀────DLR──────────────│
+   │◀──deliver_sm───────│                      │
+   │  (DLR status)      │                      │
+   │──deliver_sm_resp──▶│                      │
+```
+
+---
+
+## Quick Start
+
+### Request DLR
+
+```javascript
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: 'Message with DLR',
+    registered_delivery: 0x01, // Request DLR
+  },
+  (pdu) => {
+    console.log('Message ID:', pdu.message_id);
+    // Store message_id for tracking
+  }
+);
+```
+
+### Receive DLR
+
+```javascript
+session.on('deliver_sm', (pdu) => {
+  // Check if this is a DLR
+  if (pdu.esm_class & 0x04) {
+    const dlr = parseDLR(pdu.short_message.message);
+    console.log('DLR received:', dlr);
+
+    // Respond to acknowledge receipt
+    session.deliver_sm_resp({
+      sequence_number: pdu.sequence_number,
+      message_id: pdu.message_id,
+      command_status: 0,
+    });
+  }
+});
+
+function parseDLR(message) {
+  // Parse DLR format: id:xxx sub:xxx dlvrd:xxx ...
+  const dlr = {};
+  const parts = message.toString().split(' ');
+
+  parts.forEach((part) => {
+    const [key, value] = part.split(':');
+    dlr[key] = value;
+  });
+
+  return dlr;
+}
+```
+
+---
+
+## DLR Format
+
+### Standard DLR Message
+
+```
+id:1234567890 sub:001 dlvrd:001 submit date:2503121420 done date:2503121421 stat:DELIVRD err:000 text:Hello
+```
+
+### DLR Fields
+
+| Field         | Description                  | Example    |
+| ------------- | ---------------------------- | ---------- |
+| `id`          | Original message ID          | 1234567890 |
+| `sub`         | Number of messages submitted | 001        |
+| `dlvrd`       | Number of messages delivered | 001        |
+| `submit date` | Submission timestamp         | 2503121420 |
+| `done date`   | Delivery timestamp           | 2503121421 |
+| `stat`        | Delivery status              | DELIVRD    |
+| `err`         | Error code                   | 000        |
+| `text`        | First 20 chars of message    | Hello      |
+
+---
+
+## DLR Status Codes
+
+### Status Values
+
+| Status      | Code | Description          | Final |
+| ----------- | ---- | -------------------- | ----- |
+| **DELIVRD** | 0    | Delivered to handset | Yes   |
+| **EXPIRED** | 1    | Message expired      | Yes   |
+| **DELETED** | 2    | Deleted by operator  | Yes   |
+| **UNDELIV** | 3    | Undeliverable        | Yes   |
+| **ACCEPTD** | 4    | Accepted by operator | No    |
+| **UNKNOWN** | 5    | Unknown status       | No    |
+| **REJECTD** | 6    | Rejected by operator | Yes   |
+| **SKIPPED** | 7    | Skipped              | Yes   |
+
+### Final vs Intermediate Status
+
+- **Final Status:** No further updates expected
+- **Intermediate Status:** More updates may follow
+
+---
+
+## registered_delivery Options
+
+### Values
+
+| Value | Binary   | Description         |
+| ----- | -------- | ------------------- |
+| 0x00  | 00000000 | No DLR              |
+| 0x01  | 00000001 | DLR requested       |
+| 0x02  | 00000010 | DLR on failure only |
+| 0x04  | 00000100 | DLR on success only |
+
+### Example
+
+```javascript
+// No DLR
+registered_delivery: 0x00;
+
+// DLR on both success and failure
+registered_delivery: 0x01;
+
+// DLR only on failure
+registered_delivery: 0x02;
+```
+
+---
+
+## Handling DLRs
+
+### Complete Handler
+
+```javascript
+class DLRHandler {
+  constructor() {
+    this.dlrCallbacks = new Map();
+  }
+
+  // Store callback for message
+  registerCallback(messageId, callback) {
+    this.dlrCallbacks.set(messageId, callback);
+  }
+
+  // Handle incoming DLR
+  handleDLR(pdu) {
+    // Check if it's a DLR
+    if (!(pdu.esm_class & 0x04)) {
+      return false;
+    }
+
+    // Parse DLR message
+    const dlrText = pdu.short_message.message.toString();
+    const dlr = this.parseDLR(dlrText);
+
+    console.log('DLR received:', dlr);
+
+    // Get and execute callback
+    const callback = this.dlrCallbacks.get(dlr.id);
+    if (callback) {
+      callback(dlr);
+      this.dlrCallbacks.delete(dlr.id);
+    }
+
+    // Update database
+    this.updateDatabase(dlr);
+
+    // Acknowledge
+    return true;
+  }
+
+  parseDLR(text) {
+    const dlr = {};
+    const regex = /(\w+):([^\s]+)/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      dlr[match[1]] = match[2];
+    }
+
+    return {
+      messageId: dlr.id,
+      status: dlr.stat,
+      errorCode: dlr.err,
+      submitDate: dlr['submit date'],
+      doneDate: dlr['done date'],
+      text: dlr.text,
+      isFinal: this.isFinalStatus(dlr.stat),
+    };
+  }
+
+  isFinalStatus(status) {
+    const finalStatuses = [
+      'DELIVRD',
+      'EXPIRED',
+      'DELETED',
+      'UNDELIV',
+      'REJECTD',
+      'SKIPPED',
+    ];
+    return finalStatuses.includes(status);
+  }
+
+  async updateDatabase(dlr) {
+    // Update message status in database
+    await db.messages.update({
+      where: { messageId: dlr.messageId },
+      data: {
+        status: dlr.status,
+        deliveredAt: dlr.status === 'DELIVRD' ? new Date() : null,
+        errorCode: dlr.errorCode,
+      },
+    });
+  }
+}
+
+// Usage
+const dlrHandler = new DLRHandler();
+
+// When sending message
+session.submit_sm(params, (pdu) => {
+  const messageId = pdu.message_id;
+
+  // Register callback
+  dlrHandler.registerCallback(messageId, (dlr) => {
+    if (dlr.status === 'DELIVRD') {
+      console.log('Message delivered successfully!');
+      notifyUser(messageId, 'delivered');
+    } else {
+      console.error('Delivery failed:', dlr.status);
+      notifyUser(messageId, 'failed');
+    }
+  });
+});
+
+// Handle incoming DLRs
+session.on('deliver_sm', (pdu) => {
+  const handled = dlrHandler.handleDLR(pdu);
+
+  if (handled) {
+    // Acknowledge DLR
+    session.deliver_sm_resp({
+      sequence_number: pdu.sequence_number,
+      command_status: 0,
+    });
+  }
+});
+```
+
+---
+
+## DLR Error Codes
+
+### Network Error Codes
+
+| Error | Description                 |
+| ----- | --------------------------- |
+| 000   | No error                    |
+| 001   | Unknown subscriber          |
+| 005   | Unidentified subscriber     |
+| 009   | Illegal subscriber          |
+| 011   | Teleservice not provisioned |
+| 013   | Call barred                 |
+| 015   | CUG reject                  |
+| 019   | No SMS support in MS        |
+| 020   | Error in MS                 |
+| 021   | Facility not supported      |
+| 027   | Absent subscriber           |
+| 031   | Subscriber busy for MT SMS  |
+| 032   | SM delivery failure         |
+| 033   | Message waiting list full   |
+| 034   | System failure              |
+| 035   | Data missing                |
+| 036   | Unexpected data value       |
+
+### Example Error Handling
+
+```javascript
+function getErrorDescription(errorCode) {
+  const errors = {
+    '000': 'Success',
+    '001': 'Unknown subscriber - number does not exist',
+    '009': 'Illegal subscriber - number blocked',
+    '011': 'SMS not supported on this number',
+    '027': 'Subscriber temporarily unavailable',
+    '032': 'Network delivery failure',
+    '033': 'Inbox full',
+  };
+
+  return errors[errorCode] || `Unknown error: ${errorCode}`;
+}
+
+function handleDLR(dlr) {
+  if (dlr.status === 'DELIVRD') {
+    console.log('✓ Message delivered');
+  } else {
+    const error = getErrorDescription(dlr.errorCode);
+    console.error(`✗ Delivery failed: ${error}`);
+
+    // Decide if retry is worthwhile
+    if (['027', '031', '033'].includes(dlr.errorCode)) {
+      console.log('→ Temporary error, will retry');
+      scheduleRetry(dlr.messageId);
+    }
+  }
+}
+```
+
+---
+
+## Code Examples
+
+### Node.js Complete Example
+
+```javascript
+const smpp = require('smpp');
+
+class SMPPWithDLR {
+  constructor(config) {
+    this.config = config;
+    this.session = null;
+    this.pendingDLRs = new Map();
+  }
+
+  connect() {
+    this.session = smpp.connect({
+      url: `smpp://${this.config.host}:${this.config.port}`,
+      auto_enquire_link_period: 30000,
+    });
+
+    this.session.bind_transceiver(
+      {
+        system_id: this.config.systemId,
+        password: this.config.password,
+      },
+      (pdu) => {
+        if (pdu.command_status === 0) {
+          console.log('Connected and bound');
+          this.setupDLRHandler();
+        }
+      }
+    );
+  }
+
+  setupDLRHandler() {
+    this.session.on('deliver_sm', (pdu) => {
+      // Check if DLR
+      if (pdu.esm_class & 0x04) {
+        this.handleDLR(pdu);
+
+        // Acknowledge
+        this.session.deliver_sm_resp({
+          sequence_number: pdu.sequence_number,
+          command_status: 0,
+        });
+      } else {
+        // Handle incoming SMS (MO)
+        this.handleIncomingSMS(pdu);
+      }
+    });
+  }
+
+  handleDLR(pdu) {
+    const dlrText = pdu.short_message.message.toString();
+    const dlr = this.parseDLR(dlrText);
+
+    console.log(`DLR: ${dlr.messageId} - ${dlr.status}`);
+
+    // Execute stored callback
+    const callback = this.pendingDLRs.get(dlr.messageId);
+    if (callback) {
+      callback(dlr);
+
+      // Remove if final status
+      if (this.isFinalStatus(dlr.status)) {
+        this.pendingDLRs.delete(dlr.messageId);
+      }
+    }
+
+    // Update database
+    this.updateMessageStatus(dlr);
+  }
+
+  parseDLR(text) {
+    const dlr = {};
+    const parts = text.split(' ');
+
+    parts.forEach((part) => {
+      const [key, value] = part.split(':');
+      if (key && value) {
+        dlr[key.trim()] = value.trim();
+      }
+    });
+
+    return {
+      messageId: dlr.id,
+      status: dlr.stat,
+      errorCode: dlr.err,
+      submitDate: dlr['submit'],
+      doneDate: dlr['done'],
+      text: dlr.text,
+    };
+  }
+
+  isFinalStatus(status) {
+    return [
+      'DELIVRD',
+      'EXPIRED',
+      'DELETED',
+      'UNDELIV',
+      'REJECTD',
+      'SKIPPED',
+    ].includes(status);
+  }
+
+  async sendSMS(to, message, options = {}) {
+    return new Promise((resolve, reject) => {
+      this.session.submit_sm(
+        {
+          source_addr: options.from || 'Sendexa',
+          source_addr_ton: 0x05,
+          destination_addr: to,
+          dest_addr_ton: 0x01,
+          dest_addr_npi: 0x01,
+          short_message: message,
+          registered_delivery: 0x01,
+        },
+        (pdu) => {
+          if (pdu.command_status === 0) {
+            const messageId = pdu.message_id;
+
+            // Store DLR callback
+            if (options.onDLR) {
+              this.pendingDLRs.set(messageId, options.onDLR);
+            }
+
+            resolve({ messageId, status: 'sent' });
+          } else {
+            reject({ error: 'SUBMIT_FAILED', status: pdu.command_status });
+          }
+        }
+      );
+    });
+  }
+
+  async updateMessageStatus(dlr) {
+    // Update in your database
+    console.log(`Updating message ${dlr.messageId} to ${dlr.status}`);
+  }
+
+  handleIncomingSMS(pdu) {
+    const from = pdu.source_addr;
+    const message = pdu.short_message.message.toString();
+    console.log(`Incoming SMS from ${from}: ${message}`);
+  }
+}
+
+// Usage
+const client = new SMPPWithDLR({
+  host: 'smpp.sendexa.co',
+  port: 2775,
+  systemId: 'your_username',
+  password: 'your_password',
+});
+
+client.connect();
+
+// Send with DLR callback
+await client.sendSMS('233501234567', 'Test message', {
+  from: 'Sendexa',
+  onDLR: (dlr) => {
+    console.log('DLR Status:', dlr.status);
+
+    if (dlr.status === 'DELIVRD') {
+      console.log('✓ Delivered successfully');
+    } else {
+      console.error('✗ Delivery failed:', dlr.errorCode);
+    }
+  },
+});
+```
+
+### Python Example
+
+```python
+import smpplib.client
+import smpplib.consts
+from threading import Thread
+import re
+
+class SMPPWithDLR:
+    def __init__(self, host, port, system_id, password):
+        self.client = smpplib.client.Client(host, port)
+        self.system_id = system_id
+        self.password = password
+        self.pending_dlrs = {}
+
+    def connect(self):
+        """Connect and bind to SMPP"""
+        self.client.connect()
+        self.client.bind_transceiver(
+            system_id=self.system_id,
+            password=self.password
+        )
+        print('Connected and bound')
+
+        # Start DLR listener thread
+        self.dlr_thread = Thread(target=self.listen_for_dlrs)
+        self.dlr_thread.daemon = True
+        self.dlr_thread.start()
+
+    def listen_for_dlrs(self):
+        """Listen for incoming DLRs"""
+        try:
+            self.client.listen()
+        except Exception as e:
+            print(f'DLR listener error: {e}')
+
+    def handle_deliver_sm(self, pdu):
+        """Handle incoming deliver_sm (DLR or MO)"""
+        # Check if DLR
+        if pdu.esm_class & 0x04:
+            dlr = self.parse_dlr(pdu.short_message)
+            print(f'DLR: {dlr}')
+
+            # Execute callback
+            if dlr['id'] in self.pending_dlrs:
+                callback = self.pending_dlrs[dlr['id']]
+                callback(dlr)
+
+                if self.is_final_status(dlr['stat']):
+                    del self.pending_dlrs[dlr['id']]
+
+    def parse_dlr(self, message):
+        """Parse DLR message"""
+        text = message.decode('utf-8')
+        dlr = {}
+
+        pattern = r'(\w+):([^\s]+)'
+        matches = re.findall(pattern, text)
+
+        for key, value in matches:
+            dlr[key] = value
+
+        return dlr
+
+    def is_final_status(self, status):
+        """Check if DLR status is final"""
+        final_statuses = ['DELIVRD', 'EXPIRED', 'DELETED',
+                         'UNDELIV', 'REJECTD', 'SKIPPED']
+        return status in final_statuses
+
+    def send_sms(self, to, message, sender='Sendexa', on_dlr=None):
+        """Send SMS with DLR callback"""
+        pdu = self.client.send_message(
+            source_addr_ton=smpplib.consts.SMPP_TON_ALNUM,
+            source_addr=sender,
+            dest_addr_ton=smpplib.consts.SMPP_TON_INTL,
+            destination_addr=to,
+            short_message=message.encode(),
+            registered_delivery=True
+        )
+
+        message_id = pdu.message_id
+
+        # Store callback
+        if on_dlr:
+            self.pending_dlrs[message_id] = on_dlr
+
+        print(f'Message sent, ID: {message_id}')
+        return message_id
+
+# Usage
+def on_dlr_received(dlr):
+    if dlr['stat'] == 'DELIVRD':
+        print('✓ Delivered successfully')
+    else:
+        print(f"✗ Delivery failed: {dlr.get('err', 'unknown')}")
+
+client = SMPPWithDLR(
+    'smpp.sendexa.co',
+    2775,
+    'your_username',
+    'your_password'
+)
+
+client.connect()
+
+# Set DLR handler
+client.client.set_message_received_handler(client.handle_deliver_sm)
+
+# Send message
+client.send_sms(
+    '233501234567',
+    'Test message',
+    on_dlr=on_dlr_received
+)
+```
+
+---
+
+## DLR vs Webhooks
+
+| Feature         | SMPP DLR                   | HTTP Webhook      |
+| --------------- | -------------------------- | ----------------- |
+| **Transport**   | SMPP protocol              | HTTP POST         |
+| **Connection**  | Requires active SMPP       | One-way HTTP      |
+| **Latency**     | Real-time                  | Near real-time    |
+| **Setup**       | SMPP client required       | Simple endpoint   |
+| **Reliability** | Requires active connection | Automatic retries |
+
+**Recommendation:** Use SMPP DLRs if you already have SMPP infrastructure. Otherwise, use HTTP webhooks for simpler implementation.
+
+---
+
+## Best Practices
+
+### 1. Always Acknowledge DLRs
+
+```javascript
+session.on('deliver_sm', (pdu) => {
+  try {
+    // Process DLR
+    handleDLR(pdu);
+  } finally {
+    // Always acknowledge, even on error
+    session.deliver_sm_resp({
+      sequence_number: pdu.sequence_number,
+      command_status: 0,
+    });
+  }
+});
+```
+
+### 2. Handle Duplicate DLRs
+
+```javascript
+const processedDLRs = new Set();
+
+function handleDLR(dlr) {
+  const dlrKey = `${dlr.messageId}-${dlr.status}`;
+
+  if (processedDLRs.has(dlrKey)) {
+    console.log('Duplicate DLR, ignoring');
+    return;
+  }
+
+  processedDLRs.add(dlrKey);
+  processDLR(dlr);
+}
+```
+
+### 3. Timeout Pending DLRs
+
+```javascript
+function registerDLR(messageId, callback, timeout = 3600000) {
+  pendingDLRs.set(messageId, callback);
+
+  // Remove after timeout
+  setTimeout(() => {
+    if (pendingDLRs.has(messageId)) {
+      console.warn(`DLR timeout for ${messageId}`);
+      pendingDLRs.delete(messageId);
+    }
+  }, timeout);
+}
+```
+
+---
+
+## Troubleshooting
+
+### DLRs Not Received
+
+**Possible Causes:**
+
+1. `registered_delivery` not set to 0x01
+2. SMPP connection closed
+3. Not handling `deliver_sm`
+4. Network doesn't support DLRs
+
+**Solutions:**
+
+1. Verify registered_delivery parameter
+2. Maintain active connection
+3. Add deliver_sm handler
+4. Use webhooks as alternative
+
+### Duplicate DLRs
+
+**Cause:** Network sends multiple DLRs
+
+**Solution:** Implement deduplication logic
+
+### DLR Parsing Errors
+
+**Cause:** Non-standard DLR format
+
+**Solution:** Implement flexible parser with error handling
+
+---
+
+## Next Steps
+
+- 🔔 **[Set Up Webhooks](/docs/smpp/webhooks)** - HTTP alternative to DLRs
+- 🛠️ **[API Reference](/docs/smpp/v1)** - Complete SMPP specification
+- 📱 **[Send SMS](/docs/smpp/send)** - Send messages with DLR

@@ -1,0 +1,147 @@
+---
+title: Email Webhooks
+description: Receive real-time notifications for email events including delivery, opens, clicks, and bounces.
+date: 2025-03-12
+---
+
+# Email Webhooks
+
+Receive real-time HTTP callbacks when email events occur including delivery confirmations, opens, clicks, bounces, and spam complaints.
+
+## Webhook Events
+
+### email.sent
+
+Email successfully sent to mail server:
+
+```json
+{
+  "event": "email.sent",
+  "messageId": "msg_abc123",
+  "to": "user@example.com",
+  "subject": "Welcome Email",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### email.delivered
+
+Email delivered to recipient:
+
+```json
+{
+  "event": "email.delivered",
+  "messageId": "msg_abc123",
+  "to": "user@example.com",
+  "deliveredAt": "2024-01-15T10:30:15.000Z"
+}
+```
+
+### email.opened
+
+Recipient opened email:
+
+```json
+{
+  "event": "email.opened",
+  "messageId": "msg_abc123",
+  "to": "user@example.com",
+  "openedAt": "2024-01-15T10:35:00.000Z",
+  "userAgent": "Mozilla/5.0...",
+  "ipAddress": "192.168.1.1"
+}
+```
+
+### email.clicked
+
+Link clicked in email:
+
+```json
+{
+  "event": "email.clicked",
+  "messageId": "msg_abc123",
+  "to": "user@example.com",
+  "url": "https://yourapp.com/offer",
+  "clickedAt": "2024-01-15T10:40:00.000Z"
+}
+```
+
+### email.bounced
+
+Email bounced:
+
+```json
+{
+  "event": "email.bounced",
+  "messageId": "msg_abc123",
+  "to": "invalid@example.com",
+  "bounceType": "hard",
+  "reason": "Mailbox does not exist",
+  "bouncedAt": "2024-01-15T10:30:30.000Z"
+}
+```
+
+### email.complained
+
+Marked as spam:
+
+```json
+{
+  "event": "email.complained",
+  "messageId": "msg_abc123",
+  "to": "user@example.com",
+  "complainedAt": "2024-01-15T11:00:00.000Z"
+}
+```
+
+## Configuration
+
+1. Go to **Settings → Webhooks**
+2. Add webhook URL (HTTPS required)
+3. Select events to receive
+4. Generate webhook secret
+5. Save and test
+
+## Webhook Handler Example
+
+```javascript
+const express = require('express');
+const crypto = require('crypto');
+
+app.post('/webhooks/email', (req, res) => {
+  const signature = req.headers['x-sendexa-signature'];
+
+  // Verify signature
+  const expectedSignature = crypto
+    .createHmac('sha256', WEBHOOK_SECRET)
+    .update(JSON.stringify(req.body))
+    .digest('hex');
+
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    )
+  ) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  const event = req.body;
+
+  switch (event.event) {
+    case 'email.delivered':
+      console.log('Email delivered:', event.messageId);
+      break;
+    case 'email.bounced':
+      console.log('Email bounced:', event.to, event.reason);
+      // Remove from mailing list
+      break;
+    case 'email.complained':
+      console.log('Spam complaint:', event.to);
+      // Unsubscribe user
+      break;
+  }
+
+  res.status(200).send('OK');
+});
+```

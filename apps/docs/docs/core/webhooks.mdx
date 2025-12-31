@@ -1,0 +1,775 @@
+---
+title: Webhooks
+description: Complete guide to configuring and handling real-time event notifications via webhooks for SMS, OTP, and billing events.
+date: 2025-03-12
+---
+
+# Webhooks
+
+Webhooks allow your system to receive real-time notifications from Sendexa when events occur, such as SMS delivery confirmations, OTP verifications, billing updates, and more. This eliminates the need for constant polling and enables instant event-driven workflows.
+
+---
+
+## Overview
+
+### What Are Webhooks?
+
+Webhooks are HTTP callbacks that Sendexa sends to your server when specific events happen:
+
+- SMS delivery status updates
+- OTP verification results
+- Payment confirmations
+- Balance threshold alerts
+- System notifications
+
+### Benefits
+
+- **Real-time updates** - No polling required
+- **Reduced API calls** - Lower rate limit usage
+- **Event-driven** - Build reactive applications
+- **Reliable** - Automatic retry mechanism
+- **Secure** - Signature verification available
+
+---
+
+## How Webhooks Work
+
+```
+┌─────────────┐           ┌─────────────┐           ┌─────────────┐
+│             │           │             │           │             │
+│  Sendexa    │─(1)────▶  │ Your Server │─(2)────▶ │  Sendexa    │
+│   Server    │  POST     │  Endpoint   │ 200 OK    │   Server    │
+│             │  Event    │             │           │             │
+└─────────────┘           └─────────────┘           └─────────────┘
+```
+
+1. **Event occurs** - SMS delivered, OTP verified, etc.
+2. **Sendexa sends POST request** - To your webhook URL with event data
+3. **Your server processes** - Handle the event and update your database
+4. **Your server responds** - Return `200 OK` within 5 seconds
+5. **Confirmation** - Sendexa marks webhook as delivered
+
+---
+
+## Configuration
+
+### Setting Up Webhooks
+
+1. Log in to your dashboard
+2. Navigate to **Settings → Webhooks**
+3. Click **Add Webhook**
+4. Configure:
+   - **URL:** Your endpoint (must be HTTPS)
+   - **Events:** Select which events to receive
+   - **Secret:** Optional signature verification key
+5. Click **Save**
+
+### Webhook URL Requirements
+
+- Must use **HTTPS** (HTTP not allowed in production)
+- Must be publicly accessible
+- Should respond within **5 seconds**
+- Should return **200 OK** on success
+
+**Example URLs:**
+
+```
+✅ https://api.yourdomain.com/webhooks/sendexa
+✅ https://yourdomain.com/api/v1/notifications
+❌ http://yourdomain.com/webhooks (HTTP not allowed)
+❌ http://localhost:3000/webhooks (not publicly accessible)
+```
+
+---
+
+## Event Types
+
+### SMS Events
+
+#### sms.sent
+
+Triggered when SMS is successfully sent to provider.
+
+```json
+{
+  "event": "sms.sent",
+  "message_id": "msg_a8f92bc3f2c44755",
+  "to": "+233500000000",
+  "from": "Sendexa",
+  "provider": "Telecel",
+  "status": "SENT",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+#### sms.delivered
+
+Triggered when SMS is successfully delivered to recipient.
+
+```json
+{
+  "event": "sms.delivered",
+  "message_id": "msg_a8f92bc3f2c44755",
+  "to": "+233500000000",
+  "from": "Sendexa",
+  "provider": "Telecel",
+  "status": "DELIVERED",
+  "delivered_at": "2025-03-12T12:30:15Z",
+  "timestamp": "2025-03-12T12:30:15Z"
+}
+```
+
+#### sms.failed
+
+Triggered when SMS delivery fails.
+
+```json
+{
+  "event": "sms.failed",
+  "message_id": "msg_a8f92bc3f2c44755",
+  "to": "+233500000000",
+  "from": "Sendexa",
+  "provider": "Telecel",
+  "status": "FAILED",
+  "error_code": "INVALID_NUMBER",
+  "error_message": "Invalid phone number format",
+  "timestamp": "2025-03-12T12:30:20Z"
+}
+```
+
+### OTP Events
+
+#### otp.sent
+
+Triggered when OTP is sent.
+
+```json
+{
+  "event": "otp.sent",
+  "otp_id": "otp_x9f82hc3g2d44866",
+  "to": "+233500000000",
+  "expires_at": "2025-03-12T12:35:00Z",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+#### otp.verified
+
+Triggered when OTP is successfully verified.
+
+```json
+{
+  "event": "otp.verified",
+  "otp_id": "otp_x9f82hc3g2d44866",
+  "to": "+233500000000",
+  "verified_at": "2025-03-12T12:32:00Z",
+  "attempts": 1,
+  "timestamp": "2025-03-12T12:32:00Z"
+}
+```
+
+#### otp.failed
+
+Triggered when OTP verification fails or expires.
+
+```json
+{
+  "event": "otp.failed",
+  "otp_id": "otp_x9f82hc3g2d44866",
+  "to": "+233500000000",
+  "reason": "EXPIRED",
+  "attempts": 3,
+  "timestamp": "2025-03-12T12:35:00Z"
+}
+```
+
+### Billing Events
+
+#### billing.topup.completed
+
+Triggered when account top-up is successful.
+
+```json
+{
+  "event": "billing.topup.completed",
+  "transaction_id": "txn_a8f92bc3f2c44755",
+  "amount": 100.0,
+  "currency": "GHS",
+  "payment_method": "mobile_money",
+  "new_balance": 250.5,
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+#### billing.topup.failed
+
+Triggered when top-up payment fails.
+
+```json
+{
+  "event": "billing.topup.failed",
+  "transaction_id": "txn_a8f92bc3f2c44755",
+  "amount": 100.0,
+  "currency": "GHS",
+  "payment_method": "mobile_money",
+  "error_reason": "INSUFFICIENT_FUNDS",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+#### billing.low_balance
+
+Triggered when balance falls below threshold.
+
+```json
+{
+  "event": "billing.low_balance",
+  "current_balance": 5.5,
+  "threshold": 10.0,
+  "currency": "GHS",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+---
+
+## Implementing Webhook Handlers
+
+### Node.js / Express Example
+
+```js
+const express = require('express');
+const crypto = require('crypto');
+
+const app = express();
+app.use(express.json());
+
+// Webhook secret from dashboard
+const WEBHOOK_SECRET = 'your_webhook_secret_here';
+
+// Verify webhook signature
+function verifySignature(payload, signature) {
+  const expectedSignature = crypto
+    .createHmac('sha256', WEBHOOK_SECRET)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Webhook endpoint
+app.post('/webhooks/sendexa', (req, res) => {
+  const signature = req.headers['x-sendexa-signature'];
+
+  // Verify signature
+  if (!verifySignature(req.body, signature)) {
+    console.error('Invalid signature');
+    return res.status(401).send('Invalid signature');
+  }
+
+  const event = req.body;
+
+  // Handle different event types
+  switch (event.event) {
+    case 'sms.delivered':
+      handleSmsDelivered(event);
+      break;
+
+    case 'sms.failed':
+      handleSmsFailed(event);
+      break;
+
+    case 'otp.verified':
+      handleOtpVerified(event);
+      break;
+
+    case 'billing.topup.completed':
+      handleTopupCompleted(event);
+      break;
+
+    case 'billing.low_balance':
+      handleLowBalance(event);
+      break;
+
+    default:
+      console.log('Unhandled event:', event.event);
+  }
+
+  // Respond quickly
+  res.status(200).send('OK');
+});
+
+function handleSmsDelivered(event) {
+  console.log('SMS delivered:', event.message_id);
+  // Update database
+  // Send notification to user
+}
+
+function handleSmsFailed(event) {
+  console.log('SMS failed:', event.error_message);
+  // Log error
+  // Retry or notify admin
+}
+
+function handleOtpVerified(event) {
+  console.log('OTP verified:', event.otp_id);
+  // Complete user authentication
+  // Grant access
+}
+
+function handleTopupCompleted(event) {
+  console.log('Top-up completed:', event.amount, event.currency);
+  // Update balance display
+  // Send confirmation email
+}
+
+function handleLowBalance(event) {
+  console.log('Low balance alert:', event.current_balance);
+  // Send notification to admin
+  // Trigger auto top-up if enabled
+}
+
+app.listen(3000, () => {
+  console.log('Webhook server listening on port 3000');
+});
+```
+
+### Python / Flask Example
+
+```python
+from flask import Flask, request, jsonify
+import hmac
+import hashlib
+import json
+
+app = Flask(__name__)
+
+WEBHOOK_SECRET = 'your_webhook_secret_here'
+
+def verify_signature(payload, signature):
+    expected_signature = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected_signature)
+
+@app.route('/webhooks/sendexa', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Sendexa-Signature')
+    payload = request.get_json()
+
+    # Verify signature
+    if not verify_signature(payload, signature):
+        return jsonify({'error': 'Invalid signature'}), 401
+
+    event_type = payload.get('event')
+
+    # Handle different event types
+    if event_type == 'sms.delivered':
+        handle_sms_delivered(payload)
+    elif event_type == 'sms.failed':
+        handle_sms_failed(payload)
+    elif event_type == 'otp.verified':
+        handle_otp_verified(payload)
+    elif event_type == 'billing.topup.completed':
+        handle_topup_completed(payload)
+    elif event_type == 'billing.low_balance':
+        handle_low_balance(payload)
+    else:
+        print(f"Unhandled event: {event_type}")
+
+    return jsonify({'status': 'success'}), 200
+
+def handle_sms_delivered(event):
+    print(f"SMS delivered: {event['message_id']}")
+    # Update database
+    # Send notification
+
+def handle_sms_failed(event):
+    print(f"SMS failed: {event['error_message']}")
+    # Log error
+    # Retry or notify
+
+def handle_otp_verified(event):
+    print(f"OTP verified: {event['otp_id']}")
+    # Complete authentication
+    # Grant access
+
+def handle_topup_completed(event):
+    print(f"Top-up completed: {event['amount']} {event['currency']}")
+    # Update balance
+    # Send confirmation
+
+def handle_low_balance(event):
+    print(f"Low balance: {event['current_balance']}")
+    # Send alert
+    # Trigger auto top-up
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+### PHP Example
+
+```php
+<?php
+
+$webhookSecret = 'your_webhook_secret_here';
+
+// Get payload and signature
+$payload = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_SENDEXA_SIGNATURE'] ?? '';
+
+// Verify signature
+$expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
+
+if (!hash_equals($signature, $expectedSignature)) {
+    http_response_code(401);
+    die('Invalid signature');
+}
+
+// Parse event
+$event = json_decode($payload, true);
+
+// Handle event
+switch ($event['event']) {
+    case 'sms.delivered':
+        handleSmsDelivered($event);
+        break;
+
+    case 'sms.failed':
+        handleSmsFailed($event);
+        break;
+
+    case 'otp.verified':
+        handleOtpVerified($event);
+        break;
+
+    case 'billing.topup.completed':
+        handleTopupCompleted($event);
+        break;
+
+    case 'billing.low_balance':
+        handleLowBalance($event);
+        break;
+
+    default:
+        error_log("Unhandled event: " . $event['event']);
+}
+
+// Respond
+http_response_code(200);
+echo 'OK';
+
+function handleSmsDelivered($event) {
+    error_log("SMS delivered: " . $event['message_id']);
+    // Update database
+}
+
+function handleSmsFailed($event) {
+    error_log("SMS failed: " . $event['error_message']);
+    // Log and retry
+}
+
+function handleOtpVerified($event) {
+    error_log("OTP verified: " . $event['otp_id']);
+    // Complete auth
+}
+
+function handleTopupCompleted($event) {
+    error_log("Top-up completed: " . $event['amount']);
+    // Update balance
+}
+
+function handleLowBalance($event) {
+    error_log("Low balance: " . $event['current_balance']);
+    // Send alert
+}
+
+?>
+```
+
+---
+
+## Security
+
+### Signature Verification
+
+Every webhook request includes a signature in the `X-Sendexa-Signature` header. Always verify this signature to ensure requests are from Sendexa.
+
+**Signature Generation:**
+
+```
+HMAC-SHA256(webhook_secret, request_body)
+```
+
+**Example Verification (JavaScript):**
+
+```js
+const crypto = require('crypto');
+
+function verifyWebhook(body, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(body))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+```
+
+### Best Practices
+
+1. **Always use HTTPS** - Never expose webhook endpoints over HTTP
+2. **Verify signatures** - Don't trust unverified requests
+3. **Use timing-safe comparison** - Prevent timing attacks
+4. **Validate event structure** - Check required fields exist
+5. **Process asynchronously** - Return 200 quickly, process in background
+6. **Log all webhooks** - For debugging and audit trails
+7. **Implement idempotency** - Handle duplicate deliveries gracefully
+
+---
+
+## Retry Policy
+
+If your endpoint doesn't respond with `200 OK`, Sendexa will retry:
+
+| Attempt | Delay      | Total Elapsed |
+| ------- | ---------- | ------------- |
+| 1       | Immediate  | 0s            |
+| 2       | 30 seconds | 30s           |
+| 3       | 2 minutes  | 2.5 min       |
+| 4       | 10 minutes | 12.5 min      |
+| 5       | 1 hour     | 1h 12.5min    |
+
+After 5 failed attempts, the webhook is marked as failed and no more retries occur.
+
+### Retry Headers
+
+Retry attempts include additional headers:
+
+```http
+X-Sendexa-Delivery-Attempt: 2
+X-Sendexa-Delivery-ID: del_a8f92bc3f2c44755
+```
+
+### Handling Retries
+
+Implement idempotency to handle duplicate deliveries:
+
+```js
+const processedEvents = new Set();
+
+app.post('/webhooks/sendexa', (req, res) => {
+  const eventId = req.headers['x-sendexa-delivery-id'];
+
+  // Check if already processed
+  if (processedEvents.has(eventId)) {
+    console.log('Event already processed:', eventId);
+    return res.status(200).send('OK');
+  }
+
+  // Process event
+  handleEvent(req.body);
+
+  // Mark as processed
+  processedEvents.add(eventId);
+
+  res.status(200).send('OK');
+});
+```
+
+---
+
+## Testing Webhooks
+
+### Test Endpoint
+
+Use a webhook testing service during development:
+
+- [Webhook.site](https://webhook.site)
+- [RequestBin](https://requestbin.com)
+- [Ngrok](https://ngrok.com) (for localhost)
+
+### Ngrok for Local Development
+
+```bash
+# Install ngrok
+npm install -g ngrok
+
+# Start your local server
+node server.js
+
+# Create tunnel
+ngrok http 3000
+
+# Use the HTTPS URL in dashboard
+https://abc123.ngrok.io/webhooks/sendexa
+```
+
+### Manual Testing
+
+Trigger test webhooks from your dashboard:
+
+1. Go to **Settings → Webhooks**
+2. Select your webhook
+3. Click **Send Test Event**
+4. Choose event type
+5. View response and logs
+
+### Example Test Payloads
+
+**SMS Delivered:**
+
+```json
+{
+  "event": "sms.delivered",
+  "message_id": "test_msg_123",
+  "to": "+233500000000",
+  "status": "DELIVERED",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+**OTP Verified:**
+
+```json
+{
+  "event": "otp.verified",
+  "otp_id": "test_otp_123",
+  "to": "+233500000000",
+  "verified_at": "2025-03-12T12:30:00Z",
+  "timestamp": "2025-03-12T12:30:00Z"
+}
+```
+
+---
+
+## Monitoring & Debugging
+
+### Webhook Logs
+
+View webhook delivery logs in your dashboard:
+
+1. Navigate to **Settings → Webhooks**
+2. Click on webhook URL
+3. View **Delivery Logs** tab
+
+Logs include:
+
+- Timestamp
+- Event type
+- HTTP status code
+- Response time
+- Request/response body
+- Retry attempts
+
+### Failed Webhooks
+
+Monitor failed webhooks and retry manually:
+
+1. Go to **Webhooks → Failed Deliveries**
+2. View error details
+3. Click **Retry** to resend
+
+### Webhook Analytics
+
+Track webhook performance:
+
+- Success rate
+- Average response time
+- Failed delivery reasons
+- Event type distribution
+
+---
+
+## Common Issues
+
+### Issue: Webhooks Not Received
+
+**Possible Causes:**
+
+- Firewall blocking Sendexa IPs
+- Endpoint not publicly accessible
+- HTTPS certificate issues
+- Endpoint taking >5 seconds to respond
+
+**Solutions:**
+
+- Whitelist Sendexa IPs (see below)
+- Use ngrok for local testing
+- Fix SSL certificate
+- Optimize endpoint response time
+
+### Issue: Duplicate Events
+
+**Cause:** Retries due to slow response
+
+**Solution:** Implement idempotency using event IDs
+
+### Issue: Signature Verification Fails
+
+**Possible Causes:**
+
+- Wrong webhook secret
+- Request body modified before verification
+- Character encoding issues
+
+**Solution:**
+
+- Verify secret from dashboard
+- Verify raw request body
+- Use UTF-8 encoding
+
+---
+
+## Sendexa IP Addresses
+
+Whitelist these IPs if needed:
+
+```
+52.1.2.3
+52.1.2.4
+52.1.2.5
+```
+
+**CIDR Block:** `52.1.2.0/24`
+
+---
+
+## Best Practices Checklist
+
+- [ ] Use HTTPS for webhook URLs
+- [ ] Verify webhook signatures
+- [ ] Respond within 5 seconds
+- [ ] Return 200 OK on success
+- [ ] Process events asynchronously
+- [ ] Implement idempotency
+- [ ] Log all webhook events
+- [ ] Monitor webhook health
+- [ ] Handle retries gracefully
+- [ ] Test with different event types
+- [ ] Set up alerts for failures
+- [ ] Document your webhook handler
+
+---
+
+## Need Help?
+
+Having issues with webhooks?
+
+1. **Check webhook logs** in your dashboard
+2. **Test with webhook.site** to verify payload structure
+3. **Review our examples** on GitHub: [github.com/sendexa/examples](https://github.com/sendexa/examples)
+4. **Contact support:**
+   - Email: **support@sendexa.co**
+   - Include webhook URL and delivery ID
+5. **Join our community:** [community.sendexa.co](https://community.sendexa.co)

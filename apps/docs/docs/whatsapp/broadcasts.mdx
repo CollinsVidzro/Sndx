@@ -1,0 +1,854 @@
+---
+title: WhatsApp Broadcasts
+description: Send WhatsApp messages to multiple contacts simultaneously. Create, manage, and track broadcast campaigns.
+date: 2025-03-12
+---
+
+# WhatsApp Broadcasts
+
+Send WhatsApp messages to multiple contacts at once. Perfect for marketing campaigns, announcements, and notifications to segmented audiences.
+
+---
+
+## Overview
+
+### What are Broadcasts?
+
+Broadcasts allow you to send the same message to multiple recipients in a single API call. Each recipient receives an individual message, maintaining personal engagement.
+
+### Key Features
+
+- **Bulk Sending** - Message thousands at once
+- **Contact Targeting** - Send to specific segments
+- **Delivery Tracking** - Monitor individual delivery status
+- **Cost Effective** - Optimized conversation management
+- **Template Support** - Use approved templates
+
+---
+
+## Quick Start
+
+### Create Simple Broadcast
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/broadcasts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "March Promotion",
+    "contacts": ["233501234567", "233509876543"],
+    "message": {
+      "type": "template",
+      "template": {
+        "name": "promotion_alert",
+        "language": "en"
+      }
+    }
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/whatsapp/broadcasts
+
+Create and send a broadcast campaign.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 20 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter     | Type   | Required | Description                                  |
+| ------------- | ------ | -------- | -------------------------------------------- |
+| `name`        | string | Yes      | Broadcast campaign name                      |
+| `contacts`    | array  | Yes\*    | Array of phone numbers                       |
+| `contact_ids` | array  | Yes\*    | Array of contact IDs from contact management |
+| `tags`        | array  | No       | Send to contacts with these tags             |
+| `message`     | object | Yes      | Message object (same as send endpoint)       |
+| `schedule_at` | string | No       | ISO 8601 timestamp for scheduling            |
+
+\*Either `contacts`, `contact_ids`, or `tags` required
+
+### Request Example
+
+```json
+{
+  "name": "Flash Sale Campaign",
+  "contacts": ["233501234567", "233509876543", "233543219876"],
+  "message": {
+    "type": "template",
+    "template": {
+      "name": "flash_sale",
+      "language": "en",
+      "components": [
+        {
+          "type": "body",
+          "parameters": [
+            {
+              "type": "text",
+              "text": "50"
+            },
+            {
+              "type": "text",
+              "text": "6 PM"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "bcast_abc123def456",
+    "name": "Flash Sale Campaign",
+    "status": "processing",
+    "total_recipients": 3,
+    "created_at": "2025-03-12T14:20:00Z",
+    "scheduled_at": null
+  },
+  "message": "Broadcast queued for delivery"
+}
+```
+
+### Response Fields
+
+| Field              | Type    | Description                              |
+| ------------------ | ------- | ---------------------------------------- |
+| `id`               | string  | Unique broadcast identifier              |
+| `name`             | string  | Broadcast campaign name                  |
+| `status`           | string  | processing, completed, failed, scheduled |
+| `total_recipients` | integer | Number of recipients                     |
+| `created_at`       | string  | ISO 8601 timestamp                       |
+| `scheduled_at`     | string  | Scheduled delivery time (if applicable)  |
+
+---
+
+## Get Broadcast Status
+
+### GET /v1/whatsapp/broadcasts/:id
+
+Retrieve broadcast details and delivery status.
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/broadcasts/bcast_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "bcast_abc123def456",
+    "name": "Flash Sale Campaign",
+    "status": "completed",
+    "message": {
+      "type": "template",
+      "template": {
+        "name": "flash_sale",
+        "language": "en"
+      }
+    },
+    "stats": {
+      "total": 1000,
+      "sent": 995,
+      "delivered": 980,
+      "failed": 5,
+      "pending": 0,
+      "read": 450
+    },
+    "cost": {
+      "total": 450.0,
+      "currency": "GHS",
+      "per_message": 0.45
+    },
+    "created_at": "2025-03-12T14:20:00Z",
+    "completed_at": "2025-03-12T14:35:00Z"
+  }
+}
+```
+
+---
+
+## Broadcast with Contact Segments
+
+### Using Tags
+
+Send to all contacts with specific tags:
+
+```json
+{
+  "name": "VIP Customer Update",
+  "tags": ["vip", "active"],
+  "message": {
+    "type": "template",
+    "template": {
+      "name": "vip_update",
+      "language": "en"
+    }
+  }
+}
+```
+
+### Using Contact IDs
+
+Send to specific saved contacts:
+
+```json
+{
+  "name": "Abandoned Cart Reminder",
+  "contact_ids": ["cont_abc123", "cont_def456", "cont_ghi789"],
+  "message": {
+    "type": "template",
+    "template": {
+      "name": "cart_reminder",
+      "language": "en"
+    }
+  }
+}
+```
+
+---
+
+## Scheduled Broadcasts
+
+Schedule broadcasts for future delivery.
+
+### Request Example
+
+```json
+{
+  "name": "Morning Newsletter",
+  "tags": ["subscribers"],
+  "schedule_at": "2025-03-15T07:00:00Z",
+  "message": {
+    "type": "template",
+    "template": {
+      "name": "daily_newsletter",
+      "language": "en"
+    }
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "bcast_scheduled123",
+    "name": "Morning Newsletter",
+    "status": "scheduled",
+    "total_recipients": 5000,
+    "scheduled_at": "2025-03-15T07:00:00Z",
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## List Broadcasts
+
+### GET /v1/whatsapp/broadcasts
+
+Retrieve all broadcast campaigns.
+
+#### Query Parameters
+
+| Parameter   | Type    | Description                                                 |
+| ----------- | ------- | ----------------------------------------------------------- |
+| `status`    | string  | Filter by status (processing, completed, failed, scheduled) |
+| `limit`     | integer | Results per page (max 100, default 50)                      |
+| `offset`    | integer | Pagination offset                                           |
+| `date_from` | string  | Start date (ISO 8601)                                       |
+| `date_to`   | string  | End date (ISO 8601)                                         |
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/broadcasts?status=completed&limit=20' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "bcast_abc123",
+      "name": "Flash Sale Campaign",
+      "status": "completed",
+      "stats": {
+        "total": 1000,
+        "delivered": 980,
+        "failed": 20
+      },
+      "created_at": "2025-03-12T14:20:00Z"
+    },
+    {
+      "id": "bcast_def456",
+      "name": "Product Launch",
+      "status": "completed",
+      "stats": {
+        "total": 5000,
+        "delivered": 4950,
+        "failed": 50
+      },
+      "created_at": "2025-03-10T09:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 45,
+    "limit": 20,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Cancel Scheduled Broadcast
+
+### DELETE /v1/whatsapp/broadcasts/:id
+
+Cancel a scheduled broadcast before it's sent.
+
+#### Request Example
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/whatsapp/broadcasts/bcast_scheduled123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Broadcast cancelled successfully",
+  "broadcast": {
+    "id": "bcast_scheduled123",
+    "name": "Morning Newsletter",
+    "status": "cancelled"
+  }
+}
+```
+
+---
+
+## Broadcast Recipients
+
+### GET /v1/whatsapp/broadcasts/:id/recipients
+
+Get detailed recipient list and their delivery status.
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/broadcasts/bcast_abc123/recipients?status=failed' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "broadcast_id": "bcast_abc123",
+  "recipients": [
+    {
+      "phone": "233501234567",
+      "status": "delivered",
+      "message_id": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+      "delivered_at": "2025-03-12T14:25:00Z",
+      "read_at": "2025-03-12T14:30:00Z"
+    },
+    {
+      "phone": "233509876543",
+      "status": "delivered",
+      "message_id": "wamid.HBgNMjMzNTA5ODc2NTQzFQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+      "delivered_at": "2025-03-12T14:25:05Z",
+      "read_at": null
+    },
+    {
+      "phone": "233543219876",
+      "status": "failed",
+      "error": {
+        "code": "INVALID_NUMBER",
+        "message": "Invalid WhatsApp number"
+      },
+      "failed_at": "2025-03-12T14:25:03Z"
+    }
+  ],
+  "pagination": {
+    "total": 1000,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+class BroadcastManager {
+  constructor(apiToken) {
+    this.apiToken = apiToken;
+    this.baseUrl = 'https://api.sendexa.co/v1/whatsapp';
+  }
+
+  async createBroadcast(name, recipients, message) {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/broadcasts`,
+        {
+          name,
+          contacts: recipients,
+          message,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.apiToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log(`Broadcast created: ${response.data.broadcast.id}`);
+      return response.data.broadcast;
+    } catch (error) {
+      console.error('Broadcast error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async getBroadcastStatus(broadcastId) {
+    const response = await axios.get(
+      `${this.baseUrl}/broadcasts/${broadcastId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+        },
+      }
+    );
+
+    return response.data.broadcast;
+  }
+
+  async waitForCompletion(broadcastId, maxWait = 300000) {
+    const start = Date.now();
+
+    while (Date.now() - start < maxWait) {
+      const broadcast = await this.getBroadcastStatus(broadcastId);
+
+      if (broadcast.status === 'completed') {
+        return broadcast;
+      } else if (broadcast.status === 'failed') {
+        throw new Error('Broadcast failed');
+      }
+
+      // Wait 5 seconds before checking again
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    throw new Error('Broadcast timeout');
+  }
+}
+
+// Usage
+const manager = new BroadcastManager('your_token');
+
+// Create broadcast
+const broadcast = await manager.createBroadcast(
+  'Flash Sale Alert',
+  ['233501234567', '233509876543'],
+  {
+    type: 'template',
+    template: {
+      name: 'flash_sale',
+      language: 'en',
+    },
+  }
+);
+
+// Wait for completion
+const completed = await manager.waitForCompletion(broadcast.id);
+console.log('Broadcast completed:', completed.stats);
+```
+
+### Python
+
+```python
+import requests
+import time
+
+class BroadcastManager:
+    def __init__(self, api_token):
+        self.api_token = api_token
+        self.base_url = 'https://api.sendexa.co/v1/whatsapp'
+        self.headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+
+    def create_broadcast(self, name, recipients, message):
+        """Create a new broadcast"""
+        url = f'{self.base_url}/broadcasts'
+        payload = {
+            'name': name,
+            'contacts': recipients,
+            'message': message
+        }
+
+        response = requests.post(url, json=payload, headers=self.headers)
+        response.raise_for_status()
+
+        broadcast = response.json()['broadcast']
+        print(f"Broadcast created: {broadcast['id']}")
+        return broadcast
+
+    def get_broadcast_status(self, broadcast_id):
+        """Get broadcast status"""
+        url = f'{self.base_url}/broadcasts/{broadcast_id}'
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()['broadcast']
+
+    def wait_for_completion(self, broadcast_id, max_wait=300):
+        """Wait for broadcast to complete"""
+        start = time.time()
+
+        while time.time() - start < max_wait:
+            broadcast = self.get_broadcast_status(broadcast_id)
+
+            if broadcast['status'] == 'completed':
+                return broadcast
+            elif broadcast['status'] == 'failed':
+                raise Exception('Broadcast failed')
+
+            time.sleep(5)
+
+        raise Exception('Broadcast timeout')
+
+# Usage
+manager = BroadcastManager('your_token')
+
+# Create broadcast
+broadcast = manager.create_broadcast(
+    'Flash Sale Alert',
+    ['233501234567', '233509876543'],
+    {
+        'type': 'template',
+        'template': {
+            'name': 'flash_sale',
+            'language': 'en'
+        }
+    }
+)
+
+# Wait for completion
+completed = manager.wait_for_completion(broadcast['id'])
+print(f"Delivered: {completed['stats']['delivered']}/{completed['stats']['total']}")
+```
+
+### PHP
+
+```php
+<?php
+
+class BroadcastManager {
+    private $apiToken;
+    private $baseUrl = 'https://api.sendexa.co/v1/whatsapp';
+
+    public function __construct($apiToken) {
+        $this->apiToken = $apiToken;
+    }
+
+    public function createBroadcast($name, $recipients, $message) {
+        $url = $this->baseUrl . '/broadcasts';
+
+        $payload = [
+            'name' => $name,
+            'contacts' => $recipients,
+            'message' => $message
+        ];
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiToken,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            $data = json_decode($response, true);
+            echo "Broadcast created: " . $data['broadcast']['id'] . "\n";
+            return $data['broadcast'];
+        } else {
+            throw new Exception("Broadcast creation failed: " . $response);
+        }
+    }
+
+    public function getBroadcastStatus($broadcastId) {
+        $url = $this->baseUrl . '/broadcasts/' . $broadcastId;
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiToken
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+        return $data['broadcast'];
+    }
+}
+
+// Usage
+$manager = new BroadcastManager('your_token');
+
+$broadcast = $manager->createBroadcast(
+    'Flash Sale Alert',
+    ['233501234567', '233509876543'],
+    [
+        'type' => 'template',
+        'template' => [
+            'name' => 'flash_sale',
+            'language' => 'en'
+        ]
+    ]
+);
+
+// Get status
+$status = $manager->getBroadcastStatus($broadcast['id']);
+echo "Status: " . $status['status'] . "\n";
+?>
+```
+
+---
+
+## Best Practices
+
+### 1. Segment Your Audience
+
+```javascript
+// Send different messages to different segments
+const vipCustomers = await getContactsByTag('vip');
+const regularCustomers = await getContactsByTag('regular');
+
+// VIP gets exclusive offer
+await createBroadcast('VIP Exclusive', vipCustomers, vipMessage);
+
+// Regular gets standard promotion
+await createBroadcast('Flash Sale', regularCustomers, regularMessage);
+```
+
+### 2. Batch Large Broadcasts
+
+```javascript
+// Split large lists into batches
+function chunkArray(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const allContacts = await getAllContacts(); // 50,000 contacts
+const batches = chunkArray(allContacts, 5000);
+
+for (const [index, batch] of batches.entries()) {
+  await createBroadcast(`Campaign Batch ${index + 1}`, batch, message);
+
+  // Small delay between batches
+  await new Promise((r) => setTimeout(r, 2000));
+}
+```
+
+### 3. Monitor Delivery Rates
+
+```javascript
+async function monitorBroadcast(broadcastId) {
+  const broadcast = await getBroadcastStatus(broadcastId);
+  const stats = broadcast.stats;
+
+  const deliveryRate = (stats.delivered / stats.total) * 100;
+  const failureRate = (stats.failed / stats.total) * 100;
+
+  console.log(`Delivery Rate: ${deliveryRate.toFixed(2)}%`);
+  console.log(`Failure Rate: ${failureRate.toFixed(2)}%`);
+
+  if (failureRate > 5) {
+    // Alert if failure rate too high
+    await alertAdmin(`High failure rate in broadcast ${broadcastId}`);
+  }
+
+  return { deliveryRate, failureRate };
+}
+```
+
+### 4. Schedule at Optimal Times
+
+```javascript
+// Schedule for optimal engagement times
+const timezoneOffset = '+00:00'; // UTC
+const scheduleTime = '2025-03-15T09:00:00' + timezoneOffset;
+
+await createBroadcast('Morning Promotion', contacts, message, scheduleTime);
+```
+
+### 5. Test Before Broadcasting
+
+```javascript
+// Always test with small group first
+const testContacts = ['your_test_number'];
+
+const testBroadcast = await createBroadcast(
+  'TEST - Flash Sale',
+  testContacts,
+  message
+);
+
+// Wait and verify
+await waitForCompletion(testBroadcast.id);
+const testResult = await getBroadcastStatus(testBroadcast.id);
+
+if (testResult.stats.delivered === testContacts.length) {
+  // Test successful, proceed with full broadcast
+  await createBroadcast('Flash Sale', allContacts, message);
+} else {
+  console.error('Test broadcast failed, aborting');
+}
+```
+
+---
+
+## Analytics & Reporting
+
+### Generate Broadcast Report
+
+```javascript
+async function generateBroadcastReport(broadcastId) {
+  const broadcast = await getBroadcastStatus(broadcastId);
+  const recipients = await getBroadcastRecipients(broadcastId);
+
+  const report = {
+    name: broadcast.name,
+    sent: broadcast.stats.sent,
+    delivered: broadcast.stats.delivered,
+    failed: broadcast.stats.failed,
+    read: broadcast.stats.read,
+    deliveryRate:
+      ((broadcast.stats.delivered / broadcast.stats.total) * 100).toFixed(2) +
+      '%',
+    readRate:
+      ((broadcast.stats.read / broadcast.stats.delivered) * 100).toFixed(2) +
+      '%',
+    cost: broadcast.cost.total,
+    currency: broadcast.cost.currency,
+    duration: calculateDuration(broadcast.created_at, broadcast.completed_at),
+    failedRecipients: recipients.filter((r) => r.status === 'failed'),
+  };
+
+  return report;
+}
+
+// Usage
+const report = await generateBroadcastReport('bcast_abc123');
+console.log(JSON.stringify(report, null, 2));
+```
+
+---
+
+## Common Errors
+
+### Error: Insufficient Balance
+
+```json
+{
+  "error": "INSUFFICIENT_BALANCE",
+  "message": "Not enough credits for broadcast",
+  "details": {
+    "required": 450.0,
+    "available": 200.0,
+    "currency": "GHS"
+  }
+}
+```
+
+**Solution:** Top up account before broadcasting.
+
+### Error: Invalid Recipients
+
+```json
+{
+  "error": "INVALID_RECIPIENTS",
+  "message": "Some recipients have invalid phone numbers",
+  "details": {
+    "invalid_count": 15,
+    "invalid_numbers": ["0501234567", "invalid"]
+  }
+}
+```
+
+**Solution:** Validate phone numbers before broadcasting.
+
+### Error: Template Not Approved
+
+```json
+{
+  "error": "TEMPLATE_NOT_APPROVED",
+  "message": "Template 'flash_sale' is pending approval"
+}
+```
+
+**Solution:** Wait for template approval before broadcasting.
+
+---
+
+## Next Steps
+
+- 👥 **[Manage Contacts](/docs/whatsapp/contacts)** - Organize your audience
+- 📝 **[Create Templates](/docs/whatsapp/templates)** - Build reusable messages
+- 🔔 **[Set Up Webhooks](/docs/whatsapp/webhooks)** - Track delivery in real-time
+- 🛠️ **[API Reference](/docs/whatsapp/v1)** - Complete documentation

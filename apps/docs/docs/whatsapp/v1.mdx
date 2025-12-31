@@ -1,0 +1,856 @@
+---
+title: WhatsApp API v1 Reference
+description: Complete API reference for Sendexa WhatsApp API v1 with all endpoints, parameters, and response formats.
+date: 2025-03-12
+---
+
+# WhatsApp API v1 Reference
+
+Complete reference documentation for all Sendexa WhatsApp API v1 endpoints with detailed parameters, responses, and error codes.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Use **Bearer Token authentication** in the `Authorization` header:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Generate tokens:** [Dashboard → Developers → API Keys](https://auth.sendexa.co/developers/api-keys)
+
+---
+
+## Endpoints Overview
+
+| Endpoint                                 | Method | Purpose                  | Rate Limit |
+| ---------------------------------------- | ------ | ------------------------ | ---------- |
+| `/v1/whatsapp/send`                      | POST   | Send messages            | 50/min     |
+| `/v1/whatsapp/broadcasts`                | POST   | Create broadcast         | 20/min     |
+| `/v1/whatsapp/broadcasts/:id`            | GET    | Get broadcast status     | 60/min     |
+| `/v1/whatsapp/broadcasts/:id`            | DELETE | Cancel broadcast         | 30/min     |
+| `/v1/whatsapp/broadcasts/:id/recipients` | GET    | Get broadcast recipients | 30/min     |
+| `/v1/whatsapp/contacts`                  | POST   | Create contact           | 100/min    |
+| `/v1/whatsapp/contacts/:id`              | GET    | Get contact              | 100/min    |
+| `/v1/whatsapp/contacts/:id`              | PUT    | Update contact           | 100/min    |
+| `/v1/whatsapp/contacts/:id`              | DELETE | Delete contact           | 60/min     |
+| `/v1/whatsapp/contacts`                  | GET    | List contacts            | 60/min     |
+| `/v1/whatsapp/contacts/import`           | POST   | Bulk import              | 10/min     |
+| `/v1/whatsapp/templates`                 | POST   | Create template          | 10/min     |
+| `/v1/whatsapp/templates/:id`             | GET    | Get template             | 60/min     |
+| `/v1/whatsapp/templates/:id`             | PUT    | Update template          | 10/min     |
+| `/v1/whatsapp/templates/:id`             | DELETE | Delete template          | 10/min     |
+| `/v1/whatsapp/templates`                 | GET    | List templates           | 60/min     |
+| `/v1/whatsapp/media`                     | POST   | Upload media             | 30/min     |
+| `/v1/whatsapp/media/:id`                 | GET    | Get media                | 100/min    |
+
+---
+
+## Send Message
+
+### POST /v1/whatsapp/send
+
+Send WhatsApp messages of any type.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body
+
+| Parameter                       | Type   | Required | Description                                                               |
+| ------------------------------- | ------ | -------- | ------------------------------------------------------------------------- |
+| `to`                            | string | Yes      | Recipient WhatsApp number                                                 |
+| `type`                          | string | Yes      | Message type (text, image, video, document, audio, template, interactive) |
+| Additional fields based on type | -      | Yes      | Type-specific content                                                     |
+
+#### Text Message
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "type": "text",
+    "text": {
+      "body": "Hello from Sendexa!",
+      "preview_url": true
+    }
+  }'
+```
+
+#### Image Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "image",
+  "image": {
+    "url": "https://example.com/image.jpg",
+    "caption": "Check this out!"
+  }
+}
+```
+
+#### Template Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "template",
+  "template": {
+    "name": "order_confirmation",
+    "language": "en",
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "ORD-12345"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "messageId": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+  "to": "233501234567",
+  "status": "sent",
+  "conversation": {
+    "id": "conv_abc123",
+    "type": "business_initiated",
+    "category": "utility",
+    "expiry": "2025-03-13T14:20:00Z"
+  },
+  "cost": 0.35,
+  "currency": "GHS"
+}
+```
+
+---
+
+## Broadcasts
+
+### Create Broadcast
+
+**POST /v1/whatsapp/broadcasts**
+
+Create a broadcast campaign.
+
+#### Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/broadcasts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "March Promotion",
+    "contacts": ["233501234567", "233509876543"],
+    "message": {
+      "type": "template",
+      "template": {
+        "name": "promotion_alert",
+        "language": "en"
+      }
+    }
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "bcast_abc123",
+    "name": "March Promotion",
+    "status": "processing",
+    "total_recipients": 2,
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+### Get Broadcast Status
+
+**GET /v1/whatsapp/broadcasts/:id**
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/broadcasts/bcast_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "bcast_abc123",
+    "name": "March Promotion",
+    "status": "completed",
+    "stats": {
+      "total": 1000,
+      "sent": 995,
+      "delivered": 980,
+      "failed": 5,
+      "read": 450
+    },
+    "cost": {
+      "total": 450.0,
+      "currency": "GHS"
+    },
+    "created_at": "2025-03-12T14:20:00Z",
+    "completed_at": "2025-03-12T14:35:00Z"
+  }
+}
+```
+
+### List Broadcasts
+
+**GET /v1/whatsapp/broadcasts**
+
+Query Parameters:
+
+- `status` - Filter by status
+- `limit` - Results per page (max 100)
+- `offset` - Pagination offset
+
+### Cancel Broadcast
+
+**DELETE /v1/whatsapp/broadcasts/:id**
+
+Cancel a scheduled broadcast.
+
+---
+
+## Contacts
+
+### Create Contact
+
+**POST /v1/whatsapp/contacts**
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "233501234567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "tags": ["customer", "vip"]
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "cont_abc123",
+    "phone": "233501234567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "tags": ["customer", "vip"],
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+### Get Contact
+
+**GET /v1/whatsapp/contacts/:id**
+
+Get by ID or phone number.
+
+```bash
+# By ID
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/contacts/cont_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+
+# By phone
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/contacts?phone=233501234567' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Update Contact
+
+**PUT /v1/whatsapp/contacts/:id**
+
+```json
+{
+  "name": "John Smith",
+  "tags": ["customer", "vip", "enterprise"]
+}
+```
+
+### Delete Contact
+
+**DELETE /v1/whatsapp/contacts/:id**
+
+Permanently delete a contact.
+
+### List Contacts
+
+**GET /v1/whatsapp/contacts**
+
+Query Parameters:
+
+- `tags` - Filter by tags (comma-separated)
+- `opted_in` - Filter by opt-in status
+- `search` - Search name, email, phone
+- `limit` - Results per page
+- `offset` - Pagination offset
+
+### Bulk Import
+
+**POST /v1/whatsapp/contacts/import**
+
+```json
+{
+  "contacts": [
+    {
+      "phone": "233501234567",
+      "name": "John Doe",
+      "tags": ["customer"]
+    },
+    {
+      "phone": "233509876543",
+      "name": "Jane Smith",
+      "tags": ["customer", "vip"]
+    }
+  ]
+}
+```
+
+---
+
+## Templates
+
+### Create Template
+
+**POST /v1/whatsapp/templates**
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/templates' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "order_confirmation",
+    "category": "UTILITY",
+    "language": "en",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Your order {{1}} has been confirmed!"
+      }
+    ]
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "template": {
+    "id": "tmpl_abc123",
+    "name": "order_confirmation",
+    "category": "UTILITY",
+    "language": "en",
+    "status": "PENDING",
+    "created_at": "2025-03-12T14:20:00Z"
+  },
+  "message": "Template submitted for approval"
+}
+```
+
+### Get Template
+
+**GET /v1/whatsapp/templates/:id**
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/templates/tmpl_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### List Templates
+
+**GET /v1/whatsapp/templates**
+
+Query Parameters:
+
+- `status` - PENDING, APPROVED, REJECTED
+- `category` - UTILITY, AUTHENTICATION, MARKETING
+- `language` - Language code
+- `limit` - Results per page
+- `offset` - Pagination offset
+
+### Update Template
+
+**PUT /v1/whatsapp/templates/:id**
+
+Update template (requires re-approval).
+
+### Delete Template
+
+**DELETE /v1/whatsapp/templates/:id**
+
+Permanently delete a template.
+
+---
+
+## Media
+
+### Upload Media
+
+**POST /v1/whatsapp/media**
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/media' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -F 'file=@/path/to/image.jpg' \
+  -F 'type=image/jpeg'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "media_id": "med_abc123",
+  "url": "https://cdn.sendexa.co/media/med_abc123.jpg",
+  "type": "image/jpeg",
+  "size": 245678
+}
+```
+
+### Get Media
+
+**GET /v1/whatsapp/media/:id**
+
+Retrieve media details.
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description               |
+| ---- | --------------------- | ------------------------- |
+| 200  | OK                    | Request successful        |
+| 400  | Bad Request           | Invalid parameters        |
+| 401  | Unauthorized          | Invalid/missing API token |
+| 402  | Payment Required      | Insufficient balance      |
+| 403  | Forbidden             | Access denied             |
+| 404  | Not Found             | Resource not found        |
+| 422  | Unprocessable Entity  | Validation errors         |
+| 429  | Too Many Requests     | Rate limit exceeded       |
+| 500  | Internal Server Error | Server error              |
+| 503  | Service Unavailable   | Temporary disruption      |
+
+### Application Error Codes
+
+| Code                          | HTTP | Description                 |
+| ----------------------------- | ---- | --------------------------- |
+| `INVALID_TOKEN`               | 401  | API token invalid/expired   |
+| `INVALID_PARAMETERS`          | 400  | Missing/invalid parameters  |
+| `INVALID_PHONE_NUMBER`        | 400  | Phone number format invalid |
+| `TEMPLATE_NOT_FOUND`          | 404  | Template doesn't exist      |
+| `TEMPLATE_NOT_APPROVED`       | 403  | Template not approved yet   |
+| `CONVERSATION_WINDOW_EXPIRED` | 400  | Cannot send session message |
+| `INSUFFICIENT_BALANCE`        | 402  | Not enough credits          |
+| `RATE_LIMIT_EXCEEDED`         | 429  | Too many requests           |
+| `MESSAGE_NOT_FOUND`           | 404  | Message ID not found        |
+| `BROADCAST_NOT_FOUND`         | 404  | Broadcast ID not found      |
+| `CONTACT_NOT_FOUND`           | 404  | Contact not found           |
+| `MEDIA_TOO_LARGE`             | 400  | Media exceeds size limit    |
+| `UNSUPPORTED_MEDIA_TYPE`      | 400  | Media type not supported    |
+| `SERVER_ERROR`                | 500  | Internal server error       |
+
+---
+
+## Rate Limits
+
+| Tier       | Messages/Day | API Calls/Min |
+| ---------- | ------------ | ------------- |
+| Free       | 100          | 10            |
+| Basic      | 10,000       | 50            |
+| Pro        | 100,000      | 100           |
+| Enterprise | Unlimited    | 500           |
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 50
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1678627800
+```
+
+### Rate Limit Response
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests",
+  "retry_after": 60
+}
+```
+
+---
+
+## Message Types
+
+### Text
+
+```json
+{
+  "type": "text",
+  "text": {
+    "body": "Message content",
+    "preview_url": true
+  }
+}
+```
+
+### Image
+
+```json
+{
+  "type": "image",
+  "image": {
+    "url": "https://example.com/image.jpg",
+    "caption": "Caption text"
+  }
+}
+```
+
+### Video
+
+```json
+{
+  "type": "video",
+  "video": {
+    "url": "https://example.com/video.mp4",
+    "caption": "Video caption"
+  }
+}
+```
+
+### Document
+
+```json
+{
+  "type": "document",
+  "document": {
+    "url": "https://example.com/doc.pdf",
+    "filename": "document.pdf",
+    "caption": "Document caption"
+  }
+}
+```
+
+### Audio
+
+```json
+{
+  "type": "audio",
+  "audio": {
+    "url": "https://example.com/audio.mp3"
+  }
+}
+```
+
+### Template
+
+```json
+{
+  "type": "template",
+  "template": {
+    "name": "template_name",
+    "language": "en",
+    "components": [...]
+  }
+}
+```
+
+### Interactive (Buttons)
+
+```json
+{
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "body": {
+      "text": "Choose an option"
+    },
+    "action": {
+      "buttons": [
+        {
+          "type": "reply",
+          "reply": {
+            "id": "btn_1",
+            "title": "Option 1"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Interactive (List)
+
+```json
+{
+  "type": "interactive",
+  "interactive": {
+    "type": "list",
+    "body": {
+      "text": "Select an option"
+    },
+    "action": {
+      "button": "Menu",
+      "sections": [
+        {
+          "title": "Section 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "title": "Option 1",
+              "description": "Description"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Location
+
+```json
+{
+  "type": "location",
+  "location": {
+    "latitude": 5.6037,
+    "longitude": -0.187,
+    "name": "Location name",
+    "address": "Address"
+  }
+}
+```
+
+### Contact
+
+```json
+{
+  "type": "contacts",
+  "contacts": [
+    {
+      "name": {
+        "formatted_name": "John Doe",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "phones": [
+        {
+          "phone": "+233501234567",
+          "type": "MOBILE"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Webhooks
+
+### Event Types
+
+| Event                      | Description                |
+| -------------------------- | -------------------------- |
+| `message.sent`             | Message sent to WhatsApp   |
+| `message.delivered`        | Message delivered          |
+| `message.read`             | Message read by recipient  |
+| `message.failed`           | Message delivery failed    |
+| `message.received`         | Incoming message from user |
+| `interactive.button_reply` | User clicked button        |
+| `interactive.list_reply`   | User selected from list    |
+
+### Webhook Payload Example
+
+```json
+{
+  "event": "message.delivered",
+  "messageId": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+  "to": "233501234567",
+  "status": "delivered",
+  "conversation": {
+    "id": "conv_abc123",
+    "type": "business_initiated"
+  },
+  "cost": 0.35,
+  "currency": "GHS",
+  "deliveredAt": "2025-03-12T14:20:05Z",
+  "timestamp": "2025-03-12T14:20:05Z"
+}
+```
+
+---
+
+## SDKs
+
+### Node.js
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+```javascript
+const Sendexa = require('@sendexa/node-sdk');
+const client = new Sendexa('your_token');
+
+await client.whatsapp.send({
+  to: '233501234567',
+  type: 'text',
+  text: {
+    body: 'Hello from Sendexa!',
+  },
+});
+```
+
+### Python
+
+```bash
+pip install sendexa
+```
+
+```python
+from sendexa import Sendexa
+
+client = Sendexa('your_token')
+
+client.whatsapp.send(
+    to='233501234567',
+    type='text',
+    text={'body': 'Hello from Sendexa!'}
+)
+```
+
+### PHP
+
+```bash
+composer require sendexa/php-sdk
+```
+
+```php
+<?php
+use Sendexa\Client;
+
+$client = new Client('your_token');
+
+$client->whatsapp->send([
+    'to' => '233501234567',
+    'type' => 'text',
+    'text' => ['body' => 'Hello from Sendexa!']
+]);
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Numbers:**
+| Number | Behavior |
+|--------|----------|
+| `+233500000001` | Always delivers |
+| `+233500000002` | Always fails |
+| `+233500000003` | Delivers after 30s |
+| `+233500000004` | Auto-replies |
+
+---
+
+## Best Practices
+
+### 1. Use Templates for First Contact
+
+Always initiate conversations with templates.
+
+### 2. Track Conversation Windows
+
+Monitor 24-hour windows to optimize costs.
+
+### 3. Handle Errors Gracefully
+
+Implement proper error handling and retries.
+
+### 4. Use Webhooks
+
+Don't poll - use webhooks for real-time updates.
+
+### 5. Validate Phone Numbers
+
+Always validate before sending.
+
+---
+
+## Support
+
+- **Documentation:** [docs.sendexa.co](https://docs.sendexa.co)
+- **API Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Email:** support@sendexa.co
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+- **GitHub:** [github.com/sendexa](https://github.com/sendexa)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Text, media, template messages
+- Interactive messages (buttons, lists)
+- Broadcast campaigns
+- Contact management
+- Template management
+- Media upload
+- Webhook notifications
+- Real-time delivery tracking

@@ -1,0 +1,778 @@
+---
+title: Phonebook API Overview
+description: Manage contacts and groups with the Sendexa Phonebook API. Store, organize, and segment your contacts for targeted messaging campaigns.
+date: 2025-03-12
+---
+
+# Phonebook API Overview
+
+Welcome to the **Sendexa Phonebook API**. Manage your contacts, create groups, and organize your audience for targeted SMS, voice, and push notification campaigns.
+
+---
+
+## Why Choose Sendexa Phonebook?
+
+### Centralized Contact Management
+
+- **Unified Database** - Single source of truth for contacts
+- **Custom Fields** - Store custom attributes
+- **Smart Groups** - Dynamic segmentation
+- **Import/Export** - Bulk contact management
+- **Deduplication** - Automatic duplicate detection
+
+### Advanced Segmentation
+
+- **Group Management** - Organize contacts into groups
+- **Dynamic Filters** - Auto-updating segments
+- **Tag System** - Flexible categorization
+- **Custom Attributes** - Store any data you need
+- **Nested Groups** - Hierarchical organization
+
+### Integration Ready
+
+- **REST API** - Easy integration
+- **Webhooks** - Real-time updates
+- **Bulk Operations** - Handle thousands of contacts
+- **CSV Import/Export** - Standard format support
+- **CRM Sync** - Connect with your CRM
+
+---
+
+## Key Features
+
+### Contact Management
+
+Create, update, and manage individual contacts:
+
+- Store phone numbers, emails, names
+- Add custom fields
+- Track subscription status
+- Manage opt-in/opt-out
+- View contact history
+
+**Endpoint:** `POST /v1/phonebook/contacts`
+
+```json
+{
+  "phone": "233501234567",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "custom_fields": {
+    "birthday": "1990-01-15",
+    "city": "Accra"
+  }
+}
+```
+
+### Group Management
+
+Organize contacts into groups for targeted campaigns:
+
+- Create multiple groups
+- Add/remove contacts
+- Nested group structure
+- Group-level permissions
+- Track group size
+
+**Endpoint:** `POST /v1/phonebook/groups`
+
+```json
+{
+  "name": "Premium Customers",
+  "description": "Customers with premium subscription",
+  "tags": ["premium", "active"]
+}
+```
+
+### Bulk Operations
+
+Import or update thousands of contacts at once:
+
+- CSV import
+- Bulk create/update
+- Batch delete
+- Mass group assignment
+- Progress tracking
+
+**Endpoint:** `POST /v1/phonebook/contacts/bulk`
+
+### Smart Segments
+
+Create dynamic groups based on criteria:
+
+- Filter by custom fields
+- Date-based segments
+- Behavior-based groups
+- Automatic updates
+- Real-time counts
+
+---
+
+## Getting Started
+
+### 1. Create an Account
+
+Sign up at [auth.sendexa.co](https://auth.sendexa.co) and verify your email.
+
+### 2. Generate API Token
+
+1. Navigate to **Settings → API Tokens**
+2. Click **Create New Token**
+3. Copy your token securely
+4. Use it in the `Authorization` header
+
+```http
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+### 3. Create Your First Contact
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "233501234567",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+```
+
+### 4. Create a Group
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/groups' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Newsletter Subscribers",
+    "description": "Users subscribed to newsletter"
+  }'
+```
+
+### 5. Add Contact to Group
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/groups/{group_id}/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "contact_id": "contact_abc123"
+  }'
+```
+
+---
+
+## Base URL
+
+All Phonebook API requests use the following base URL:
+
+```
+https://api.sendexa.co
+```
+
+**Environment URLs:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Sendexa uses **Bearer Token authentication**. Include your API token in the `Authorization` header of every request:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+---
+
+## API Endpoints Summary
+
+| Endpoint                            | Method | Purpose             | Rate Limit |
+| ----------------------------------- | ------ | ------------------- | ---------- |
+| `/v1/phonebook/contacts`            | POST   | Create contact      | 100/min    |
+| `/v1/phonebook/contacts`            | GET    | List contacts       | 60/min     |
+| `/v1/phonebook/contacts/:id`        | GET    | Get contact         | 100/min    |
+| `/v1/phonebook/contacts/:id`        | PUT    | Update contact      | 100/min    |
+| `/v1/phonebook/contacts/:id`        | DELETE | Delete contact      | 60/min     |
+| `/v1/phonebook/contacts/bulk`       | POST   | Bulk import         | 10/min     |
+| `/v1/phonebook/groups`              | POST   | Create group        | 60/min     |
+| `/v1/phonebook/groups`              | GET    | List groups         | 60/min     |
+| `/v1/phonebook/groups/:id`          | GET    | Get group           | 100/min    |
+| `/v1/phonebook/groups/:id`          | PUT    | Update group        | 60/min     |
+| `/v1/phonebook/groups/:id`          | DELETE | Delete group        | 30/min     |
+| `/v1/phonebook/groups/:id/contacts` | POST   | Add to group        | 100/min    |
+| `/v1/phonebook/groups/:id/contacts` | GET    | List group contacts | 60/min     |
+
+---
+
+## Contact Structure
+
+### Contact Object
+
+```json
+{
+  "id": "contact_abc123def456",
+  "phone": "233501234567",
+  "email": "john@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "status": "active",
+  "subscribed": true,
+  "custom_fields": {
+    "birthday": "1990-01-15",
+    "city": "Accra",
+    "customer_type": "premium"
+  },
+  "tags": ["newsletter", "premium"],
+  "groups": ["group_xyz789"],
+  "created_at": "2025-03-12T14:20:00Z",
+  "updated_at": "2025-03-12T14:20:00Z"
+}
+```
+
+### Field Descriptions
+
+| Field           | Type    | Description                         |
+| --------------- | ------- | ----------------------------------- |
+| `id`            | string  | Unique contact identifier           |
+| `phone`         | string  | Phone number (international format) |
+| `email`         | string  | Email address                       |
+| `first_name`    | string  | First name                          |
+| `last_name`     | string  | Last name                           |
+| `status`        | string  | active/inactive/blocked             |
+| `subscribed`    | boolean | Subscription status                 |
+| `custom_fields` | object  | Custom attributes                   |
+| `tags`          | array   | Contact tags                        |
+| `groups`        | array   | Group IDs                           |
+| `created_at`    | string  | Creation timestamp                  |
+| `updated_at`    | string  | Last update timestamp               |
+
+---
+
+## Group Structure
+
+### Group Object
+
+```json
+{
+  "id": "group_xyz789abc012",
+  "name": "Premium Customers",
+  "description": "Customers with premium subscription",
+  "contact_count": 1250,
+  "tags": ["premium", "active"],
+  "created_at": "2025-03-01T10:00:00Z",
+  "updated_at": "2025-03-12T14:20:00Z"
+}
+```
+
+### Field Descriptions
+
+| Field           | Type    | Description             |
+| --------------- | ------- | ----------------------- |
+| `id`            | string  | Unique group identifier |
+| `name`          | string  | Group name              |
+| `description`   | string  | Group description       |
+| `contact_count` | integer | Number of contacts      |
+| `tags`          | array   | Group tags              |
+| `created_at`    | string  | Creation timestamp      |
+| `updated_at`    | string  | Last update timestamp   |
+
+---
+
+## Common Use Cases
+
+### 1. Newsletter Management
+
+```javascript
+// Create newsletter group
+const group = await createGroup({
+  name: 'Newsletter Subscribers',
+  description: 'Users who opted in to newsletter',
+});
+
+// Add subscriber
+async function subscribeToNewsletter(email, name) {
+  // Create contact
+  const contact = await createContact({
+    email,
+    first_name: name,
+    subscribed: true,
+    tags: ['newsletter'],
+  });
+
+  // Add to group
+  await addContactToGroup(group.id, contact.id);
+
+  return contact;
+}
+```
+
+### 2. Customer Segmentation
+
+```javascript
+// Create segments
+const segments = {
+  premium: await createGroup({ name: 'Premium Customers' }),
+  active: await createGroup({ name: 'Active Users' }),
+  inactive: await createGroup({ name: 'Inactive Users' }),
+};
+
+// Segment customers
+async function segmentCustomer(customer) {
+  const contact = await createContact({
+    phone: customer.phone,
+    email: customer.email,
+    first_name: customer.name,
+    custom_fields: {
+      plan: customer.plan,
+      last_purchase: customer.lastPurchase,
+    },
+  });
+
+  // Add to appropriate segment
+  if (customer.plan === 'premium') {
+    await addContactToGroup(segments.premium.id, contact.id);
+  }
+
+  const daysSinceLastPurchase = getDaysSince(customer.lastPurchase);
+  if (daysSinceLastPurchase < 30) {
+    await addContactToGroup(segments.active.id, contact.id);
+  } else {
+    await addContactToGroup(segments.inactive.id, contact.id);
+  }
+
+  return contact;
+}
+```
+
+### 3. Event Registration
+
+```javascript
+// Create event group
+const eventGroup = await createGroup({
+  name: 'Tech Conference 2025',
+  description: 'Registered attendees',
+  tags: ['event', 'conference'],
+});
+
+// Register attendee
+async function registerAttendee(attendeeData) {
+  const contact = await createContact({
+    phone: attendeeData.phone,
+    email: attendeeData.email,
+    first_name: attendeeData.firstName,
+    last_name: attendeeData.lastName,
+    custom_fields: {
+      ticket_type: attendeeData.ticketType,
+      dietary_restrictions: attendeeData.dietary,
+      company: attendeeData.company,
+    },
+    tags: ['attendee', `ticket:${attendeeData.ticketType}`],
+  });
+
+  await addContactToGroup(eventGroup.id, contact.id);
+
+  // Send confirmation SMS
+  await sendSMS(
+    contact.phone,
+    `Thanks for registering! Your ticket: ${attendeeData.ticketType}`
+  );
+
+  return contact;
+}
+```
+
+### 4. Birthday Campaign
+
+```javascript
+// Create birthday group
+const birthdayGroup = await createGroup({
+  name: 'Birthday This Month',
+  description: 'Customers with birthdays this month',
+});
+
+// Update daily
+async function updateBirthdayGroup() {
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+
+  // Get all contacts
+  const contacts = await listContacts();
+
+  // Filter by birthday month
+  for (const contact of contacts) {
+    if (contact.custom_fields?.birthday) {
+      const birthday = new Date(contact.custom_fields.birthday);
+
+      if (birthday.getMonth() + 1 === currentMonth) {
+        await addContactToGroup(birthdayGroup.id, contact.id);
+      }
+    }
+  }
+
+  // Send birthday messages
+  const birthdayContacts = await getGroupContacts(birthdayGroup.id);
+  for (const contact of birthdayContacts) {
+    const birthday = new Date(contact.custom_fields.birthday);
+    if (birthday.getDate() === today.getDate()) {
+      await sendSMS(contact.phone, `Happy Birthday ${contact.first_name}! 🎉`);
+    }
+  }
+}
+```
+
+### 5. CRM Integration
+
+```javascript
+// Sync CRM contacts to Sendexa
+async function syncCRMContacts() {
+  const crmContacts = await fetchFromCRM();
+  const batch = [];
+
+  for (const crmContact of crmContacts) {
+    batch.push({
+      phone: crmContact.phone,
+      email: crmContact.email,
+      first_name: crmContact.firstName,
+      last_name: crmContact.lastName,
+      custom_fields: {
+        crm_id: crmContact.id,
+        account_value: crmContact.accountValue,
+        last_contact: crmContact.lastContact,
+        sales_rep: crmContact.salesRep,
+      },
+      tags: crmContact.tags,
+    });
+  }
+
+  // Bulk import
+  const result = await bulkCreateContacts(batch);
+
+  console.log(`Synced ${result.created} contacts`);
+
+  return result;
+}
+```
+
+---
+
+## Custom Fields
+
+### Defining Custom Fields
+
+Store any additional data you need:
+
+```javascript
+const contact = await createContact({
+  phone: '233501234567',
+  first_name: 'John',
+  custom_fields: {
+    // Customer data
+    customer_id: 'CUS-12345',
+    membership_tier: 'gold',
+    account_balance: 1500.0,
+
+    // Preferences
+    preferred_language: 'en',
+    contact_preference: 'sms',
+
+    // Dates
+    registration_date: '2024-01-15',
+    last_purchase: '2025-03-10',
+
+    // Behavioral
+    total_orders: 25,
+    average_order_value: 85.5,
+
+    // Location
+    city: 'Accra',
+    country: 'Ghana',
+    timezone: 'Africa/Accra',
+  },
+});
+```
+
+### Querying by Custom Fields
+
+```javascript
+// Find high-value customers
+const contacts = await listContacts({
+  filter: {
+    'custom_fields.account_balance': { $gte: 1000 },
+  },
+});
+
+// Find by location
+const accraContacts = await listContacts({
+  filter: {
+    'custom_fields.city': 'Accra',
+  },
+});
+```
+
+---
+
+## Tags System
+
+### Using Tags
+
+```javascript
+// Add tags on creation
+const contact = await createContact({
+  phone: '233501234567',
+  first_name: 'John',
+  tags: ['vip', 'newsletter', 'early-adopter'],
+});
+
+// Add tags later
+await updateContact(contact.id, {
+  tags: [...contact.tags, 'premium-customer'],
+});
+
+// Query by tags
+const vipContacts = await listContacts({
+  tags: ['vip'],
+});
+
+// Multiple tags (AND)
+const vipNewsletterContacts = await listContacts({
+  tags: ['vip', 'newsletter'],
+});
+```
+
+---
+
+## Opt-In/Opt-Out Management
+
+### Managing Subscriptions
+
+```javascript
+// Opt-in
+async function optIn(phone) {
+  const contact = await findOrCreateContact(phone);
+
+  await updateContact(contact.id, {
+    subscribed: true,
+    custom_fields: {
+      opt_in_date: new Date().toISOString(),
+      opt_in_source: 'web_form',
+    },
+  });
+
+  // Send confirmation
+  await sendSMS(
+    phone,
+    'You have subscribed to our updates. Reply STOP to unsubscribe.'
+  );
+}
+
+// Opt-out
+async function optOut(phone) {
+  const contact = await getContactByPhone(phone);
+
+  if (contact) {
+    await updateContact(contact.id, {
+      subscribed: false,
+      custom_fields: {
+        opt_out_date: new Date().toISOString(),
+      },
+    });
+
+    await sendSMS(
+      phone,
+      'You have been unsubscribed. Reply START to resubscribe.'
+    );
+  }
+}
+
+// Check subscription
+async function isSubscribed(phone) {
+  const contact = await getContactByPhone(phone);
+  return contact?.subscribed || false;
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Deduplication
+
+```javascript
+// Check for duplicates before creating
+async function createContactSafe(data) {
+  // Check by phone
+  let contact = await getContactByPhone(data.phone);
+
+  if (contact) {
+    // Update existing
+    return await updateContact(contact.id, data);
+  }
+
+  // Check by email if provided
+  if (data.email) {
+    contact = await getContactByEmail(data.email);
+    if (contact) {
+      return await updateContact(contact.id, data);
+    }
+  }
+
+  // Create new
+  return await createContact(data);
+}
+```
+
+### 2. Batch Operations
+
+```javascript
+// Bad - Individual requests
+for (const contact of contacts) {
+  await createContact(contact);
+}
+
+// Good - Bulk import
+await bulkCreateContacts(contacts);
+```
+
+### 3. Error Handling
+
+```javascript
+async function safeCreateContact(data) {
+  try {
+    return await createContact(data);
+  } catch (error) {
+    if (error.code === 'DUPLICATE_PHONE') {
+      // Update instead
+      const existing = await getContactByPhone(data.phone);
+      return await updateContact(existing.id, data);
+    }
+    throw error;
+  }
+}
+```
+
+### 4. Group Size Monitoring
+
+```javascript
+// Monitor group sizes
+async function checkGroupLimits() {
+  const groups = await listGroups();
+
+  for (const group of groups) {
+    if (group.contact_count > 10000) {
+      console.warn(
+        `Large group: ${group.name} (${group.contact_count} contacts)`
+      );
+    }
+  }
+}
+```
+
+### 5. Data Validation
+
+```javascript
+// Validate before creating
+function validateContact(data) {
+  const errors = [];
+
+  if (!data.phone && !data.email) {
+    errors.push('Phone or email required');
+  }
+
+  if (data.phone && !isValidPhone(data.phone)) {
+    errors.push('Invalid phone number');
+  }
+
+  if (data.email && !isValidEmail(data.email)) {
+    errors.push('Invalid email address');
+  }
+
+  return errors;
+}
+
+async function createValidatedContact(data) {
+  const errors = validateContact(data);
+
+  if (errors.length > 0) {
+    throw new Error(`Validation failed: ${errors.join(', ')}`);
+  }
+
+  return await createContact(data);
+}
+```
+
+---
+
+## Data Privacy & GDPR
+
+### GDPR Compliance
+
+```javascript
+// Export user data (GDPR right to data portability)
+async function exportUserData(phone) {
+  const contact = await getContactByPhone(phone);
+
+  return {
+    personal_data: {
+      phone: contact.phone,
+      email: contact.email,
+      name: `${contact.first_name} ${contact.last_name}`,
+      created_at: contact.created_at,
+    },
+    custom_fields: contact.custom_fields,
+    groups: contact.groups,
+    tags: contact.tags,
+  };
+}
+
+// Delete user data (GDPR right to be forgotten)
+async function deleteUserData(phone) {
+  const contact = await getContactByPhone(phone);
+
+  if (contact) {
+    await deleteContact(contact.id);
+    console.log(`Deleted contact: ${phone}`);
+  }
+}
+```
+
+---
+
+## Rate Limits
+
+| Endpoint Type    | Rate Limit | Window   |
+| ---------------- | ---------- | -------- |
+| Read operations  | 100/min    | 1 minute |
+| Write operations | 60/min     | 1 minute |
+| Bulk operations  | 10/min     | 1 minute |
+
+---
+
+## Support
+
+### Documentation
+
+- [Contact API](/docs/phonebook/contact)
+- [Group API](/docs/phonebook/group)
+- [Webhooks](/docs/phonebook/webhooks)
+- [API Reference](/docs/phonebook/v1)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join our community](https://discord.gg/sendexa)
+- **Twitter:** [@sendexaHQ](https://twitter.com/sendexaHQ)
+
+---
+
+## Next Steps
+
+1. 👤 **[Contact Management](/docs/phonebook/contact)** - Manage contacts
+2. 👥 **[Group Management](/docs/phonebook/group)** - Organize groups
+3. 🔔 **[Webhooks](/docs/phonebook/webhooks)** - Real-time updates
+4. 🛠️ **[API Reference](/docs/phonebook/v1)** - Complete documentation

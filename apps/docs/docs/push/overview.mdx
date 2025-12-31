@@ -1,0 +1,768 @@
+---
+title: Push Notification API Overview
+description: A powerful and modern push notification platform built for African developers and businesses. Engage users across mobile and web platforms.
+date: 2025-03-12
+---
+
+# Push Notification API Overview
+
+Welcome to the **Sendexa Push Notification API**. Our platform enables you to send targeted, real-time push notifications to mobile apps (iOS & Android) and web browsers, helping you engage users and drive action.
+
+---
+
+## Why Choose Sendexa Push?
+
+### Built for Africa
+
+- **Local Infrastructure** - Low latency delivery across Africa
+- **Optimized for Mobile Networks** - Works on 2G, 3G, 4G, and 5G
+- **Offline Support** - Messages queue when devices are offline
+- **Multi-Platform** - iOS, Android, and web support
+
+### Developer-Friendly
+
+- **Simple REST API** - Easy integration in minutes
+- **Native SDKs** - iOS, Android, React Native, Flutter
+- **Web Push** - Browser notifications with service workers
+- **Rich Notifications** - Images, actions, and deep links
+
+### Enterprise-Ready
+
+- **High Delivery Rate** - 95%+ delivery success
+- **Real-time Analytics** - Track opens, clicks, and conversions
+- **Audience Segmentation** - Target specific user groups
+- **A/B Testing** - Optimize notification performance
+
+---
+
+## Key Features
+
+### Quick Send
+
+Send notifications to individual devices or users instantly:
+
+- Transactional alerts
+- Order updates
+- Breaking news
+- Personal messages
+
+**Endpoint:** `POST /v1/push/send`
+
+```json
+{
+  "device_token": "fL9x8K3mR2...",
+  "title": "Order Shipped",
+  "body": "Your order #12345 is on the way!",
+  "data": {
+    "orderId": "12345",
+    "action": "track_order"
+  }
+}
+```
+
+### Bulk Send
+
+Send notifications to multiple users with one API call:
+
+- Marketing campaigns
+- App updates
+- Event announcements
+- Mass alerts
+
+**Endpoint:** `POST /v1/push/send` (with array of tokens)
+
+```json
+{
+  "device_tokens": ["token1", "token2", "token3"],
+  "title": "Flash Sale!",
+  "body": "50% off all items. Limited time only!",
+  "image": "https://cdn.yourapp.com/sale-banner.jpg"
+}
+```
+
+### Topic Broadcasting
+
+Send to all subscribers of a topic:
+
+- News categories
+- Sports updates
+- Location-based alerts
+- Interest groups
+
+**Endpoint:** `POST /v1/push/send/topic`
+
+```json
+{
+  "topic": "sports_football",
+  "title": "Goal!",
+  "body": "Manchester United scores in the 90th minute!"
+}
+```
+
+### Rich Notifications
+
+Enhance notifications with media and actions:
+
+- Images and videos
+- Action buttons
+- Deep links
+- Custom sounds
+
+---
+
+## Getting Started
+
+### 1. Create an Account
+
+Sign up at [auth.sendexa.co](https://auth.sendexa.co) and verify your email.
+
+### 2. Generate API Token
+
+1. Navigate to **Settings → API Tokens**
+2. Click **Create New Token**
+3. Copy your token securely
+4. Use it in the `Authorization` header
+
+```http
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+### 3. Register Your App
+
+1. Go to **Settings → Push Apps**
+2. Click **Add App**
+3. Provide:
+   - App name
+   - Platform (iOS/Android/Web)
+   - Upload credentials (APNs/FCM)
+4. Get your App ID
+
+### 4. Integrate SDK
+
+**iOS (Swift)**
+
+```swift
+import SendexaPush
+
+SendexaPush.initialize(appId: "your_app_id")
+SendexaPush.registerForPushNotifications()
+```
+
+**Android (Kotlin)**
+
+```kotlin
+import co.sendexa.push.SendexaPush
+
+SendexaPush.initialize(this, "your_app_id")
+SendexaPush.registerDevice()
+```
+
+**React Native**
+
+```javascript
+import SendexaPush from '@sendexa/react-native-push';
+
+await SendexaPush.initialize('your_app_id');
+await SendexaPush.requestPermissions();
+```
+
+**Web (JavaScript)**
+
+```javascript
+import { SendexaPush } from '@sendexa/web-push';
+
+const push = new SendexaPush('your_app_id');
+await push.requestPermission();
+```
+
+### 5. Send Your First Notification
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "title": "Welcome to Sendexa!",
+    "body": "Thanks for joining us. Start exploring now!",
+    "data": {
+      "screen": "home"
+    }
+  }'
+```
+
+---
+
+## Base URL
+
+All Push API requests use the following base URL:
+
+```
+https://api.sendexa.co
+```
+
+**Environment URLs:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Sendexa uses **Bearer Token authentication**. Include your API token in the `Authorization` header of every request:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Security Best Practices:**
+
+- Never expose API tokens in client-side code
+- Use environment variables to store tokens
+- Rotate tokens regularly
+- Use different tokens for different environments
+- Revoke unused tokens immediately
+
+---
+
+## API Endpoints Summary
+
+| Endpoint                             | Method | Purpose                   | Rate Limit |
+| ------------------------------------ | ------ | ------------------------- | ---------- |
+| `/v1/push/send`                      | POST   | Send to device(s)         | 100/min    |
+| `/v1/push/send/topic`                | POST   | Send to topic subscribers | 60/min     |
+| `/v1/push/devices`                   | GET    | List registered devices   | 60/min     |
+| `/v1/push/devices/:id`               | GET    | Get device details        | 100/min    |
+| `/v1/push/devices/:id`               | DELETE | Remove device             | 60/min     |
+| `/v1/push/topics/:topic/subscribe`   | POST   | Subscribe to topic        | 100/min    |
+| `/v1/push/topics/:topic/unsubscribe` | POST   | Unsubscribe from topic    | 100/min    |
+| `/v1/push/analytics`                 | GET    | Get delivery analytics    | 30/min     |
+
+---
+
+## Notification Types
+
+### Transactional
+
+Time-sensitive, user-specific notifications:
+
+- Order confirmations
+- Payment receipts
+- Delivery updates
+- Account alerts
+
+**Characteristics:**
+
+- High priority
+- No opt-out required
+- Immediate delivery
+- User-specific content
+
+### Marketing
+
+Promotional messages to engage users:
+
+- Special offers
+- Product launches
+- Feature announcements
+- Re-engagement campaigns
+
+**Characteristics:**
+
+- Standard priority
+- Requires opt-in
+- Scheduled delivery
+- Audience targeted
+
+### Informational
+
+News, updates, and content:
+
+- Breaking news
+- Sports scores
+- Weather alerts
+- Content recommendations
+
+**Characteristics:**
+
+- Standard priority
+- Topic-based
+- Scheduled or real-time
+- Category filtered
+
+---
+
+## Supported Platforms
+
+### Mobile
+
+- 📱 **iOS** - iOS 10+ (APNs)
+- 🤖 **Android** - Android 5.0+ (FCM)
+- ⚛️ **React Native** - iOS & Android
+- 🎯 **Flutter** - Cross-platform support
+- 📲 **Xamarin** - iOS & Android
+
+### Web
+
+- 🌐 **Chrome** - Desktop & Mobile
+- 🦊 **Firefox** - Desktop & Mobile
+- 🧭 **Safari** - macOS & iOS 16.4+
+- 🎭 **Edge** - Desktop & Mobile
+- 🎨 **Opera** - Desktop & Mobile
+
+**Need support for another platform?** Contact **support@sendexa.co**
+
+---
+
+## Pricing
+
+### Free Tier
+
+- 1,000 notifications/month
+- 100 devices per app
+- Basic analytics
+- Email support
+
+### Growth Plan
+
+Starting at **$49/month**
+
+- 50,000 notifications/month
+- Unlimited devices
+- Advanced analytics
+- Priority support
+- A/B testing
+
+### Enterprise
+
+Custom pricing
+
+- Unlimited notifications
+- Dedicated infrastructure
+- Custom integrations
+- SLA guarantee
+- Account manager
+
+**See full pricing:** [sendexa.co/pricing](https://sendexa.co/pricing)
+
+---
+
+## Common Use Cases
+
+### 1. Order Updates
+
+```javascript
+// Order shipped notification
+await sendPush({
+  device_token: userToken,
+  title: 'Order Shipped! 📦',
+  body: 'Your order #12345 is on the way. Track it now!',
+  data: {
+    orderId: '12345',
+    action: 'track_order',
+  },
+  actions: [
+    { id: 'track', title: 'Track Order' },
+    { id: 'view', title: 'View Details' },
+  ],
+});
+```
+
+### 2. Breaking News
+
+```javascript
+// Send to all news subscribers
+await sendPushToTopic({
+  topic: 'breaking_news',
+  title: 'Breaking News 🚨',
+  body: 'Major announcement from the President',
+  image: 'https://cdn.news.com/image.jpg',
+  data: {
+    articleId: 'news-12345',
+    category: 'politics',
+  },
+});
+```
+
+### 3. Flash Sale
+
+```javascript
+// Send to shopping app users
+await sendBulkPush({
+  device_tokens: activeUserTokens,
+  title: 'Flash Sale! ⚡',
+  body: '50% off everything for the next 2 hours',
+  image: 'https://cdn.shop.com/sale-banner.jpg',
+  data: {
+    campaign: 'flash_sale_march',
+    discount: '50',
+  },
+  badge: 1,
+});
+```
+
+### 4. Appointment Reminder
+
+```javascript
+// Reminder 24h before appointment
+await sendPush({
+  device_token: patientToken,
+  title: 'Appointment Reminder',
+  body: 'You have an appointment tomorrow at 2:00 PM with Dr. Smith',
+  data: {
+    appointmentId: 'apt-123',
+    action: 'view_appointment',
+  },
+  scheduled_at: '2025-03-13T14:00:00Z',
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Notification Content
+
+- **Be Clear:** Use concise, actionable language
+- **Be Relevant:** Send personalized, timely content
+- **Be Valuable:** Provide real value to users
+- **Be Respectful:** Don't spam or annoy users
+
+### 2. Timing
+
+- Respect user time zones
+- Avoid late-night notifications
+- Consider user behavior patterns
+- Use quiet hours (10 PM - 8 AM)
+
+### 3. Frequency
+
+- Don't overwhelm users
+- Set frequency caps
+- Allow users to control preferences
+- Monitor opt-out rates
+
+### 4. Targeting
+
+- Segment your audience
+- Personalize content
+- Use A/B testing
+- Track engagement metrics
+
+### 5. Permission Handling
+
+- Request permission at the right time
+- Explain the value clearly
+- Respect user choices
+- Make opt-out easy
+
+---
+
+## Notification Anatomy
+
+### iOS (APNs)
+
+```json
+{
+  "aps": {
+    "alert": {
+      "title": "New Message",
+      "body": "John sent you a message"
+    },
+    "badge": 1,
+    "sound": "default",
+    "category": "MESSAGE_CATEGORY"
+  },
+  "custom_data": {
+    "userId": "123",
+    "messageId": "msg-456"
+  }
+}
+```
+
+### Android (FCM)
+
+```json
+{
+  "notification": {
+    "title": "New Message",
+    "body": "John sent you a message",
+    "icon": "ic_notification",
+    "color": "#FF0000",
+    "sound": "default",
+    "click_action": "MESSAGE_ACTION"
+  },
+  "data": {
+    "userId": "123",
+    "messageId": "msg-456"
+  }
+}
+```
+
+### Web Push
+
+```json
+{
+  "notification": {
+    "title": "New Message",
+    "body": "John sent you a message",
+    "icon": "/icon-192.png",
+    "badge": "/badge-72.png",
+    "image": "/preview.jpg",
+    "actions": [
+      { "action": "reply", "title": "Reply" },
+      { "action": "dismiss", "title": "Dismiss" }
+    ],
+    "data": {
+      "url": "/messages/456"
+    }
+  }
+}
+```
+
+---
+
+## Analytics & Tracking
+
+### Key Metrics
+
+Track notification performance:
+
+- **Delivery Rate** - % of notifications delivered
+- **Open Rate** - % of notifications opened
+- **Click Rate** - % of actions clicked
+- **Opt-out Rate** - % of users who disable notifications
+
+### Conversion Tracking
+
+```javascript
+// Track notification conversion
+await sendPush({
+  device_token: userToken,
+  title: 'Limited Offer',
+  body: '50% off expires in 1 hour',
+  data: {
+    campaign_id: 'spring_sale_2025',
+    track_conversion: true,
+  },
+});
+
+// Later, track conversion
+await trackConversion({
+  campaign_id: 'spring_sale_2025',
+  user_id: 'user-123',
+  event: 'purchase',
+  value: 99.99,
+});
+```
+
+---
+
+## Testing
+
+### Test Tokens
+
+Use these in sandbox for testing:
+
+| Token                | Behavior                     |
+| -------------------- | ---------------------------- |
+| `test_success_token` | Always delivers successfully |
+| `test_fail_token`    | Always fails (invalid token) |
+| `test_delayed_token` | Delivers after 30 seconds    |
+| `test_offline_token` | Simulates offline device     |
+
+### Testing Tips
+
+1. **Use Sandbox Environment**
+
+   ```
+   https://sandbox-api.sendexa.co
+   ```
+
+2. **Test All Platforms**
+   - iOS device
+   - Android device
+   - Web browser
+   - Different OS versions
+
+3. **Test Scenarios**
+   - App in foreground
+   - App in background
+   - App terminated
+   - Device offline
+
+4. **Test Content**
+   - Different message lengths
+   - With/without images
+   - With/without actions
+   - Various deep links
+
+---
+
+## Migration Guide
+
+### From Firebase Cloud Messaging (FCM)
+
+Migrating from FCM to Sendexa Push:
+
+**Key Differences:**
+
+- Unified API for iOS and Android
+- Built-in analytics
+- Topic management
+- Better delivery rates in Africa
+
+**Migration Steps:**
+
+1. Create Sendexa app
+2. Upload FCM credentials
+3. Update SDK initialization
+4. Update token registration
+5. Update notification sending code
+6. Test thoroughly
+
+**Code Changes:**
+
+**Before (FCM):**
+
+```javascript
+// FCM
+const messaging = firebase.messaging();
+const token = await messaging.getToken();
+
+// Send via FCM Admin SDK
+await admin.messaging().send({
+  token: token,
+  notification: { title, body },
+});
+```
+
+**After (Sendexa):**
+
+```javascript
+// Sendexa
+import SendexaPush from '@sendexa/sdk';
+
+const token = await SendexaPush.getDeviceToken();
+
+// Send via Sendexa API
+await fetch('https://api.sendexa.co/v1/push/send', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ device_token: token, title, body }),
+});
+```
+
+---
+
+## SDKs & Libraries
+
+### Official SDKs
+
+**iOS**
+
+```bash
+# CocoaPods
+pod 'SendexaPush'
+
+# Swift Package Manager
+.package(url: "https://github.com/sendexa/ios-sdk", from: "1.0.0")
+```
+
+**Android**
+
+```gradle
+// build.gradle
+implementation 'co.sendexa:push:1.0.0'
+```
+
+**React Native**
+
+```bash
+npm install @sendexa/react-native-push
+```
+
+**Flutter**
+
+```yaml
+dependencies:
+  sendexa_push: ^1.0.0
+```
+
+**Web**
+
+```bash
+npm install @sendexa/web-push
+```
+
+### Backend SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+---
+
+## Supported Features by Platform
+
+| Feature               | iOS | Android | Web |
+| --------------------- | --- | ------- | --- |
+| Text notifications    | ✅  | ✅      | ✅  |
+| Rich media (images)   | ✅  | ✅      | ✅  |
+| Action buttons        | ✅  | ✅      | ✅  |
+| Deep linking          | ✅  | ✅      | ✅  |
+| Badge count           | ✅  | ✅      | ✅  |
+| Custom sounds         | ✅  | ✅      | ❌  |
+| Notification grouping | ✅  | ✅      | ✅  |
+| Silent notifications  | ✅  | ✅      | ✅  |
+| Scheduled delivery    | ✅  | ✅      | ✅  |
+| Topics                | ✅  | ✅      | ✅  |
+
+---
+
+## Support
+
+### Documentation
+
+- [API Reference](/docs/push/v1)
+- [SDK Guides](https://docs.sendexa.co/sdks)
+- [Code Examples](https://github.com/sendexa/examples)
+- [FAQ](/docs/faq)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join our community](https://discord.gg/sendexa)
+- **Twitter:** [@sendexaHQ](https://twitter.com/sendexaHQ)
+
+### Report Issues
+
+- **GitHub:** [github.com/sendexa/api-issues](https://github.com/sendexa/api-issues)
+- **Status Page:** [status.sendexa.co](https://status.sendexa.co)
+
+---
+
+## Next Steps
+
+1. 📱 **[Send Your First Notification](/docs/push/send)** - Complete tutorial
+2. 🔧 **[Manage Devices](/docs/push/devices)** - Device registration & management
+3. 🛠️ **[API Reference](/docs/push/v1)** - Complete endpoint documentation
+4. 📊 **[View Analytics](/dashboard/push/analytics)** - Track performance

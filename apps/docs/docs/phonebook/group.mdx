@@ -1,0 +1,210 @@
+---
+title: Group Management
+description: Create and manage contact groups for targeted messaging campaigns using the Sendexa Group API.
+date: 2025-03-12
+---
+
+# Group Management
+
+Organize contacts into groups for targeted campaigns. Create groups, add/remove contacts, and manage group memberships.
+
+---
+
+## Quick Start
+
+### Create Group
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/groups' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Premium Customers",
+    "description": "Customers with premium subscription"
+  }'
+```
+
+### Add Contact to Group
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/groups/group_xyz789/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "contact_id": "contact_abc123"
+  }'
+```
+
+---
+
+## Create Group
+
+### POST /v1/phonebook/groups
+
+```javascript
+const group = await axios.post(
+  'https://api.sendexa.co/v1/phonebook/groups',
+  {
+    name: 'Premium Customers',
+    description: 'High-value customers',
+    tags: ['premium', 'vip'],
+  },
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "group": {
+    "id": "group_xyz789",
+    "name": "Premium Customers",
+    "description": "High-value customers",
+    "contact_count": 0,
+    "tags": ["premium", "vip"],
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## List Groups
+
+### GET /v1/phonebook/groups
+
+```javascript
+const groups = await axios.get('https://api.sendexa.co/v1/phonebook/groups', {
+  params: { limit: 20 },
+  headers: {
+    Authorization: 'Bearer YOUR_TOKEN',
+  },
+});
+```
+
+---
+
+## Add Contact to Group
+
+### POST /v1/phonebook/groups/:id/contacts
+
+```javascript
+await axios.post(
+  'https://api.sendexa.co/v1/phonebook/groups/group_xyz789/contacts',
+  {
+    contact_id: 'contact_abc123',
+  },
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+---
+
+## Remove Contact from Group
+
+### DELETE /v1/phonebook/groups/:id/contacts/:contactId
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/phonebook/groups/group_xyz789/contacts/contact_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## List Group Contacts
+
+### GET /v1/phonebook/groups/:id/contacts
+
+```javascript
+const contacts = await axios.get(
+  'https://api.sendexa.co/v1/phonebook/groups/group_xyz789/contacts',
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+---
+
+## Common Use Cases
+
+### 1. Campaign Segmentation
+
+```javascript
+// Create campaign groups
+const groups = {
+  engaged: await createGroup({ name: 'Engaged Users' }),
+  inactive: await createGroup({ name: 'Inactive Users' }),
+  vip: await createGroup({ name: 'VIP Customers' }),
+};
+
+// Segment contacts
+async function segmentContacts() {
+  const contacts = await listContacts();
+
+  for (const contact of contacts) {
+    const daysSinceLastPurchase = getDaysSince(
+      contact.custom_fields.last_purchase
+    );
+
+    if (daysSinceLastPurchase < 30) {
+      await addToGroup(groups.engaged.id, contact.id);
+    } else if (daysSinceLastPurchase > 90) {
+      await addToGroup(groups.inactive.id, contact.id);
+    }
+
+    if (contact.custom_fields.lifetime_value > 1000) {
+      await addToGroup(groups.vip.id, contact.id);
+    }
+  }
+}
+```
+
+### 2. Event Management
+
+```javascript
+// Create event group
+const eventGroup = await createGroup({
+  name: 'Conference 2025',
+  description: 'Registered attendees',
+  tags: ['event'],
+});
+
+// Register attendee
+async function registerAttendee(email, phone, name) {
+  const contact = await createContact({
+    email,
+    phone,
+    first_name: name,
+    custom_fields: {
+      event: 'Conference 2025',
+      registration_date: new Date().toISOString(),
+    },
+  });
+
+  await addToGroup(eventGroup.id, contact.id);
+
+  // Send confirmation
+  await sendSMS(phone, 'Registration confirmed!');
+}
+```
+
+---
+
+## Next Steps
+
+- 👤 **[Contact Management](/docs/phonebook/contact)** - Manage contacts
+- 🔔 **[Webhooks](/docs/phonebook/webhooks)** - Real-time updates
+- 🛠️ **[API Reference](/docs/phonebook/v1)** - Complete docs

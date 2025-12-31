@@ -1,0 +1,365 @@
+---
+title: Phone Number Validation
+description: Validate phone numbers, check formatting, and verify if numbers are active using the Sendexa Number Validation API.
+date: 2025-03-12
+---
+
+# Phone Number Validation
+
+Validate phone numbers to ensure they're correctly formatted, active, and deliverable before sending messages or making calls.
+
+---
+
+## Quick Start
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/validate' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_number": "233501234567"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "valid": true,
+  "reachable": true,
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "line_type": "mobile",
+  "carrier": "MTN Ghana"
+}
+```
+
+---
+
+## What Gets Validated
+
+### Format Validation
+
+- ✅ Number length
+- ✅ Country code
+- ✅ Area code
+- ✅ Number structure
+
+### Reachability Check
+
+- ✅ Active status
+- ✅ Network availability
+- ✅ Carrier assignment
+- ✅ Disconnected detection
+
+### Format Conversion
+
+- ✅ International format
+- ✅ National format
+- ✅ E.164 format
+- ✅ RFC3966 format
+
+---
+
+## Request Parameters
+
+| Parameter      | Type   | Required | Description              |
+| -------------- | ------ | -------- | ------------------------ |
+| `phone_number` | string | Yes      | Phone number to validate |
+| `country_hint` | string | No       | 2-letter country code    |
+
+---
+
+## Response Format
+
+### Valid Number
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "valid": true,
+  "reachable": true,
+  "active": true,
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "e164_format": "+233501234567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "country_prefix": "233",
+  "line_type": "mobile",
+  "carrier": "MTN Ghana",
+  "timezone": "Africa/Accra"
+}
+```
+
+### Invalid Number
+
+```json
+{
+  "success": true,
+  "phone_number": "invalid123",
+  "valid": false,
+  "reachable": false,
+  "error": {
+    "code": "INVALID_FORMAT",
+    "message": "Phone number format is invalid",
+    "suggestion": null
+  }
+}
+```
+
+---
+
+## Code Examples
+
+### JavaScript
+
+```javascript
+async function validateNumber(phoneNumber) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/lookup/validate',
+    { phone_number: phoneNumber },
+    { headers: { Authorization: 'Bearer YOUR_TOKEN' } }
+  );
+
+  return response.data;
+}
+
+// Usage
+const result = await validateNumber('233501234567');
+
+if (result.valid && result.reachable) {
+  console.log('Number is valid and reachable');
+  await sendSMS(result.international_format, message);
+} else {
+  console.log('Invalid number:', result.error.message);
+}
+```
+
+### Python
+
+```python
+def validate_number(phone_number):
+    response = requests.post(
+        'https://api.sendexa.co/v1/lookup/validate',
+        json={'phone_number': phone_number},
+        headers={'Authorization': 'Bearer YOUR_TOKEN'}
+    )
+    return response.json()
+
+# Usage
+result = validate_number('233501234567')
+
+if result['valid'] and result['reachable']:
+    print('Number is valid')
+    send_sms(result['international_format'], message)
+```
+
+---
+
+## Common Use Cases
+
+### 1. Pre-Send Validation
+
+```javascript
+async function sendSMSWithValidation(phoneNumber, message) {
+  const validation = await validateNumber(phoneNumber);
+
+  if (!validation.valid) {
+    throw new Error(`Invalid number: ${validation.error.message}`);
+  }
+
+  if (!validation.reachable) {
+    throw new Error('Number is not reachable');
+  }
+
+  return await sendSMS(validation.international_format, message);
+}
+```
+
+### 2. User Registration
+
+```javascript
+app.post('/register', async (req, res) => {
+  const { phone } = req.body;
+
+  const validation = await validateNumber(phone);
+
+  if (!validation.valid) {
+    return res.status(400).json({
+      error: 'Invalid phone number',
+      suggestion: validation.error.suggestion,
+    });
+  }
+
+  await db.users.create({
+    phone: validation.international_format,
+    country: validation.country_code,
+  });
+
+  res.json({ success: true });
+});
+```
+
+### 3. Database Cleaning
+
+```javascript
+async function cleanPhoneDatabase() {
+  const contacts = await db.contacts.findAll();
+  const results = { valid: 0, invalid: 0, updated: 0 };
+
+  for (const contact of contacts) {
+    const validation = await validateNumber(contact.phone);
+
+    if (validation.valid) {
+      results.valid++;
+      if (contact.phone !== validation.international_format) {
+        await db.contacts.update({
+          where: { id: contact.id },
+          data: { phone: validation.international_format },
+        });
+        results.updated++;
+      }
+    } else {
+      results.invalid++;
+      await db.contacts.update({
+        where: { id: contact.id },
+        data: { valid: false },
+      });
+    }
+  }
+
+  return results;
+}
+```
+
+### 4. Bulk Validation
+
+```javascript
+async function bulkValidate(phoneNumbers) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/lookup/validate/bulk',
+    { phone_numbers: phoneNumbers },
+    { headers: { Authorization: 'Bearer YOUR_TOKEN' } }
+  );
+
+  return response.data.results;
+}
+
+// Usage
+const numbers = ['233501234567', '233509876543', 'invalid'];
+const results = await bulkValidate(numbers);
+
+const valid = results.filter((r) => r.valid);
+const invalid = results.filter((r) => !r.valid);
+
+console.log(`Valid: ${valid.length}, Invalid: ${invalid.length}`);
+```
+
+---
+
+## Validation Rules
+
+### Format Rules
+
+| Country      | Format          | Example       |
+| ------------ | --------------- | ------------- |
+| Ghana        | 233 + 9 digits  | 233501234567  |
+| Nigeria      | 234 + 10 digits | 2348012345678 |
+| Kenya        | 254 + 9 digits  | 254712345678  |
+| South Africa | 27 + 9 digits   | 27812345678   |
+
+### Common Invalid Patterns
+
+❌ Too short: `23350123`  
+❌ Too long: `2335012345678901`  
+❌ Invalid prefix: `233601234567`  
+❌ Non-numeric: `233-50-abc-defg`  
+❌ Missing country code: `0501234567` (without country_hint)
+
+---
+
+## Error Codes
+
+| Code                   | Description           | Solution             |
+| ---------------------- | --------------------- | -------------------- |
+| `INVALID_FORMAT`       | Number format invalid | Check number format  |
+| `INVALID_LENGTH`       | Wrong number length   | Verify number length |
+| `INVALID_COUNTRY_CODE` | Country code invalid  | Check country code   |
+| `NUMBER_NOT_REACHABLE` | Number unreachable    | Verify with user     |
+| `DISCONNECTED`         | Number disconnected   | Remove from database |
+
+---
+
+## Best Practices
+
+### 1. Validate Before Sending
+
+```javascript
+// Bad
+await sendSMS(phoneNumber, message);
+
+// Good
+const validation = await validateNumber(phoneNumber);
+if (validation.valid && validation.reachable) {
+  await sendSMS(validation.international_format, message);
+}
+```
+
+### 2. Cache Results
+
+```javascript
+const cache = new Map();
+
+async function validateWithCache(phoneNumber) {
+  if (cache.has(phoneNumber)) {
+    return cache.get(phoneNumber);
+  }
+
+  const result = await validateNumber(phoneNumber);
+  cache.set(phoneNumber, result);
+
+  return result;
+}
+```
+
+### 3. Handle Errors Gracefully
+
+```javascript
+async function safeValidate(phoneNumber) {
+  try {
+    return await validateNumber(phoneNumber);
+  } catch (error) {
+    return {
+      valid: false,
+      error: { message: 'Validation failed' },
+    };
+  }
+}
+```
+
+---
+
+## Testing
+
+### Test Numbers
+
+| Number         | Result               |
+| -------------- | -------------------- |
+| `233500000001` | Valid, reachable     |
+| `233500000002` | Valid, not reachable |
+| `233500000003` | Invalid format       |
+| `233500000004` | Disconnected         |
+
+---
+
+## Next Steps
+
+- 📡 **[Carrier Lookup](/docs/lookup/carrier)** - Identify carriers
+- 📱 **[Line Type Detection](/docs/lookup/line-type)** - Detect line types
+- 🛠️ **[API Reference](/docs/lookup/v1)** - Complete docs

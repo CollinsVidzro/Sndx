@@ -1,0 +1,119 @@
+---
+title: Quickstart Guide
+description: Learn how to generate your API token and send your first SMS using the Sendexa v1 SMS API.
+date: 2025-03-12
+---
+
+# Quickstart Guide
+
+Welcome to the **Sendexa Quickstart Guide**. This guide helps you make your first API request in just a few steps.
+
+By the end, you will:
+
+- Create an API Token
+- Send your first SMS using the **/v1/sms/send** endpoint
+- Understand basic request/response structures
+
+---
+
+## 1. Get Your API Token
+
+Sendexa v1 uses **Token-based Authorization** for improved security.
+
+To generate a token:
+
+1. Log in to your dashboard.
+2. Go to **Settings → API Tokens**.
+3. Click **Create Token**.
+4. Copy your token securely.
+
+Use it in all requests:
+
+```http
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+---
+
+## 2. Base URL
+
+All SMS requests use the base:
+
+```
+https://api.sendexa.co
+```
+
+---
+
+## 3. Send Your First SMS
+
+Below is a simple example using JavaScript (Node.js):
+
+```js
+import axios from 'axios';
+
+async function sendSms() {
+  const res = await axios.post(
+    'https://api.sendexa.co/v1/sms/send',
+    {
+      to: '+233500000000',
+      message: 'Hello from Sendexa!',
+      from: 'Sendexa',
+    },
+    {
+      headers: {
+        Authorization: `Bearer YOUR_TOKEN_HERE`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  console.log(res.data);
+}
+
+sendSms();
+```
+
+---
+
+## 4. Example cURL Request
+
+```bash
+curl -X POST https://api.sendexa.co/v1/sms/send \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+233500000000",
+    "content": "Hello from Sendexa!",
+    "from": "Sendexa"
+  }'
+```
+
+---
+
+## 5. Response Structure
+
+Example successful response:
+
+```json
+{
+  "status": "success",
+  "message_id": "d8f92ab3-f2c4-4755-a8d7-1b002e0b35d6",
+  "to": "+233500000000",
+  "provider": "Telecel",
+  "cost": 0.035,
+  "currency": "GHS"
+}
+```
+
+---
+
+## 6. Troubleshooting
+
+Common issues:
+
+- **401 Unauthorized:** Token missing or invalid.
+- **400 Bad Request:** Missing `to`, `message`, or invalid sender ID.
+- **Provider Down:** System auto-switches to alternative route.
+
+If issues persist, contact **support@sendexa.co**.

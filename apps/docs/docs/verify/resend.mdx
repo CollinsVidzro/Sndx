@@ -1,0 +1,779 @@
+---
+title: Resend OTP
+description: Resend OTP codes with the same configuration, featuring automatic cooldown protection and original settings preservation.
+date: 2025-03-12
+---
+
+# Resend OTP
+
+Resend OTP codes to users who didn't receive or lost the original code. The resend function generates a new OTP while maintaining the original configuration (PIN length, type, template, expiry settings).
+
+---
+
+## Endpoint
+
+### POST /v1/otp/resend
+
+Resend an OTP with the same configuration as the original request.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:**
+
+- 30-second cooldown between resends
+- 10 resends per hour per phone/email
+- 3 resends maximum per OTP session
+
+---
+
+## Authentication
+
+```http
+Authorization: Basic base64(api_key:api_secret)
+Content-Type: application/json
+```
+
+---
+
+## Request Body
+
+| Parameter | Type   | Required    | Description                        |
+| --------- | ------ | ----------- | ---------------------------------- |
+| `phone`   | string | Conditional | Original phone number (for SMS)    |
+| `email`   | string | Conditional | Original email address (for Email) |
+| `id`      | string | No          | Specific OTP record ID to resend   |
+
+**Note:** You must provide either `phone` or `email` (whichever was used in the original request).
+
+---
+
+## How It Works
+
+1. **Preserves Configuration** - Uses same PIN length, type, and template
+2. **Generates New Code** - Creates a fresh OTP code
+3. **Resets Expiration** - Starts a new expiration timer
+4. **Invalidates Previous** - Old OTP becomes invalid
+5. **Enforces Cooldown** - 30-second wait between resends
+
+---
+
+## Request Examples
+
+### Resend SMS OTP
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/resend' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152"
+  }'
+```
+
+### Resend Email OTP
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/resend' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+
+### Resend Specific OTP Record
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/resend' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "id": "clxyz123abc"
+  }'
+```
+
+---
+
+## Response
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "OTP resent successfully",
+  "data": {
+    "id": "clxyz124def",
+    "phone": "233555539152",
+    "email": null,
+    "channel": "SMS",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes",
+      "expiresAt": "2024-01-15T10:50:00.000Z"
+    },
+    "maxValidationAttempts": 3,
+    "resendCount": 1
+  }
+}
+```
+
+### Response Fields
+
+| Field                        | Type    | Description                   |
+| ---------------------------- | ------- | ----------------------------- |
+| `success`                    | boolean | Whether resend was successful |
+| `message`                    | string  | Human-readable status message |
+| `data.id`                    | string  | New OTP record identifier     |
+| `data.phone`                 | string  | Phone number (if SMS)         |
+| `data.email`                 | string  | Email address (if Email)      |
+| `data.channel`               | string  | Delivery channel              |
+| `data.pinLength`             | integer | PIN length (same as original) |
+| `data.pinType`               | string  | PIN type (same as original)   |
+| `data.expiry`                | object  | New expiration details        |
+| `data.maxValidationAttempts` | integer | Max attempts allowed          |
+| `data.resendCount`           | integer | Number of times resent        |
+
+---
+
+## Error Responses
+
+### 400 Bad Request - No Previous OTP
+
+```json
+{
+  "success": false,
+  "message": "No previous OTP found to resend",
+  "errorType": "NO_PREVIOUS_OTP"
+}
+```
+
+**Cause:** No OTP was previously sent to this phone/email.
+
+**Solution:** Use the `/request` endpoint first.
+
+### 429 Too Many Requests - Cooldown Active
+
+```json
+{
+  "success": false,
+  "message": "Please wait before requesting a new OTP",
+  "errorType": "RESEND_COOLDOWN",
+  "data": {
+    "retryAfter": 25,
+    "cooldownEndsAt": "2024-01-15T10:46:25.000Z"
+  }
+}
+```
+
+**Cause:** 30-second cooldown between resends.
+
+**Solution:** Wait for the specified `retryAfter` seconds.
+
+### 400 Bad Request - Max Resends Exceeded
+
+```json
+{
+  "success": false,
+  "message": "Maximum resend attempts exceeded",
+  "errorType": "MAX_RESENDS_EXCEEDED",
+  "data": {
+    "maxResends": 3,
+    "resendCount": 3
+  }
+}
+```
+
+**Cause:** Exceeded 3 resends for this OTP session.
+
+**Solution:** User should request a new OTP via `/request` endpoint.
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+class OTPResendManager {
+  constructor(apiKey, apiSecret) {
+    this.baseUrl = 'https://api.sendexa.co/v1/otp';
+    this.credentials = btoa(`${apiKey}:${apiSecret}`);
+    this.lastResendTime = new Map();
+    this.resendCooldown = 30000; // 30 seconds
+  }
+
+  async resendOTP(destination, channel = 'sms', otpId = null) {
+    // Check local cooldown
+    const now = Date.now();
+    const lastTime = this.lastResendTime.get(destination) || 0;
+    const timeSinceLastResend = now - lastTime;
+
+    if (timeSinceLastResend < this.resendCooldown) {
+      const waitTime = Math.ceil(
+        (this.resendCooldown - timeSinceLastResend) / 1000
+      );
+      throw new Error(`Please wait ${waitTime} seconds before resending`);
+    }
+
+    try {
+      const payload = {};
+
+      if (channel === 'sms') {
+        payload.phone = destination;
+      } else if (channel === 'email') {
+        payload.email = destination;
+      }
+
+      if (otpId) payload.id = otpId;
+
+      const response = await fetch(`${this.baseUrl}/resend`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${this.credentials}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific errors
+        if (data.errorType === 'RESEND_COOLDOWN') {
+          throw new Error(
+            `Wait ${data.data.retryAfter} seconds before resending`
+          );
+        } else if (data.errorType === 'MAX_RESENDS_EXCEEDED') {
+          throw new Error(
+            'Maximum resend attempts reached. Please request a new OTP.'
+          );
+        } else if (data.errorType === 'NO_PREVIOUS_OTP') {
+          throw new Error('No OTP found. Please request a new one.');
+        }
+
+        throw new Error(data.message || 'Resend failed');
+      }
+
+      // Update last resend time
+      this.lastResendTime.set(destination, now);
+
+      return data;
+    } catch (error) {
+      console.error('Resend error:', error);
+      throw error;
+    }
+  }
+
+  getRemainingCooldown(destination) {
+    const lastTime = this.lastResendTime.get(destination) || 0;
+    const elapsed = Date.now() - lastTime;
+    const remaining = Math.max(0, this.resendCooldown - elapsed);
+    return Math.ceil(remaining / 1000); // seconds
+  }
+
+  canResend(destination) {
+    return this.getRemainingCooldown(destination) === 0;
+  }
+}
+
+// Usage Examples
+
+const resendManager = new OTPResendManager('your_api_key', 'your_api_secret');
+
+// Resend SMS OTP
+async function handleResendSMS(phone) {
+  try {
+    if (!resendManager.canResend(phone)) {
+      const wait = resendManager.getRemainingCooldown(phone);
+      alert(`Please wait ${wait} seconds before resending`);
+      return;
+    }
+
+    const result = await resendManager.resendOTP(phone, 'sms');
+    console.log('OTP resent successfully:', result);
+    alert('New OTP sent to your phone');
+  } catch (error) {
+    console.error('Failed to resend:', error);
+    alert(error.message);
+  }
+}
+
+// Resend Email OTP
+async function handleResendEmail(email) {
+  try {
+    const result = await resendManager.resendOTP(email, 'email');
+    console.log('OTP resent successfully:', result);
+    alert('New OTP sent to your email');
+  } catch (error) {
+    console.error('Failed to resend:', error);
+    alert(error.message);
+  }
+}
+
+// With countdown timer
+async function resendWithTimer(phone, buttonElement) {
+  try {
+    const result = await resendManager.resendOTP(phone, 'sms');
+
+    // Disable button and show countdown
+    buttonElement.disabled = true;
+
+    const updateTimer = () => {
+      const remaining = resendManager.getRemainingCooldown(phone);
+
+      if (remaining > 0) {
+        buttonElement.textContent = `Resend OTP (${remaining}s)`;
+        setTimeout(updateTimer, 1000);
+      } else {
+        buttonElement.disabled = false;
+        buttonElement.textContent = 'Resend OTP';
+      }
+    };
+
+    updateTimer();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+```
+
+### Python
+
+```python
+import requests
+import base64
+import time
+from datetime import datetime, timedelta
+from typing import Optional, Literal
+
+class OTPResendManager:
+    def __init__(self, api_key: str, api_secret: str):
+        self.base_url = "https://api.sendexa.co/v1/otp"
+        credentials = f"{api_key}:{api_secret}"
+        self.auth_header = base64.b64encode(credentials.encode()).decode()
+        self.headers = {
+            "Authorization": f"Basic {self.auth_header}",
+            "Content-Type": "application/json"
+        }
+        self.last_resend_time = {}
+        self.resend_cooldown = 30  # seconds
+
+    def resend_otp(
+        self,
+        destination: str,
+        channel: Literal['sms', 'email'] = 'sms',
+        otp_id: Optional[str] = None
+    ):
+        # Check local cooldown
+        if destination in self.last_resend_time:
+            elapsed = datetime.now() - self.last_resend_time[destination]
+            if elapsed < timedelta(seconds=self.resend_cooldown):
+                wait_time = self.resend_cooldown - elapsed.seconds
+                raise Exception(f"Wait {wait_time} seconds before resending")
+
+        payload = {}
+
+        if channel == 'sms':
+            payload['phone'] = destination
+        elif channel == 'email':
+            payload['email'] = destination
+
+        if otp_id:
+            payload['id'] = otp_id
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/resend",
+                json=payload,
+                headers=self.headers
+            )
+
+            if response.status_code == 400:
+                error_data = response.json()
+                error_type = error_data.get('errorType')
+
+                if error_type == 'NO_PREVIOUS_OTP':
+                    raise Exception("No OTP found. Please request a new one.")
+                elif error_type == 'MAX_RESENDS_EXCEEDED':
+                    raise Exception("Maximum resend attempts reached.")
+                else:
+                    raise Exception(error_data.get('message', 'Resend failed'))
+
+            elif response.status_code == 429:
+                error_data = response.json()
+                retry_after = error_data.get('data', {}).get('retryAfter', 30)
+                raise Exception(f"Wait {retry_after} seconds before resending")
+
+            response.raise_for_status()
+
+            # Update last resend time
+            self.last_resend_time[destination] = datetime.now()
+
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Resend failed: {str(e)}")
+
+    def get_remaining_cooldown(self, destination: str) -> int:
+        """Get remaining cooldown time in seconds"""
+        if destination not in self.last_resend_time:
+            return 0
+
+        elapsed = datetime.now() - self.last_resend_time[destination]
+        remaining = self.resend_cooldown - elapsed.seconds
+        return max(0, remaining)
+
+    def can_resend(self, destination: str) -> bool:
+        """Check if resend is allowed"""
+        return self.get_remaining_cooldown(destination) == 0
+
+# Usage Examples
+
+manager = OTPResendManager("your_api_key", "your_api_secret")
+
+# Resend SMS OTP
+def handle_resend_sms(phone: str):
+    try:
+        if not manager.can_resend(phone):
+            wait_time = manager.get_remaining_cooldown(phone)
+            print(f"Wait {wait_time} seconds before resending")
+            return
+
+        result = manager.resend_otp(phone, channel='sms')
+        print("OTP resent successfully:", result)
+        return result
+    except Exception as e:
+        print(f"Resend failed: {e}")
+        raise
+
+# Resend Email OTP
+def handle_resend_email(email: str):
+    try:
+        result = manager.resend_otp(email, channel='email')
+        print("OTP resent successfully:", result)
+        return result
+    except Exception as e:
+        print(f"Resend failed: {e}")
+        raise
+
+# FastAPI endpoint with cooldown
+from fastapi import HTTPException
+
+@app.post("/resend-otp")
+async def resend_otp_endpoint(
+    destination: str,
+    channel: Literal['sms', 'email'] = 'sms'
+):
+    try:
+        # Check cooldown
+        if not manager.can_resend(destination):
+            remaining = manager.get_remaining_cooldown(destination)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {remaining} seconds before resending"
+            )
+
+        result = manager.resend_otp(destination, channel)
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+### PHP
+
+```php
+<?php
+
+class OTPResendManager {
+    private $baseUrl;
+    private $credentials;
+    private $lastResendTime = [];
+    private $resendCooldown = 30; // seconds
+
+    public function __construct($apiKey, $apiSecret) {
+        $this->baseUrl = 'https://api.sendexa.co/v1/otp';
+        $this->credentials = base64_encode("$apiKey:$apiSecret");
+    }
+
+    public function resendOTP($destination, $channel = 'sms', $otpId = null) {
+        // Check local cooldown
+        if (isset($this->lastResendTime[$destination])) {
+            $elapsed = time() - $this->lastResendTime[$destination];
+            if ($elapsed < $this->resendCooldown) {
+                $waitTime = $this->resendCooldown - $elapsed;
+                throw new Exception("Wait $waitTime seconds before resending");
+            }
+        }
+
+        $payload = [];
+
+        if ($channel === 'sms') {
+            $payload['phone'] = $destination;
+        } elseif ($channel === 'email') {
+            $payload['email'] = $destination;
+        }
+
+        if ($otpId) {
+            $payload['id'] = $otpId;
+        }
+
+        $ch = curl_init("{$this->baseUrl}/resend");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Basic {$this->credentials}",
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+
+        if ($httpCode === 400) {
+            $errorType = $result['errorType'] ?? '';
+
+            if ($errorType === 'NO_PREVIOUS_OTP') {
+                throw new Exception('No OTP found. Please request a new one.');
+            } elseif ($errorType === 'MAX_RESENDS_EXCEEDED') {
+                throw new Exception('Maximum resend attempts reached.');
+            } else {
+                throw new Exception($result['message'] ?? 'Resend failed');
+            }
+        } elseif ($httpCode === 429) {
+            $retryAfter = $result['data']['retryAfter'] ?? 30;
+            throw new Exception("Wait $retryAfter seconds before resending");
+        } elseif ($httpCode !== 200) {
+            throw new Exception("Resend failed: $response");
+        }
+
+        // Update last resend time
+        $this->lastResendTime[$destination] = time();
+
+        return $result;
+    }
+
+    public function getRemainingCooldown($destination) {
+        if (!isset($this->lastResendTime[$destination])) {
+            return 0;
+        }
+
+        $elapsed = time() - $this->lastResendTime[$destination];
+        $remaining = max(0, $this->resendCooldown - $elapsed);
+        return $remaining;
+    }
+
+    public function canResend($destination) {
+        return $this->getRemainingCooldown($destination) === 0;
+    }
+}
+
+// Usage Examples
+
+$manager = new OTPResendManager('your_api_key', 'your_api_secret');
+
+// Resend SMS OTP
+function handleResendSMS($phone) {
+    global $manager;
+
+    try {
+        if (!$manager->canResend($phone)) {
+            $wait = $manager->getRemainingCooldown($phone);
+            echo "Wait $wait seconds before resending\n";
+            return;
+        }
+
+        $result = $manager->resendOTP($phone, 'sms');
+        echo "OTP resent successfully: " . json_encode($result) . "\n";
+        return $result;
+    } catch (Exception $e) {
+        echo "Resend failed: " . $e->getMessage() . "\n";
+        throw $e;
+    }
+}
+
+// Resend Email OTP
+function handleResendEmail($email) {
+    global $manager;
+
+    try {
+        $result = $manager->resendOTP($email, 'email');
+        echo "OTP resent successfully: " . json_encode($result) . "\n";
+        return $result;
+    } catch (Exception $e) {
+        echo "Resend failed: " . $e->getMessage() . "\n";
+        throw $e;
+    }
+}
+
+?>
+```
+
+---
+
+## Frontend Integration
+
+### React Component with Countdown
+
+```javascript
+import { useState, useEffect } from 'react';
+
+function OTPResendButton({ phone, onResend }) {
+  const [cooldown, setCooldown] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+
+    setLoading(true);
+    try {
+      await onResend(phone);
+      setCooldown(30); // Start 30-second countdown
+      alert('New OTP sent successfully');
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleResend}
+      disabled={cooldown > 0 || loading}
+      className="resend-button"
+    >
+      {loading
+        ? 'Sending...'
+        : cooldown > 0
+          ? `Resend OTP (${cooldown}s)`
+          : 'Resend OTP'}
+    </button>
+  );
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Implement Cooldown UI
+
+Show users when they can resend:
+
+```javascript
+function ResendUI({ phone }) {
+  const [countdown, setCountdown] = useState(30);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+  }, [countdown]);
+
+  return (
+    <div>
+      {countdown > 0 ? (
+        <p>Resend available in {countdown} seconds</p>
+      ) : (
+        <button onClick={() => handleResend(phone)}>Resend OTP</button>
+      )}
+    </div>
+  );
+}
+```
+
+### 2. Track Resend Attempts
+
+Warn users about maximum resends:
+
+```javascript
+async function resendWithTracking(phone, resendCount) {
+  if (resendCount >= 2) {
+    alert("Last resend attempt. After this, you'll need to request a new OTP.");
+  }
+
+  try {
+    const result = await resendOTP(phone);
+    return result;
+  } catch (error) {
+    if (error.message.includes('Maximum resend')) {
+      alert('Maximum resends reached. Please request a new OTP.');
+      // Redirect to request new OTP
+    }
+    throw error;
+  }
+}
+```
+
+### 3. Provide Clear Feedback
+
+```javascript
+async function resendWithFeedback(phone) {
+  try {
+    showMessage('Sending new OTP...', 'info');
+
+    const result = await resendOTP(phone);
+
+    showMessage(
+      `New OTP sent! Expires in ${result.data.expiry.amount} ${result.data.expiry.duration}`,
+      'success'
+    );
+
+    return result;
+  } catch (error) {
+    if (error.message.includes('wait')) {
+      showMessage(error.message, 'warning');
+    } else {
+      showMessage('Failed to resend OTP. Please try again.', 'error');
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+## Testing
+
+### Test Scenarios
+
+1. **Successful Resend:**
+
+   ```json
+   { "phone": "0555539152" }
+   ```
+
+2. **Cooldown Active:**
+   Send resend request within 30 seconds
+
+3. **Max Resends:**
+   Send resend 4 times consecutively
+
+4. **No Previous OTP:**
+   ```json
+   { "phone": "0999999999" }
+   ```
+
+---
+
+## Next Steps
+
+- ✅ **[Verify OTP](/docs/verify/verify)** - Validate user codes
+- 📝 **[Request OTP](/docs/verify/request)** - Send initial OTP
+- 🔔 **[Webhooks](/docs/verify/webhooks)** - Real-time notifications
+- 📖 **[API Reference](/docs/verify/v1)** - Complete documentation

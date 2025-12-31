@@ -1,0 +1,912 @@
+---
+title: Text-to-Speech (TTS)
+description: Convert text to natural-sounding speech for voice calls using the Sendexa Text-to-Speech API with support for multiple languages and voices.
+date: 2025-03-12
+---
+
+# Text-to-Speech (TTS)
+
+Convert text to natural-sounding speech for your voice calls. Sendexa TTS supports multiple languages, voices, and advanced speech synthesis markup.
+
+---
+
+## Quick Start
+
+### Basic TTS
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/tts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "Hello, your order has been delivered successfully",
+    "language": "en-US",
+    "voice": "female"
+  }'
+```
+
+### TTS in Call
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/call' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "from": "233302123456",
+    "tts": {
+      "text": "Your appointment is confirmed for tomorrow at 2 PM",
+      "voice": "female",
+      "language": "en-US"
+    }
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/voice/tts
+
+Generate speech audio from text.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter  | Type    | Required | Description                                |
+| ---------- | ------- | -------- | ------------------------------------------ |
+| `text`     | string  | Yes      | Text to convert to speech (max 3000 chars) |
+| `language` | string  | No       | Language code (default: en-US)             |
+| `voice`    | string  | No       | Voice type (male/female, default: female)  |
+| `speed`    | float   | No       | Speech speed (0.5 to 2.0, default: 1.0)    |
+| `pitch`    | integer | No       | Voice pitch (-20 to 20, default: 0)        |
+| `format`   | string  | No       | Audio format (mp3/wav/ogg, default: mp3)   |
+| `save`     | boolean | No       | Save audio file (default: false)           |
+
+---
+
+## Parameter Details
+
+### text
+
+The text to be converted to speech:
+
+```json
+{
+  "text": "Hello, your package has been delivered to your address"
+}
+```
+
+**Character Limit:** 3000 characters
+
+**Tips:**
+
+- Use punctuation for natural pauses
+- Break long text into sentences
+- Avoid complex abbreviations
+- Use phonetic spelling for difficult words
+
+### language
+
+Language and accent for speech:
+
+```json
+{
+  "language": "en-US"
+}
+```
+
+**Supported Languages:**
+
+| Language               | Code  | Description           |
+| ---------------------- | ----- | --------------------- |
+| English (US)           | en-US | American English      |
+| English (UK)           | en-GB | British English       |
+| English (Ghana)        | en-GH | Ghanaian English      |
+| English (Nigeria)      | en-NG | Nigerian English      |
+| English (Kenya)        | en-KE | Kenyan English        |
+| English (South Africa) | en-ZA | South African English |
+| French                 | fr-FR | Standard French       |
+| French (Africa)        | fr-CM | African French        |
+| Swahili                | sw-KE | Swahili               |
+| Hausa                  | ha-NG | Hausa                 |
+| Yoruba                 | yo-NG | Yoruba                |
+| Igbo                   | ig-NG | Igbo                  |
+| Zulu                   | zu-ZA | Zulu                  |
+| Afrikaans              | af-ZA | Afrikaans             |
+
+### voice
+
+Voice gender and style:
+
+```json
+{
+  "voice": "female"
+}
+```
+
+**Available Voices:**
+
+| Voice    | Description            |
+| -------- | ---------------------- |
+| `female` | Female voice (default) |
+| `male`   | Male voice             |
+
+### speed
+
+Control speech rate:
+
+```json
+{
+  "speed": 1.2
+}
+```
+
+**Values:**
+
+- Minimum: 0.5 (half speed)
+- Maximum: 2.0 (double speed)
+- Default: 1.0 (normal speed)
+
+**Use Cases:**
+
+- 0.5-0.8: Important announcements, elderly audience
+- 1.0: Normal conversations
+- 1.2-1.5: Quick updates, time-sensitive info
+
+### pitch
+
+Adjust voice pitch:
+
+```json
+{
+  "pitch": 5
+}
+```
+
+**Values:**
+
+- Range: -20 to 20
+- Default: 0 (normal pitch)
+- Positive: Higher pitch
+- Negative: Lower pitch
+
+### format
+
+Audio file format:
+
+```json
+{
+  "format": "mp3"
+}
+```
+
+**Formats:**
+
+- `mp3` - MP3 format (default, recommended)
+- `wav` - WAV format (higher quality, larger size)
+- `ogg` - OGG Vorbis format
+
+---
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "tts": {
+    "id": "tts_abc123def456",
+    "text": "Hello, your order has been delivered",
+    "language": "en-US",
+    "voice": "female",
+    "duration": 3.5,
+    "audio_url": "https://tts.sendexa.co/tts_abc123def456.mp3",
+    "format": "mp3",
+    "size": 56000,
+    "created_at": "2025-03-12T14:20:00Z",
+    "expires_at": "2025-03-19T14:20:00Z"
+  }
+}
+```
+
+### Response Fields
+
+| Field        | Type    | Description                   |
+| ------------ | ------- | ----------------------------- |
+| `success`    | boolean | Whether request succeeded     |
+| `tts`        | object  | TTS details                   |
+| `id`         | string  | Unique TTS identifier         |
+| `text`       | string  | Original text                 |
+| `language`   | string  | Language used                 |
+| `voice`      | string  | Voice used                    |
+| `duration`   | float   | Audio duration in seconds     |
+| `audio_url`  | string  | URL to download audio         |
+| `format`     | string  | Audio format                  |
+| `size`       | integer | File size in bytes            |
+| `created_at` | string  | Creation timestamp            |
+| `expires_at` | string  | Expiration timestamp (7 days) |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function generateSpeech(text, language = 'en-US', voice = 'female') {
+  try {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/voice/tts',
+      {
+        text,
+        language,
+        voice,
+        speed: 1.0,
+        format: 'mp3',
+      },
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Audio generated:', response.data.tts.audio_url);
+    console.log('Duration:', response.data.tts.duration, 'seconds');
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Generate speech
+await generateSpeech(
+  'Hello, your appointment is confirmed for tomorrow at 2 PM',
+  'en-US',
+  'female'
+);
+
+// Use in call
+async function callWithTTS(to, from, message) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/voice/call',
+    {
+      to,
+      from,
+      tts: {
+        text: message,
+        language: 'en-US',
+        voice: 'female',
+        speed: 1.0,
+      },
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+
+await callWithTTS(
+  '233501234567',
+  '233302123456',
+  'Your delivery is on the way and will arrive in 30 minutes'
+);
+```
+
+### Python
+
+```python
+import requests
+
+def generate_speech(text, language='en-US', voice='female'):
+    """Generate speech from text using TTS"""
+    url = 'https://api.sendexa.co/v1/voice/tts'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'text': text,
+        'language': language,
+        'voice': voice,
+        'speed': 1.0,
+        'format': 'mp3'
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"Audio generated: {data['tts']['audio_url']}")
+        print(f"Duration: {data['tts']['duration']} seconds")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        raise
+
+# Generate speech
+generate_speech(
+    'Hello, your appointment is confirmed for tomorrow at 2 PM',
+    'en-US',
+    'female'
+)
+
+# Use in call
+def call_with_tts(to, from_number, message):
+    """Make a call with TTS"""
+    url = 'https://api.sendexa.co/v1/voice/call'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'to': to,
+        'from': from_number,
+        'tts': {
+            'text': message,
+            'language': 'en-US',
+            'voice': 'female',
+            'speed': 1.0
+        }
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+call_with_tts(
+    '233501234567',
+    '233302123456',
+    'Your delivery is on the way and will arrive in 30 minutes'
+)
+```
+
+### PHP
+
+```php
+<?php
+
+function generateSpeech($text, $language = 'en-US', $voice = 'female') {
+    $url = 'https://api.sendexa.co/v1/voice/tts';
+    $token = 'your_token';
+
+    $data = [
+        'text' => $text,
+        'language' => $language,
+        'voice' => $voice,
+        'speed' => 1.0,
+        'format' => 'mp3'
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+        echo "Audio generated: " . $result['tts']['audio_url'] . "\n";
+        echo "Duration: " . $result['tts']['duration'] . " seconds\n";
+        return $result;
+    } else {
+        throw new Exception("TTS failed: " . $response);
+    }
+}
+
+// Generate speech
+generateSpeech(
+    'Hello, your appointment is confirmed for tomorrow at 2 PM',
+    'en-US',
+    'female'
+);
+
+// Use in call
+function callWithTTS($to, $from, $message) {
+    $url = 'https://api.sendexa.co/v1/voice/call';
+    $token = 'your_token';
+
+    $data = [
+        'to' => $to,
+        'from' => $from,
+        'tts' => [
+            'text' => $message,
+            'language' => 'en-US',
+            'voice' => 'female',
+            'speed' => 1.0
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    return json_decode($response, true);
+}
+
+callWithTTS(
+    '233501234567',
+    '233302123456',
+    'Your delivery is on the way and will arrive in 30 minutes'
+);
+?>
+```
+
+---
+
+## TTS in VoiceXML
+
+### Using TTS in Call Flow
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="female" language="en-US">
+    Hello, welcome to our customer service line.
+  </Say>
+
+  <Say voice="female" language="en-US">
+    Your account balance is 150 dollars.
+  </Say>
+
+  <Gather numDigits="1" action="/handle-menu">
+    <Say voice="female" language="en-US">
+      Press 1 for account information.
+      Press 2 for recent transactions.
+      Press 3 to speak with an agent.
+    </Say>
+  </Gather>
+</Response>
+```
+
+### Dynamic TTS
+
+```javascript
+// Generate dynamic VoiceXML with personalized TTS
+app.post('/order-status', async (req, res) => {
+  const { orderId } = req.query;
+  const order = await getOrder(orderId);
+
+  const xml = `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+      <Say voice="female" language="en-US">
+        Hello ${order.customerName}, 
+        your order number ${orderId} 
+        has been ${order.status}.
+      </Say>
+      
+      <Say voice="female" language="en-US">
+        Estimated delivery: ${order.deliveryDate}.
+      </Say>
+      
+      <Say voice="female" language="en-US">
+        Thank you for shopping with us!
+      </Say>
+    </Response>
+  `;
+
+  res.set('Content-Type', 'text/xml');
+  res.send(xml);
+});
+```
+
+---
+
+## SSML Support
+
+### Speech Synthesis Markup Language
+
+Use SSML for advanced control over speech:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>
+    <speak>
+      <prosody rate="slow">
+        Please listen carefully to the following information.
+      </prosody>
+
+      <break time="1s"/>
+
+      Your account number is
+      <say-as interpret-as="digits">1234567890</say-as>
+
+      <break time="500ms"/>
+
+      <emphasis level="strong">
+        This is important information.
+      </emphasis>
+
+      <break time="1s"/>
+
+      <prosody pitch="high">
+        Thank you for calling!
+      </prosody>
+    </speak>
+  </Say>
+</Response>
+```
+
+### SSML Tags Supported
+
+| Tag          | Purpose                | Example                                         |
+| ------------ | ---------------------- | ----------------------------------------------- |
+| `<break>`    | Add pause              | `<break time="1s"/>`                            |
+| `<emphasis>` | Emphasize text         | `<emphasis level="strong">Important</emphasis>` |
+| `<prosody>`  | Control rate/pitch     | `<prosody rate="slow">Slow text</prosody>`      |
+| `<say-as>`   | Interpret text         | `<say-as interpret-as="digits">123</say-as>`    |
+| `<phoneme>`  | Phonetic pronunciation | `<phoneme ph="təˈmeɪtoʊ">tomato</phoneme>`      |
+
+---
+
+## Common Use Cases
+
+### 1. Order Notifications
+
+```javascript
+async function notifyOrderStatus(order) {
+  const message = `
+    Hello ${order.customerName}, 
+    your order number ${order.id} has been ${order.status}. 
+    ${
+      order.status === 'shipped'
+        ? `It will arrive in ${order.estimatedDays} days.`
+        : 'You will receive another update soon.'
+    }
+    Thank you for your business!
+  `;
+
+  await callWithTTS(order.phone, companyPhone, message);
+}
+```
+
+### 2. Appointment Reminders
+
+```javascript
+async function sendAppointmentReminder(appointment) {
+  const message = `
+    Hello ${appointment.patientName}, 
+    this is a reminder about your appointment 
+    with Doctor ${appointment.doctorName} 
+    tomorrow at ${appointment.time}. 
+    Please call us if you need to reschedule.
+  `;
+
+  await callWithTTS(appointment.phone, clinicPhone, message);
+}
+```
+
+### 3. Payment Confirmations
+
+```javascript
+async function confirmPayment(payment) {
+  const message = `
+    Hello, your payment of ${payment.amount} dollars 
+    has been received successfully. 
+    Transaction reference: ${payment.reference}. 
+    Thank you!
+  `;
+
+  await callWithTTS(payment.customerPhone, companyPhone, message);
+}
+```
+
+### 4. Multi-Language Support
+
+```javascript
+async function callInUserLanguage(user, message) {
+  const languageMap = {
+    en: 'en-US',
+    fr: 'fr-FR',
+    sw: 'sw-KE',
+    ha: 'ha-NG',
+  };
+
+  const language = languageMap[user.preferredLanguage] || 'en-US';
+
+  await axios.post(callUrl, {
+    to: user.phone,
+    from: companyPhone,
+    tts: {
+      text: message,
+      language: language,
+      voice: 'female',
+    },
+  });
+}
+```
+
+### 5. Dynamic Numbers in Speech
+
+```javascript
+function formatNumberForSpeech(number) {
+  // Convert number to words for better pronunciation
+  const numberWords = {
+    0: 'zero',
+    1: 'one',
+    2: 'two',
+    3: 'three',
+    4: 'four',
+    5: 'five',
+    6: 'six',
+    7: 'seven',
+    8: 'eight',
+    9: 'nine',
+  };
+
+  return number
+    .toString()
+    .split('')
+    .map((d) => numberWords[d])
+    .join(' ');
+}
+
+async function readAccountNumber(accountNumber) {
+  const message = `
+    Your account number is: 
+    ${formatNumberForSpeech(accountNumber)}
+  `;
+
+  await generateSpeech(message);
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Write for Speech, Not Reading
+
+```javascript
+// Bad - Written text
+const bad = 'Contact us @ support@company.com or call +233-50-123-4567';
+
+// Good - Spoken text
+const good =
+  'Contact us by email at support at company dot com, or call us at two three three, five zero, one two three, four five six seven';
+```
+
+### 2. Use Natural Pauses
+
+```javascript
+// Add punctuation for natural flow
+const message = `
+  Hello. Your package has arrived. 
+  Please collect it from our office. 
+  Thank you!
+`;
+
+// Better with breaks
+const betterMessage = `
+  Hello. 
+  Your package has arrived. 
+  Please collect it from our office within three business days. 
+  Thank you for your business!
+`;
+```
+
+### 3. Test Different Voices and Speeds
+
+```javascript
+// Test message with different settings
+const message = 'This is a test message for voice quality';
+
+const tests = [
+  { voice: 'female', speed: 1.0 },
+  { voice: 'male', speed: 1.0 },
+  { voice: 'female', speed: 0.9 },
+  { voice: 'female', speed: 1.2 },
+];
+
+for (const test of tests) {
+  const audio = await generateSpeech(message, 'en-US', test.voice, test.speed);
+  console.log(`Testing: ${test.voice} at ${test.speed}x speed`);
+  // Listen and compare
+}
+```
+
+### 4. Handle Special Characters
+
+```javascript
+function cleanTextForTTS(text) {
+  return text
+    .replace(/@/g, ' at ')
+    .replace(/&/g, ' and ')
+    .replace(/#/g, ' number ')
+    .replace(/\$/g, ' dollars ')
+    .replace(/%/g, ' percent ')
+    .replace(/\+/g, ' plus ')
+    .replace(/=/g, ' equals ')
+    .replace(/</g, ' less than ')
+    .replace(/>/g, ' greater than ');
+}
+
+const text = 'Total: $50 + $5 tax = $55 (10% discount)';
+const cleaned = cleanTextForTTS(text);
+// "Total: dollars 50 plus dollars 5 tax equals dollars 55 (10 percent discount)"
+```
+
+### 5. Optimize for Different Audiences
+
+```javascript
+async function generateAudienceAppropriateMessage(audience, message) {
+  let speed = 1.0;
+  let language = 'en-US';
+
+  if (audience.type === 'elderly') {
+    speed = 0.8; // Slower for elderly
+  } else if (audience.type === 'urgent') {
+    speed = 1.2; // Faster for urgent messages
+  }
+
+  if (audience.preferredLanguage) {
+    language = audience.preferredLanguage;
+  }
+
+  return await generateSpeech(message, language, 'female', speed);
+}
+```
+
+---
+
+## Caching & Performance
+
+### Cache Generated Audio
+
+```javascript
+const cache = new Map();
+
+async function getCachedSpeech(text, language, voice) {
+  const key = `${text}-${language}-${voice}`;
+
+  // Check cache
+  if (cache.has(key)) {
+    console.log('Using cached audio');
+    return cache.get(key);
+  }
+
+  // Generate new
+  const audio = await generateSpeech(text, language, voice);
+
+  // Cache for 7 days (same as Sendexa expiration)
+  cache.set(key, audio);
+  setTimeout(() => cache.delete(key), 7 * 24 * 60 * 60 * 1000);
+
+  return audio;
+}
+```
+
+### Pregenerate Common Messages
+
+```javascript
+// Pregenerate frequently used messages
+const commonMessages = [
+  'Your order has been confirmed',
+  'Your payment was successful',
+  'Your appointment is tomorrow',
+  'Please hold while we connect you',
+];
+
+async function pregenerateMessages() {
+  for (const message of commonMessages) {
+    await getCachedSpeech(message, 'en-US', 'female');
+    console.log(`Pregenerated: ${message}`);
+  }
+}
+
+// Run on app startup
+await pregenerateMessages();
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+#### Text Too Long
+
+```json
+{
+  "success": false,
+  "error": "TEXT_TOO_LONG",
+  "message": "Text exceeds maximum length of 3000 characters",
+  "length": 3500
+}
+```
+
+**Solution:** Split text into multiple parts
+
+```javascript
+function splitText(text, maxLength = 2800) {
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+  const chunks = [];
+  let current = '';
+
+  for (const sentence of sentences) {
+    if ((current + sentence).length > maxLength) {
+      chunks.push(current.trim());
+      current = sentence;
+    } else {
+      current += sentence;
+    }
+  }
+
+  if (current) chunks.push(current.trim());
+  return chunks;
+}
+```
+
+#### Unsupported Language
+
+```json
+{
+  "success": false,
+  "error": "UNSUPPORTED_LANGUAGE",
+  "message": "Language code 'xyz' is not supported",
+  "supported_languages": ["en-US", "en-GB", "fr-FR", ...]
+}
+```
+
+**Solution:** Use supported language codes
+
+---
+
+## Testing
+
+### Test TTS Quality
+
+```javascript
+// Generate test audio
+const testText = 'The quick brown fox jumps over the lazy dog';
+
+const result = await generateSpeech(testText, 'en-US', 'female');
+
+console.log('Audio URL:', result.tts.audio_url);
+console.log('Duration:', result.tts.duration);
+console.log('Download and listen to verify quality');
+```
+
+---
+
+## Next Steps
+
+- 📞 **[Make Calls](/docs/voice/make-call)** - Use TTS in calls
+- 📢 **[Broadcast](/docs/voice/broadcast)** - Broadcast with TTS
+- 🎛️ **[Build IVR](/docs/voice/ivr)** - Interactive voice menus
+- 🔔 **[Webhooks](/docs/voice/webhooks)** - Real-time events
+- 🛠️ **[API Reference](/docs/voice/v1)** - Complete docs

@@ -1,0 +1,902 @@
+---
+title: Connect to SMPP
+description: Learn how to establish SMPP connections to Sendexa gateway with examples in multiple programming languages.
+date: 2025-03-12
+---
+
+# Connect to SMPP
+
+Establish a connection to Sendexa's SMPP gateway and start sending high-volume SMS messages.
+
+---
+
+## Quick Start
+
+### Basic Connection
+
+```javascript
+const smpp = require('smpp');
+
+const session = smpp.connect({
+  url: 'smpp://smpp.sendexa.co:2775',
+  auto_enquire_link_period: 30000,
+});
+
+session.bind_transceiver(
+  {
+    system_id: 'your_username',
+    password: 'your_password',
+    interface_version: 0x34,
+  },
+  (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Connected to SMPP!');
+    }
+  }
+);
+```
+
+---
+
+## Connection Parameters
+
+### Server Details
+
+| Parameter    | Value           | Description         |
+| ------------ | --------------- | ------------------- |
+| **Host**     | smpp.sendexa.co | Primary SMPP server |
+| **Port**     | 2775            | Standard SMPP       |
+| **TLS Port** | 2776            | SMPP over TLS       |
+| **Protocol** | SMPP v3.4       | Version             |
+
+### Bind Parameters
+
+| Field               | Type   | Value         | Description     |
+| ------------------- | ------ | ------------- | --------------- |
+| `system_id`         | String | Your username | From dashboard  |
+| `password`          | String | Your password | From dashboard  |
+| `system_type`       | String | "" (empty)    | Leave blank     |
+| `interface_version` | Byte   | 0x34          | SMPP v3.4       |
+| `addr_ton`          | Byte   | 0x01          | International   |
+| `addr_npi`          | Byte   | 0x01          | E.164 numbering |
+| `address_range`     | String | "" (empty)    | Leave blank     |
+
+---
+
+## Bind Types
+
+### Transmitter (TX)
+
+Send messages only (no DLR reception):
+
+```javascript
+session.bind_transmitter(
+  {
+    system_id: 'your_username',
+    password: 'your_password',
+  },
+  callback
+);
+```
+
+**Use Case:** Only need to send messages, DLRs via webhooks.
+
+### Receiver (RX)
+
+Receive DLRs only (no message sending):
+
+```javascript
+session.bind_receiver(
+  {
+    system_id: 'your_username',
+    password: 'your_password',
+  },
+  callback
+);
+```
+
+**Use Case:** Dedicated DLR processing.
+
+### Transceiver (TRX) - Recommended
+
+Send and receive in one connection:
+
+```javascript
+session.bind_transceiver(
+  {
+    system_id: 'your_username',
+    password: 'your_password',
+  },
+  callback
+);
+```
+
+**Use Case:** Most common, full bidirectional communication.
+
+---
+
+## Connection Examples
+
+### Node.js
+
+```javascript
+const smpp = require('smpp');
+
+class SMPPConnection {
+  constructor(config) {
+    this.config = config;
+    this.session = null;
+    this.connected = false;
+  }
+
+  connect() {
+    this.session = smpp.connect({
+      url: `smpp://${this.config.host}:${this.config.port}`,
+      auto_enquire_link_period: 30000,
+      debug: false,
+    });
+
+    // Connection opened
+    this.session.on('connect', () => {
+      console.log('TCP connection established');
+      this.bind();
+    });
+
+    // Bind to SMPP
+    this.bind();
+
+    // Handle PDUs
+    this.session.on('pdu', (pdu) => {
+      console.log('Received PDU:', pdu.command);
+    });
+
+    // Connection closed
+    this.session.on('close', () => {
+      console.log('Connection closed');
+      this.connected = false;
+      this.reconnect();
+    });
+
+    // Error handling
+    this.session.on('error', (error) => {
+      console.error('SMPP error:', error);
+    });
+  }
+
+  bind() {
+    this.session.bind_transceiver(
+      {
+        system_id: this.config.systemId,
+        password: this.config.password,
+        interface_version: 0x34,
+        system_type: '',
+        addr_ton: 1,
+        addr_npi: 1,
+        address_range: '',
+      },
+      (pdu) => {
+        if (pdu.command_status === 0) {
+          console.log('Successfully bound to SMPP');
+          this.connected = true;
+        } else {
+          console.error('Bind failed:', pdu.command_status);
+        }
+      }
+    );
+  }
+
+  reconnect() {
+    console.log('Reconnecting in 5 seconds...');
+    setTimeout(() => this.connect(), 5000);
+  }
+
+  disconnect() {
+    if (this.session) {
+      this.session.unbind();
+      this.session.close();
+    }
+  }
+}
+
+// Usage
+const connection = new SMPPConnection({
+  host: 'smpp.sendexa.co',
+  port: 2775,
+  systemId: 'your_username',
+  password: 'your_password',
+});
+
+connection.connect();
+```
+
+### Python
+
+```python
+import smpplib
+import logging
+from smpplib.gsm import make_pdu
+
+logging.basicConfig(level=logging.INFO)
+
+class SMPPConnection:
+    def __init__(self, host, port, system_id, password):
+        self.host = host
+        self.port = port
+        self.system_id = system_id
+        self.password = password
+        self.client = None
+        self.connected = False
+
+    def connect(self):
+        """Establish SMPP connection"""
+        try:
+            # Create client
+            self.client = smpplib.client.Client(
+                self.host,
+                self.port,
+                allow_unknown_opt_params=True
+            )
+
+            # Connect
+            self.client.connect()
+            logging.info('TCP connection established')
+
+            # Bind as transceiver
+            self.client.bind_transceiver(
+                system_id=self.system_id,
+                password=self.password
+            )
+
+            self.connected = True
+            logging.info('Successfully bound to SMPP')
+
+            # Start listening for PDUs
+            self.client.listen()
+
+        except Exception as e:
+            logging.error(f'Connection failed: {e}')
+            self.reconnect()
+
+    def reconnect(self):
+        """Reconnect after disconnection"""
+        import time
+        logging.info('Reconnecting in 5 seconds...')
+        time.sleep(5)
+        self.connect()
+
+    def disconnect(self):
+        """Close SMPP connection"""
+        if self.client:
+            self.client.unbind()
+            self.client.disconnect()
+            self.connected = False
+            logging.info('Disconnected from SMPP')
+
+# Usage
+conn = SMPPConnection(
+    host='smpp.sendexa.co',
+    port=2775,
+    system_id='your_username',
+    password='your_password'
+)
+
+conn.connect()
+```
+
+### PHP
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use OnlineCity\Smpp\Transport;
+use OnlineCity\Smpp\Client;
+use OnlineCity\Smpp\SMPP;
+
+class SMPPConnection
+{
+    private $transport;
+    private $client;
+    private $connected = false;
+
+    public function __construct($host, $port, $systemId, $password)
+    {
+        $this->host = $host;
+        $this->port = $port;
+        $this->systemId = $systemId;
+        $this->password = $password;
+    }
+
+    public function connect()
+    {
+        try {
+            // Create transport
+            $this->transport = new Transport(
+                [$this->host],
+                $this->port
+            );
+            $this->transport->setRecvTimeout(10000);
+
+            // Open connection
+            $this->transport->open();
+            echo "TCP connection established\n";
+
+            // Create client
+            $this->client = new Client($this->transport);
+
+            // Bind as transceiver
+            $this->client->bindTransceiver(
+                $this->systemId,
+                $this->password
+            );
+
+            $this->connected = true;
+            echo "Successfully bound to SMPP\n";
+
+        } catch (Exception $e) {
+            echo "Connection failed: " . $e->getMessage() . "\n";
+            $this->reconnect();
+        }
+    }
+
+    public function reconnect()
+    {
+        echo "Reconnecting in 5 seconds...\n";
+        sleep(5);
+        $this->connect();
+    }
+
+    public function disconnect()
+    {
+        if ($this->client) {
+            $this->client->close();
+            $this->connected = false;
+            echo "Disconnected from SMPP\n";
+        }
+    }
+
+    public function isConnected()
+    {
+        return $this->connected;
+    }
+}
+
+// Usage
+$connection = new SMPPConnection(
+    'smpp.sendexa.co',
+    2775,
+    'your_username',
+    'your_password'
+);
+
+$connection->connect();
+?>
+```
+
+### Java
+
+```java
+import org.jsmpp.bean.*;
+import org.jsmpp.session.*;
+import org.jsmpp.util.AbsoluteTimeFormatter;
+import org.jsmpp.util.TimeFormatter;
+
+public class SMPPConnection {
+    private static final TimeFormatter TIME_FORMATTER =
+        new AbsoluteTimeFormatter();
+
+    private SMPPSession session;
+    private boolean connected = false;
+
+    private String host;
+    private int port;
+    private String systemId;
+    private String password;
+
+    public SMPPConnection(String host, int port,
+                         String systemId, String password) {
+        this.host = host;
+        this.port = port;
+        this.systemId = systemId;
+        this.password = password;
+    }
+
+    public void connect() {
+        try {
+            session = new SMPPSession();
+
+            // Set connection timeout
+            session.setEnquireLinkTimer(30000);
+            session.setTransactionTimer(10000);
+
+            System.out.println("Connecting to " + host + ":" + port);
+
+            // Bind as transceiver
+            session.connectAndBind(
+                host,
+                port,
+                new BindParameter(
+                    BindType.BIND_TRX,
+                    systemId,
+                    password,
+                    "cp",
+                    TypeOfNumber.INTERNATIONAL,
+                    NumberingPlanIndicator.ISDN,
+                    null
+                )
+            );
+
+            connected = true;
+            System.out.println("Successfully bound to SMPP");
+
+            // Add listener for PDUs
+            session.addSessionStateListener(new SessionStateListener() {
+                @Override
+                public void onStateChange(SessionState newState,
+                                        SessionState oldState,
+                                        Session source) {
+                    System.out.println("Session state changed: " +
+                                      oldState + " -> " + newState);
+
+                    if (newState == SessionState.CLOSED) {
+                        connected = false;
+                        reconnect();
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            System.err.println("Connection failed: " + e.getMessage());
+            reconnect();
+        }
+    }
+
+    private void reconnect() {
+        System.out.println("Reconnecting in 5 seconds...");
+        try {
+            Thread.sleep(5000);
+            connect();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void disconnect() {
+        if (session != null) {
+            session.unbindAndClose();
+            connected = false;
+            System.out.println("Disconnected from SMPP");
+        }
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public SMPPSession getSession() {
+        return session;
+    }
+
+    public static void main(String[] args) {
+        SMPPConnection connection = new SMPPConnection(
+            "smpp.sendexa.co",
+            2775,
+            "your_username",
+            "your_password"
+        );
+
+        connection.connect();
+    }
+}
+```
+
+---
+
+## Connection Pooling
+
+### Why Use Connection Pools?
+
+- **Higher Throughput** - Parallel message submission
+- **Load Distribution** - Balance across connections
+- **Fault Tolerance** - Failover to healthy connections
+- **Better Performance** - Reduce connection overhead
+
+### Node.js Connection Pool
+
+```javascript
+class SMPPConnectionPool {
+  constructor(config, poolSize = 5) {
+    this.config = config;
+    this.poolSize = poolSize;
+    this.connections = [];
+    this.currentIndex = 0;
+  }
+
+  async initialize() {
+    console.log(`Creating pool of ${this.poolSize} connections...`);
+
+    for (let i = 0; i < this.poolSize; i++) {
+      const connection = new SMPPConnection({
+        ...this.config,
+        id: i,
+      });
+
+      await connection.connect();
+      this.connections.push(connection);
+
+      console.log(`Connection ${i + 1}/${this.poolSize} ready`);
+    }
+
+    console.log('Connection pool ready');
+  }
+
+  getConnection() {
+    // Round-robin distribution
+    const connection = this.connections[this.currentIndex];
+    this.currentIndex = (this.currentIndex + 1) % this.poolSize;
+
+    // Return connected connection or find next
+    if (connection.connected) {
+      return connection;
+    }
+
+    // Find first connected
+    return this.connections.find((c) => c.connected);
+  }
+
+  async sendMessage(message) {
+    const connection = this.getConnection();
+
+    if (!connection) {
+      throw new Error('No available connections');
+    }
+
+    return connection.sendSMS(message);
+  }
+
+  disconnect() {
+    this.connections.forEach((conn) => conn.disconnect());
+  }
+}
+
+// Usage
+const pool = new SMPPConnectionPool(
+  {
+    host: 'smpp.sendexa.co',
+    port: 2775,
+    systemId: 'your_username',
+    password: 'your_password',
+  },
+  5
+); // 5 connections
+
+await pool.initialize();
+
+// Send messages
+await pool.sendMessage({
+  to: '233501234567',
+  text: 'Hello from connection pool!',
+});
+```
+
+---
+
+## Keep-Alive (Enquire Link)
+
+### Purpose
+
+Send periodic enquire_link to:
+
+- Keep connection alive
+- Detect broken connections
+- Verify peer responsiveness
+
+### Implementation
+
+```javascript
+// Automatic enquire_link every 30 seconds
+const session = smpp.connect({
+  url: 'smpp://smpp.sendexa.co:2775',
+  auto_enquire_link_period: 30000, // 30 seconds
+});
+
+// Manual enquire_link
+function sendEnquireLink(session) {
+  session.enquire_link({}, (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Enquire link successful');
+    } else {
+      console.error('Enquire link failed');
+    }
+  });
+}
+
+// Send every 30 seconds
+setInterval(() => sendEnquireLink(session), 30000);
+```
+
+### Best Practices
+
+- **Interval:** 30-60 seconds
+- **Timeout:** Reconnect if no response in 60s
+- **Automatic:** Use library's auto enquire_link if available
+
+---
+
+## Error Handling
+
+### Connection Errors
+
+```javascript
+session.on('error', (error) => {
+  console.error('SMPP error:', error);
+
+  // Handle specific errors
+  if (error.code === 'ECONNREFUSED') {
+    console.error('Connection refused - check host/port');
+  } else if (error.code === 'ETIMEDOUT') {
+    console.error('Connection timeout - check network');
+  }
+});
+```
+
+### Bind Errors
+
+```javascript
+session.bind_transceiver(params, (pdu) => {
+  const status = pdu.command_status;
+
+  switch (status) {
+    case 0x00000000:
+      console.log('Bind successful');
+      break;
+    case 0x00000001:
+      console.error('Invalid message length');
+      break;
+    case 0x00000002:
+      console.error('Invalid command length');
+      break;
+    case 0x00000003:
+      console.error('Invalid command ID');
+      break;
+    case 0x00000004:
+      console.error('Invalid bind status');
+      break;
+    case 0x00000005:
+      console.error('Already bound');
+      break;
+    case 0x0000000d:
+      console.error('Invalid system ID');
+      break;
+    case 0x0000000e:
+      console.error('Invalid password');
+      break;
+    default:
+      console.error('Bind failed:', status);
+  }
+});
+```
+
+### Common Error Codes
+
+| Code       | Name            | Description            |
+| ---------- | --------------- | ---------------------- |
+| 0x00000000 | ESME_ROK        | Success                |
+| 0x00000001 | ESME_RINVMSGLEN | Invalid message length |
+| 0x00000005 | ESME_RALYBND    | Already bound          |
+| 0x0000000D | ESME_RINVSYSID  | Invalid system ID      |
+| 0x0000000E | ESME_RINVPASWD  | Invalid password       |
+| 0x00000058 | ESME_RTHROTTLED | Throttling error       |
+
+---
+
+## TLS/SSL Connection
+
+### Enable TLS
+
+```javascript
+const session = smpp.connect({
+  url: 'ssmpp://smpp.sendexa.co:2776', // Note: ssmpp://
+  tls: {
+    rejectUnauthorized: true,
+  },
+});
+```
+
+### Python with TLS
+
+```python
+import ssl
+
+client = smpplib.client.Client(
+    'smpp.sendexa.co',
+    2776,
+    allow_unknown_opt_params=True
+)
+
+# Enable TLS
+client.set_socket_opts(
+    ssl_context=ssl.create_default_context()
+)
+
+client.connect()
+client.bind_transceiver(system_id, password)
+```
+
+---
+
+## Testing Connection
+
+### Verify Connectivity
+
+```bash
+# Test TCP connection
+telnet smpp.sendexa.co 2775
+
+# Test TLS connection
+openssl s_client -connect smpp.sendexa.co:2776
+```
+
+### Connection Test Script
+
+```javascript
+const smpp = require('smpp');
+
+function testConnection() {
+  console.log('Testing SMPP connection...');
+
+  const session = smpp.connect({
+    url: 'smpp://smpp.sendexa.co:2775',
+  });
+
+  session.on('connect', () => {
+    console.log('✓ TCP connection successful');
+
+    session.bind_transceiver(
+      {
+        system_id: 'your_username',
+        password: 'your_password',
+      },
+      (pdu) => {
+        if (pdu.command_status === 0) {
+          console.log('✓ Bind successful');
+          console.log('✓ Connection test passed!');
+          session.unbind();
+          session.close();
+        } else {
+          console.error('✗ Bind failed:', pdu.command_status);
+        }
+      }
+    );
+  });
+
+  session.on('error', (error) => {
+    console.error('✗ Connection failed:', error);
+  });
+}
+
+testConnection();
+```
+
+---
+
+## Best Practices
+
+### 1. Implement Auto-Reconnect
+
+```javascript
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 10;
+
+function connect() {
+  const session = smpp.connect(config);
+
+  session.on('close', () => {
+    if (reconnectAttempts < maxReconnectAttempts) {
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 60000);
+      console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+      setTimeout(connect, delay);
+    } else {
+      console.error('Max reconnect attempts reached');
+    }
+  });
+
+  session.on('connect', () => {
+    reconnectAttempts = 0; // Reset on successful connect
+  });
+}
+```
+
+### 2. Monitor Connection Health
+
+```javascript
+let lastPduReceived = Date.now();
+let lastPduSent = Date.now();
+
+session.on('pdu', (pdu) => {
+  lastPduReceived = Date.now();
+});
+
+session.on('send', (pdu) => {
+  lastPduSent = Date.now();
+});
+
+// Check health every minute
+setInterval(() => {
+  const timeSinceLastPdu = Date.now() - lastPduReceived;
+
+  if (timeSinceLastPdu > 120000) {
+    // 2 minutes
+    console.warn('No PDUs received in 2 minutes, connection may be dead');
+    session.close();
+  }
+}, 60000);
+```
+
+### 3. Graceful Shutdown
+
+```javascript
+process.on('SIGINT', () => {
+  console.log('Shutting down gracefully...');
+
+  session.unbind((pdu) => {
+    console.log('Unbind response:', pdu.command_status);
+    session.close();
+    process.exit(0);
+  });
+
+  // Force exit after 5 seconds
+  setTimeout(() => {
+    console.log('Force shutdown');
+    process.exit(1);
+  }, 5000);
+});
+```
+
+---
+
+## Troubleshooting
+
+### Cannot Connect
+
+**Problem:** TCP connection fails
+
+**Check:**
+
+1. Is IP whitelisted in dashboard?
+2. Is firewall blocking port 2775?
+3. Is hostname correct?
+4. Try telnet: `telnet smpp.sendexa.co 2775`
+
+### Bind Fails
+
+**Problem:** Bind rejected with error
+
+**Check:**
+
+1. Correct system_id and password?
+2. Account active in dashboard?
+3. Not exceeding concurrent bind limit?
+4. Check error code in bind_resp
+
+### Connection Drops
+
+**Problem:** Frequent disconnections
+
+**Check:**
+
+1. Network stability
+2. Enquire link configured?
+3. PDU timeout settings
+4. Server-side issues (check status page)
+
+---
+
+## Next Steps
+
+- 📤 **[Send SMS via SMPP](/docs/smpp/send)** - Submit messages
+- 📊 **[Delivery Reports](/docs/smpp/dlr)** - Handle DLRs
+- 🔔 **[Set Up Webhooks](/docs/smpp/webhooks)** - HTTP callbacks
+- 🛠️ **[API Reference](/docs/smpp/v1)** - Complete specification

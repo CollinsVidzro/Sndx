@@ -1,0 +1,845 @@
+---
+title: Manage Push Devices
+description: Register, update, and manage devices for push notifications. Learn how to handle device tokens, topics, and user preferences.
+date: 2025-03-12
+---
+
+# Manage Push Devices
+
+Learn how to register, update, and manage devices for push notifications. This guide covers device registration, token management, topic subscriptions, and user preferences.
+
+---
+
+## Overview
+
+### What is a Device?
+
+A device represents a unique installation of your app on a user's phone, tablet, or browser. Each device has:
+
+- **Device Token** - Unique identifier for push delivery
+- **Platform** - iOS, Android, or Web
+- **User ID** - Link device to your user (optional)
+- **Topics** - Subscribed notification categories
+- **Metadata** - Custom device information
+
+### Device Lifecycle
+
+```
+┌─────────────┐     ┌────────────┐     ┌─────────────┐     ┌────────────┐
+│   Install   │────▶│  Register  │────▶│   Active    │────▶│ Uninstall  │
+│     App     │     │   Device   │     │   (sends)   │     │  (remove)  │
+└─────────────┘     └────────────┘     └─────────────┘     └────────────┘
+```
+
+---
+
+## Register Device
+
+### POST /v1/push/devices
+
+Register a new device for push notifications.
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/devices' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_token": "fL9x8K3mR2nQ5pW7hT6cX4vB9nM1sK0p...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "language": "en",
+    "timezone": "Africa/Accra"
+  }'
+```
+
+### Request Parameters
+
+| Parameter      | Type   | Required | Description                          |
+| -------------- | ------ | -------- | ------------------------------------ |
+| `device_token` | string | Yes      | Unique device token from platform    |
+| `platform`     | string | Yes      | `ios`, `android`, or `web`           |
+| `user_id`      | string | No       | Link device to user in your system   |
+| `app_version`  | string | No       | App version (e.g., "2.5.1")          |
+| `os_version`   | string | No       | OS version (e.g., "17.2")            |
+| `device_model` | string | No       | Device model (e.g., "iPhone 14 Pro") |
+| `language`     | string | No       | Language code (e.g., "en", "fr")     |
+| `timezone`     | string | No       | Timezone (e.g., "Africa/Accra")      |
+| `metadata`     | object | No       | Custom metadata                      |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Device registered successfully",
+  "device": {
+    "id": "dev_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "language": "en",
+    "timezone": "Africa/Accra",
+    "status": "active",
+    "created_at": "2025-03-12T14:20:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## SDK Integration
+
+### iOS (Swift)
+
+```swift
+import SendexaPush
+import UserNotifications
+
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+        // Initialize Sendexa Push
+        SendexaPush.initialize(appId: "your_app_id", apiKey: "your_api_key")
+
+        // Request permission
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+
+        return true
+    }
+
+    // Handle device token
+    func application(_ application: UIApplication,
+                    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+
+        // Register with Sendexa
+        SendexaPush.registerDevice(
+            deviceToken: tokenString,
+            userId: getCurrentUserId(),
+            metadata: [
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
+                "os_version": UIDevice.current.systemVersion,
+                "device_model": UIDevice.current.model,
+                "language": Locale.current.languageCode ?? "en"
+            ]
+        ) { result in
+            switch result {
+            case .success(let device):
+                print("Device registered: \(device.id)")
+            case .failure(let error):
+                print("Registration failed: \(error)")
+            }
+        }
+    }
+
+    // Handle registration failure
+    func application(_ application: UIApplication,
+                    didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Push registration failed: \(error)")
+    }
+}
+```
+
+### Android (Kotlin)
+
+```kotlin
+import co.sendexa.push.SendexaPush
+import com.google.firebase.messaging.FirebaseMessaging
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Initialize Sendexa Push
+        SendexaPush.initialize(this, "your_app_id", "your_api_key")
+
+        // Get FCM token
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                registerDevice(token)
+            }
+        }
+    }
+
+    private fun registerDevice(deviceToken: String) {
+        SendexaPush.registerDevice(
+            deviceToken = deviceToken,
+            userId = getCurrentUserId(),
+            metadata = mapOf(
+                "app_version" to BuildConfig.VERSION_NAME,
+                "os_version" to Build.VERSION.RELEASE,
+                "device_model" to Build.MODEL,
+                "language" to Locale.getDefault().language
+            )
+        ) { result ->
+            when (result) {
+                is Result.Success -> {
+                    Log.d("Push", "Device registered: ${result.data.id}")
+                }
+                is Result.Error -> {
+                    Log.e("Push", "Registration failed: ${result.error}")
+                }
+            }
+        }
+    }
+}
+```
+
+### React Native
+
+```javascript
+import SendexaPush from '@sendexa/react-native-push';
+import messaging from '@react-native-firebase/messaging';
+import { Platform } from 'react-native';
+
+// Initialize
+SendexaPush.initialize('your_app_id', 'your_api_key');
+
+// Request permission
+async function requestPushPermission() {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+  if (enabled) {
+    registerDevice();
+  }
+}
+
+// Register device
+async function registerDevice() {
+  try {
+    // Get device token
+    const deviceToken = await messaging().getToken();
+
+    // Register with Sendexa
+    const device = await SendexaPush.registerDevice({
+      deviceToken,
+      platform: Platform.OS,
+      userId: getCurrentUserId(),
+      metadata: {
+        app_version: '2.5.1',
+        os_version: Platform.Version,
+        language: 'en',
+      },
+    });
+
+    console.log('Device registered:', device.id);
+  } catch (error) {
+    console.error('Registration failed:', error);
+  }
+}
+
+// Call on app start
+requestPushPermission();
+```
+
+### Web (JavaScript)
+
+```javascript
+import { SendexaPush } from '@sendexa/web-push';
+
+// Initialize
+const push = new SendexaPush('your_app_id', 'your_api_key');
+
+// Request permission and register
+async function setupPushNotifications() {
+  try {
+    // Request permission
+    const permission = await push.requestPermission();
+
+    if (permission === 'granted') {
+      // Register service worker
+      const registration = await navigator.serviceWorker.register('/sw.js');
+
+      // Get push subscription
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: push.getPublicKey(),
+      });
+
+      // Register device with Sendexa
+      const device = await push.registerDevice({
+        subscription,
+        userId: getCurrentUserId(),
+        metadata: {
+          browser: getBrowserName(),
+          os: getOSName(),
+          language: navigator.language,
+        },
+      });
+
+      console.log('Device registered:', device.id);
+    }
+  } catch (error) {
+    console.error('Push setup failed:', error);
+  }
+}
+
+// Call on page load
+setupPushNotifications();
+```
+
+---
+
+## Get Device Details
+
+### GET /v1/push/devices/:deviceId
+
+Retrieve information about a specific device.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "device": {
+    "id": "dev_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "device_model": "iPhone 14 Pro",
+    "language": "en",
+    "timezone": "Africa/Accra",
+    "status": "active",
+    "topics": ["breaking_news", "sports"],
+    "last_active": "2025-03-12T14:20:00Z",
+    "created_at": "2025-03-01T10:00:00Z",
+    "updated_at": "2025-03-12T14:20:00Z",
+    "notifications_sent": 156,
+    "notifications_opened": 89
+  }
+}
+```
+
+---
+
+## List Devices
+
+### GET /v1/push/devices
+
+List all registered devices with optional filters.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices?user_id=user-123&platform=ios' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Query Parameters
+
+| Parameter  | Type    | Description                            |
+| ---------- | ------- | -------------------------------------- |
+| `user_id`  | string  | Filter by user ID                      |
+| `platform` | string  | Filter by platform (ios/android/web)   |
+| `status`   | string  | Filter by status (active/inactive)     |
+| `limit`    | integer | Results per page (max 100, default 50) |
+| `offset`   | integer | Pagination offset                      |
+
+### Response
+
+```json
+{
+  "success": true,
+  "devices": [
+    {
+      "id": "dev_abc123",
+      "platform": "ios",
+      "user_id": "user-123",
+      "status": "active",
+      "last_active": "2025-03-12T14:20:00Z"
+    },
+    {
+      "id": "dev_def456",
+      "platform": "android",
+      "user_id": "user-123",
+      "status": "active",
+      "last_active": "2025-03-11T09:15:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 2,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+---
+
+## Update Device
+
+### PUT /v1/push/devices/:deviceId
+
+Update device information.
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "user_id": "user-456",
+    "language": "fr",
+    "timezone": "Africa/Lagos",
+    "metadata": {
+      "premium_user": true
+    }
+  }'
+```
+
+### Request Parameters
+
+| Parameter  | Type   | Description             |
+| ---------- | ------ | ----------------------- |
+| `user_id`  | string | Update user association |
+| `language` | string | Update language         |
+| `timezone` | string | Update timezone         |
+| `metadata` | object | Update custom metadata  |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Device updated successfully",
+  "device": {
+    "id": "dev_abc123def456",
+    "user_id": "user-456",
+    "language": "fr",
+    "timezone": "Africa/Lagos",
+    "updated_at": "2025-03-12T14:30:00Z"
+  }
+}
+```
+
+---
+
+## Delete Device
+
+### DELETE /v1/push/devices/:deviceId
+
+Remove a device from push notifications.
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Device removed successfully",
+  "device_id": "dev_abc123def456"
+}
+```
+
+### When to Delete Devices
+
+Delete devices when:
+
+- User uninstalls app
+- Device token becomes invalid
+- User explicitly opts out
+- Device hasn't been active for 90+ days
+
+---
+
+## Topic Subscriptions
+
+### Subscribe to Topic
+
+**POST /v1/push/topics/:topic/subscribe**
+
+Subscribe a device to receive notifications for a specific topic.
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/topics/breaking_news/subscribe' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_id": "dev_abc123def456"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Device subscribed to topic",
+  "topic": "breaking_news",
+  "device_id": "dev_abc123def456"
+}
+```
+
+### Unsubscribe from Topic
+
+**POST /v1/push/topics/:topic/unsubscribe**
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/topics/breaking_news/unsubscribe' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_id": "dev_abc123def456"
+  }'
+```
+
+### List Device Topics
+
+**GET /v1/push/devices/:deviceId/topics**
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices/dev_abc123def456/topics' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "device_id": "dev_abc123def456",
+  "topics": [
+    {
+      "name": "breaking_news",
+      "subscribed_at": "2025-03-01T10:00:00Z"
+    },
+    {
+      "name": "sports_football",
+      "subscribed_at": "2025-03-05T15:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Managing Topics in SDK
+
+### iOS (Swift)
+
+```swift
+// Subscribe to topic
+SendexaPush.subscribeToTopic("breaking_news") { result in
+    switch result {
+    case .success:
+        print("Subscribed to breaking_news")
+    case .failure(let error):
+        print("Subscription failed: \(error)")
+    }
+}
+
+// Unsubscribe from topic
+SendexaPush.unsubscribeFromTopic("breaking_news") { result in
+    switch result {
+    case .success:
+        print("Unsubscribed from breaking_news")
+    case .failure(let error):
+        print("Unsubscription failed: \(error)")
+    }
+}
+
+// Get subscribed topics
+SendexaPush.getTopics { topics in
+    print("Subscribed topics: \(topics)")
+}
+```
+
+### Android (Kotlin)
+
+```kotlin
+// Subscribe to topic
+SendexaPush.subscribeToTopic("breaking_news") { result ->
+    when (result) {
+        is Result.Success -> Log.d("Push", "Subscribed")
+        is Result.Error -> Log.e("Push", "Failed: ${result.error}")
+    }
+}
+
+// Unsubscribe from topic
+SendexaPush.unsubscribeFromTopic("breaking_news") { result ->
+    when (result) {
+        is Result.Success -> Log.d("Push", "Unsubscribed")
+        is Result.Error -> Log.e("Push", "Failed: ${result.error}")
+    }
+}
+
+// Get subscribed topics
+SendexaPush.getTopics { topics ->
+    Log.d("Push", "Topics: $topics")
+}
+```
+
+### React Native
+
+```javascript
+// Subscribe to topic
+await SendexaPush.subscribeToTopic('breaking_news');
+
+// Unsubscribe from topic
+await SendexaPush.unsubscribeFromTopic('breaking_news');
+
+// Get subscribed topics
+const topics = await SendexaPush.getTopics();
+console.log('Subscribed topics:', topics);
+```
+
+---
+
+## User Preferences
+
+### Set Notification Preferences
+
+Allow users to control notification preferences:
+
+```javascript
+// Example preference structure
+const preferences = {
+  enabled: true,
+  categories: {
+    marketing: false,
+    transactional: true,
+    news: true,
+    sports: true,
+  },
+  quiet_hours: {
+    enabled: true,
+    start: '22:00',
+    end: '08:00',
+  },
+  frequency: {
+    max_per_day: 5,
+    max_per_hour: 2,
+  },
+};
+
+// Save to device metadata
+await updateDevice(deviceId, {
+  metadata: { preferences },
+});
+```
+
+### Respecting Preferences
+
+```javascript
+async function sendNotificationWithPreferences(userId, notification) {
+  // Get user devices
+  const devices = await getDevicesByUser(userId);
+
+  for (const device of devices) {
+    const prefs = device.metadata?.preferences;
+
+    // Check if notifications enabled
+    if (!prefs?.enabled) continue;
+
+    // Check category preference
+    if (!prefs?.categories?.[notification.category]) continue;
+
+    // Check quiet hours
+    if (isInQuietHours(prefs?.quiet_hours)) {
+      // Schedule for later
+      const scheduledTime = getNextAllowedTime(prefs.quiet_hours);
+      notification.scheduled_at = scheduledTime;
+    }
+
+    // Check frequency limits
+    const recentCount = await getRecentNotificationCount(device.id, '1h');
+    if (recentCount >= (prefs?.frequency?.max_per_hour || Infinity)) {
+      continue; // Skip this device
+    }
+
+    // Send notification
+    await sendPush(device.device_token, notification);
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Token Management
+
+```javascript
+// Always update token on app start
+async function updateDeviceToken() {
+  const currentToken = await getDeviceToken();
+  const storedToken = await getStoredToken();
+
+  if (currentToken !== storedToken) {
+    // Token changed, update on server
+    await updateDevice(deviceId, {
+      device_token: currentToken,
+    });
+
+    await storeToken(currentToken);
+  }
+}
+```
+
+### 2. Handle Token Refresh
+
+```javascript
+// iOS - Handle token refresh
+func application(_ application: UIApplication,
+                didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    let newToken = deviceToken.hexString
+
+    // Always update token
+    SendexaPush.updateDeviceToken(newToken)
+}
+
+// Android - Handle token refresh
+class MyFirebaseMessagingService : FirebaseMessagingService() {
+    override fun onNewToken(token: String) {
+        // Update token on server
+        SendexaPush.updateDeviceToken(token)
+    }
+}
+```
+
+### 3. Clean Up Invalid Tokens
+
+```javascript
+// Remove devices with invalid tokens
+async function cleanupInvalidDevices() {
+  const devices = await getAllDevices();
+
+  for (const device of devices) {
+    try {
+      // Try to send test notification
+      await sendPush(device.device_token, testNotification);
+    } catch (error) {
+      if (error.code === 'INVALID_DEVICE_TOKEN') {
+        // Remove invalid device
+        await deleteDevice(device.id);
+        console.log(`Removed invalid device: ${device.id}`);
+      }
+    }
+  }
+}
+
+// Run cleanup weekly
+setInterval(cleanupInvalidDevices, 7 * 24 * 60 * 60 * 1000);
+```
+
+### 4. Multi-Device Users
+
+```javascript
+// Send to all user's devices
+async function sendToUser(userId, notification) {
+  const devices = await getDevicesByUser(userId);
+
+  const tokens = devices
+    .filter((d) => d.status === 'active')
+    .map((d) => d.device_token);
+
+  if (tokens.length > 0) {
+    await sendBulkPush(tokens, notification);
+  }
+}
+```
+
+### 5. Device Metadata
+
+Store useful information in metadata:
+
+```javascript
+await registerDevice({
+  device_token: token,
+  user_id: userId,
+  metadata: {
+    // User preferences
+    notification_enabled: true,
+    email_fallback: 'user@example.com',
+
+    // Device info
+    first_install_date: '2025-03-01',
+    last_app_version: '2.5.1',
+
+    // Business logic
+    subscription_tier: 'premium',
+    last_purchase_date: '2025-03-10',
+    total_orders: 25,
+  },
+});
+```
+
+---
+
+## Troubleshooting
+
+### Device Not Receiving Notifications
+
+**Check:**
+
+1. Device token is valid and current
+2. Device status is "active"
+3. App has notification permissions
+4. Device is not in Do Not Disturb mode
+5. Network connectivity
+6. Check device logs for errors
+
+### Duplicate Devices
+
+**Cause:** Same device registered multiple times
+
+**Solution:**
+
+```javascript
+// Check if device exists before registering
+async function registerOrUpdateDevice(deviceToken, userId) {
+  const existing = await findDeviceByToken(deviceToken);
+
+  if (existing) {
+    // Update existing device
+    await updateDevice(existing.id, { user_id: userId });
+  } else {
+    // Register new device
+    await registerDevice({ device_token: deviceToken, user_id: userId });
+  }
+}
+```
+
+### User Has Multiple Devices
+
+This is normal! Users can have:
+
+- Multiple phones/tablets
+- Multiple browsers
+- Old devices not yet unregistered
+
+**Solution:** Keep all active devices, send to all of them
+
+---
+
+## Next Steps
+
+- 📊 **[View Analytics](/dashboard/push/analytics)** - Track device metrics
+- 📱 **[Send Notifications](/docs/push/send)** - Start sending push
+- 🛠️ **[API Reference](/docs/push/v1)** - Complete endpoint documentation
+- 💡 **[View Examples](https://github.com/sendexa/examples/push)** - Code samples

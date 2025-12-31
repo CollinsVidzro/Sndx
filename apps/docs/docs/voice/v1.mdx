@@ -1,0 +1,794 @@
+---
+title: Voice API v1 Reference
+description: Complete API reference for the Sendexa Voice API v1 with all endpoints, parameters, VoiceXML elements, and response formats.
+date: 2025-03-12
+---
+
+# Voice API v1 Reference
+
+Complete reference documentation for all Sendexa Voice API v1 endpoints. This guide provides detailed information about every endpoint, parameter, response format, and error code.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+All API requests require authentication using Bearer tokens in the `Authorization` header.
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Generate tokens:** [Dashboard → Developers → API Keys](https://auth.sendexa.co/developers/api-keys)
+
+---
+
+## Endpoints Overview
+
+| Endpoint                        | Method | Purpose                   | Rate Limit |
+| ------------------------------- | ------ | ------------------------- | ---------- |
+| `/v1/voice/call`                | POST   | Make outbound call        | 60/min     |
+| `/v1/voice/broadcast`           | POST   | Broadcast voice message   | 30/min     |
+| `/v1/voice/tts`                 | POST   | Generate speech from text | 100/min    |
+| `/v1/voice/calls/:id`           | GET    | Get call details          | 100/min    |
+| `/v1/voice/calls`               | GET    | List calls                | 60/min     |
+| `/v1/voice/calls/:id/recording` | GET    | Get call recording        | 100/min    |
+| `/v1/voice/broadcasts/:id`      | GET    | Get broadcast details     | 60/min     |
+| `/v1/voice/numbers`             | GET    | List phone numbers        | 60/min     |
+| `/v1/voice/numbers`             | POST   | Purchase phone number     | 30/min     |
+
+---
+
+## Make a Call
+
+### POST /v1/voice/call
+
+Make an outbound voice call.
+
+#### Request Body
+
+| Parameter                   | Type    | Required | Description                             |
+| --------------------------- | ------- | -------- | --------------------------------------- |
+| `to`                        | string  | Yes      | Recipient phone number                  |
+| `from`                      | string  | Yes      | Your Sendexa phone number               |
+| `url`                       | string  | Yes\*    | VoiceXML endpoint URL                   |
+| `tts`                       | object  | Yes\*    | Text-to-speech object                   |
+| `method`                    | string  | No       | HTTP method (GET/POST, default: POST)   |
+| `status_callback`           | string  | No       | Webhook URL for call events             |
+| `status_callback_method`    | string  | No       | Callback HTTP method                    |
+| `timeout`                   | integer | No       | Answer timeout in seconds (default: 60) |
+| `record`                    | boolean | No       | Record the call (default: false)        |
+| `recording_status_callback` | string  | No       | Webhook for recording events            |
+| `fallback_url`              | string  | No       | Fallback URL if primary fails           |
+| `machine_detection`         | string  | No       | Detect answering machines               |
+
+\*Either `url` or `tts` required
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/call' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "from": "233302123456",
+    "url": "https://yourapp.com/voice.xml",
+    "status_callback": "https://yourapp.com/webhooks/voice",
+    "timeout": 60,
+    "record": true
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Call initiated successfully",
+  "call": {
+    "id": "call_abc123def456",
+    "to": "233501234567",
+    "from": "233302123456",
+    "status": "queued",
+    "direction": "outbound",
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Broadcast Voice Message
+
+### POST /v1/voice/broadcast
+
+Send voice message to multiple recipients.
+
+#### Request Body
+
+| Parameter         | Type    | Required | Description                         |
+| ----------------- | ------- | -------- | ----------------------------------- |
+| `to`              | array   | Yes      | Array of phone numbers (max 10,000) |
+| `from`            | string  | Yes      | Your Sendexa phone number           |
+| `message`         | string  | Yes\*    | TTS text message                    |
+| `audio_url`       | string  | Yes\*    | Audio file URL                      |
+| `voice`           | string  | No       | TTS voice (male/female)             |
+| `language`        | string  | No       | TTS language code                   |
+| `status_callback` | string  | No       | Webhook URL                         |
+| `priority`        | string  | No       | high/normal (default: normal)       |
+| `retry_failed`    | boolean | No       | Retry failed calls (default: true)  |
+| `max_retries`     | integer | No       | Max retry attempts (default: 2)     |
+| `schedule_at`     | string  | No       | ISO 8601 timestamp                  |
+
+\*Either `message` or `audio_url` required
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/broadcast' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": ["233501234567", "233509876543"],
+    "from": "233302123456",
+    "message": "This is an important announcement",
+    "voice": "female",
+    "language": "en-US"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Broadcast initiated successfully",
+  "broadcast": {
+    "id": "broadcast_abc123def456",
+    "from": "233302123456",
+    "recipients_count": 2,
+    "status": "queued",
+    "priority": "normal",
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Text-to-Speech
+
+### POST /v1/voice/tts
+
+Generate speech audio from text.
+
+#### Request Body
+
+| Parameter  | Type    | Required | Description                               |
+| ---------- | ------- | -------- | ----------------------------------------- |
+| `text`     | string  | Yes      | Text to convert (max 3000 chars)          |
+| `language` | string  | No       | Language code (default: en-US)            |
+| `voice`    | string  | No       | Voice type (male/female, default: female) |
+| `speed`    | float   | No       | Speech speed (0.5-2.0, default: 1.0)      |
+| `pitch`    | integer | No       | Voice pitch (-20 to 20, default: 0)       |
+| `format`   | string  | No       | Audio format (mp3/wav/ogg, default: mp3)  |
+| `save`     | boolean | No       | Save audio file (default: false)          |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/tts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "Hello, your order has been delivered",
+    "language": "en-US",
+    "voice": "female",
+    "speed": 1.0
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "tts": {
+    "id": "tts_abc123def456",
+    "text": "Hello, your order has been delivered",
+    "language": "en-US",
+    "voice": "female",
+    "duration": 3.5,
+    "audio_url": "https://tts.sendexa.co/tts_abc123def456.mp3",
+    "format": "mp3",
+    "size": 56000,
+    "created_at": "2025-03-12T14:20:00Z",
+    "expires_at": "2025-03-19T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Get Call Details
+
+### GET /v1/voice/calls/:callId
+
+Retrieve information about a specific call.
+
+#### Path Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `callId`  | string | Yes      | Call ID     |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/voice/calls/call_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "call": {
+    "id": "call_abc123def456",
+    "to": "233501234567",
+    "from": "233302123456",
+    "direction": "outbound",
+    "status": "completed",
+    "duration": 185,
+    "cost": 0.46,
+    "currency": "GHS",
+    "recording_url": "https://recordings.sendexa.co/call_abc123.mp3",
+    "created_at": "2025-03-12T14:20:00Z",
+    "answered_at": "2025-03-12T14:20:15Z",
+    "completed_at": "2025-03-12T14:23:20Z"
+  }
+}
+```
+
+---
+
+## List Calls
+
+### GET /v1/voice/calls
+
+List all calls with optional filters.
+
+#### Query Parameters
+
+| Parameter   | Type    | Description                            |
+| ----------- | ------- | -------------------------------------- |
+| `from`      | string  | Filter by caller number                |
+| `to`        | string  | Filter by recipient number             |
+| `status`    | string  | Filter by status                       |
+| `date_from` | string  | Start date (ISO 8601)                  |
+| `date_to`   | string  | End date (ISO 8601)                    |
+| `limit`     | integer | Results per page (max 100, default 50) |
+| `offset`    | integer | Pagination offset                      |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/voice/calls?status=completed&limit=10' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "calls": [
+    {
+      "id": "call_abc123",
+      "to": "233501234567",
+      "from": "233302123456",
+      "status": "completed",
+      "duration": 185,
+      "cost": 0.46,
+      "completed_at": "2025-03-12T14:23:20Z"
+    }
+  ],
+  "pagination": {
+    "total": 150,
+    "limit": 10,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Get Call Recording
+
+### GET /v1/voice/calls/:callId/recording
+
+Get recording URL for a specific call.
+
+#### Path Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `callId`  | string | Yes      | Call ID     |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/voice/calls/call_abc123/recording' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "recording": {
+    "id": "rec_xyz789",
+    "call_id": "call_abc123",
+    "url": "https://recordings.sendexa.co/call_abc123.mp3",
+    "duration": 185,
+    "size": 2960000,
+    "format": "mp3",
+    "created_at": "2025-03-12T14:23:20Z",
+    "expires_at": "2025-04-12T14:23:20Z"
+  }
+}
+```
+
+---
+
+## Get Broadcast Details
+
+### GET /v1/voice/broadcasts/:broadcastId
+
+Retrieve broadcast information and statistics.
+
+#### Path Parameters
+
+| Parameter     | Type   | Required | Description  |
+| ------------- | ------ | -------- | ------------ |
+| `broadcastId` | string | Yes      | Broadcast ID |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/voice/broadcasts/broadcast_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "broadcast": {
+    "id": "broadcast_abc123",
+    "from": "233302123456",
+    "recipients_count": 1000,
+    "status": "completed",
+    "priority": "normal",
+    "stats": {
+      "queued": 0,
+      "initiated": 0,
+      "in_progress": 0,
+      "completed": 920,
+      "failed": 80
+    },
+    "created_at": "2025-03-12T14:20:00Z",
+    "completed_at": "2025-03-12T15:30:00Z"
+  }
+}
+```
+
+---
+
+## List Phone Numbers
+
+### GET /v1/voice/numbers
+
+List phone numbers owned by your account.
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/voice/numbers' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "numbers": [
+    {
+      "id": "num_abc123",
+      "phone_number": "233302123456",
+      "country": "GH",
+      "type": "local",
+      "capabilities": ["voice", "sms"],
+      "voice_url": "https://yourapp.com/voice.xml",
+      "status": "active",
+      "monthly_cost": 5.0,
+      "currency": "USD",
+      "purchased_at": "2025-03-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Purchase Phone Number
+
+### POST /v1/voice/numbers
+
+Purchase a new phone number.
+
+#### Request Body
+
+| Parameter   | Type   | Required | Description                      |
+| ----------- | ------ | -------- | -------------------------------- |
+| `country`   | string | Yes      | Country code (e.g., GH, NG, KE)  |
+| `type`      | string | No       | local/toll-free (default: local) |
+| `area_code` | string | No       | Preferred area code              |
+| `voice_url` | string | No       | Default voice URL                |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/voice/numbers' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "country": "GH",
+    "type": "local",
+    "voice_url": "https://yourapp.com/voice.xml"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Phone number purchased successfully",
+  "number": {
+    "id": "num_abc123",
+    "phone_number": "233302123456",
+    "country": "GH",
+    "type": "local",
+    "monthly_cost": 5.0,
+    "currency": "USD",
+    "purchased_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## VoiceXML Reference
+
+### Response Structure
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <!-- VoiceXML elements -->
+</Response>
+```
+
+### Elements
+
+#### `<Say>` - Speak Text
+
+Speak text using text-to-speech.
+
+**Attributes:**
+
+- `voice` - male/female (default: female)
+- `language` - Language code (default: en-US)
+- `loop` - Number of times to repeat (default: 1)
+
+```xml
+<Say voice="female" language="en-US">
+  Hello, welcome to our service
+</Say>
+```
+
+#### `<Play>` - Play Audio
+
+Play an audio file.
+
+**Attributes:**
+
+- `loop` - Number of times to play (default: 1)
+
+```xml
+<Play loop="2">
+  https://yourapp.com/music.mp3
+</Play>
+```
+
+#### `<Gather>` - Collect Input
+
+Collect DTMF (keypad) input from caller.
+
+**Attributes:**
+
+- `numDigits` - Number of digits to collect
+- `timeout` - Seconds to wait (default: 5)
+- `action` - URL to send input to
+- `method` - HTTP method (default: POST)
+- `finishOnKey` - Key to end input (default: #)
+
+```xml
+<Gather numDigits="1" action="/handle-input" timeout="5">
+  <Say>Press 1 for Sales, 2 for Support</Say>
+</Gather>
+```
+
+#### `<Record>` - Record Audio
+
+Record caller's voice.
+
+**Attributes:**
+
+- `maxLength` - Max recording seconds (default: 60)
+- `timeout` - Silence timeout (default: 5)
+- `playBeep` - Play beep before recording (default: true)
+- `action` - URL to send recording to
+- `transcribe` - Transcribe recording (default: false)
+
+```xml
+<Record
+  maxLength="120"
+  playBeep="true"
+  action="/handle-recording"
+  transcribe="true"
+/>
+```
+
+#### `<Dial>` - Connect Call
+
+Connect caller to another number.
+
+**Attributes:**
+
+- `timeout` - Ring timeout in seconds (default: 30)
+- `callerId` - Caller ID to display
+- `action` - URL after dial completes
+- `record` - Record the call (default: false)
+
+```xml
+<Dial timeout="30" callerId="233302123456" record="true">
+  233501234567
+</Dial>
+```
+
+#### `<Hangup>` - End Call
+
+End the call immediately.
+
+```xml
+<Hangup/>
+```
+
+#### `<Redirect>` - Redirect Flow
+
+Redirect to new VoiceXML URL.
+
+**Attributes:**
+
+- `method` - HTTP method (default: POST)
+
+```xml
+<Redirect method="POST">
+  https://yourapp.com/new-flow.xml
+</Redirect>
+```
+
+#### `<Pause>` - Add Silence
+
+Add pause/silence.
+
+**Attributes:**
+
+- `length` - Seconds of silence (default: 1)
+
+```xml
+<Pause length="2"/>
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description                  |
+| ---- | --------------------- | ---------------------------- |
+| 200  | OK                    | Request successful           |
+| 400  | Bad Request           | Invalid parameters           |
+| 401  | Unauthorized          | Invalid or missing API token |
+| 402  | Payment Required      | Insufficient balance         |
+| 403  | Forbidden             | Access denied                |
+| 404  | Not Found             | Resource not found           |
+| 422  | Unprocessable Entity  | Validation errors            |
+| 429  | Too Many Requests     | Rate limit exceeded          |
+| 500  | Internal Server Error | Server error                 |
+| 503  | Service Unavailable   | Temporary unavailability     |
+
+### Application Error Codes
+
+| Code                   | HTTP | Description                  |
+| ---------------------- | ---- | ---------------------------- |
+| `INVALID_TOKEN`        | 401  | API token invalid or expired |
+| `INVALID_PHONE_NUMBER` | 400  | Phone number format invalid  |
+| `INVALID_CALLER_ID`    | 400  | Caller ID not registered     |
+| `URL_NOT_ACCESSIBLE`   | 400  | VoiceXML URL not accessible  |
+| `TEXT_TOO_LONG`        | 400  | TTS text exceeds limit       |
+| `UNSUPPORTED_LANGUAGE` | 400  | Language not supported       |
+| `INSUFFICIENT_BALANCE` | 402  | Not enough credits           |
+| `RATE_LIMIT_EXCEEDED`  | 429  | Too many requests            |
+| `CALL_NOT_FOUND`       | 404  | Call ID not found            |
+| `NUMBER_NOT_AVAILABLE` | 404  | Phone number unavailable     |
+| `SERVER_ERROR`         | 500  | Internal error               |
+
+---
+
+## Rate Limits
+
+| Endpoint              | Rate Limit   | Window   |
+| --------------------- | ------------ | -------- |
+| `/v1/voice/call`      | 60 requests  | 1 minute |
+| `/v1/voice/broadcast` | 30 requests  | 1 minute |
+| `/v1/voice/tts`       | 100 requests | 1 minute |
+| `/v1/voice/calls`     | 60 requests  | 1 minute |
+| `/v1/voice/numbers`   | 60 requests  | 1 minute |
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1678627800
+```
+
+---
+
+## Webhooks
+
+### Event Types
+
+| Event                 | Description     |
+| --------------------- | --------------- |
+| `call.initiated`      | Call started    |
+| `call.ringing`        | Phone ringing   |
+| `call.answered`       | Call answered   |
+| `call.completed`      | Call ended      |
+| `call.failed`         | Call failed     |
+| `call.busy`           | Number busy     |
+| `call.no-answer`      | No answer       |
+| `recording.completed` | Recording ready |
+
+### Webhook Payload Example
+
+```json
+{
+  "event": "call.completed",
+  "call_id": "call_abc123",
+  "from": "233302123456",
+  "to": "233501234567",
+  "status": "completed",
+  "duration": 185,
+  "cost": 0.46,
+  "currency": "GHS",
+  "completed_at": "2025-03-12T14:23:20Z",
+  "timestamp": "2025-03-12T14:23:20Z"
+}
+```
+
+---
+
+## SDKs
+
+### Official SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+**Go**
+
+```bash
+go get github.com/sendexa/go-sdk
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Numbers:**
+
+| Number         | Behavior          |
+| -------------- | ----------------- |
+| `233500000001` | Always answers    |
+| `233500000002` | Always busy       |
+| `233500000003` | No answer         |
+| `233500000004` | Answers after 10s |
+
+---
+
+## Best Practices
+
+1. **Always verify phone numbers** before calling
+2. **Use webhooks** instead of polling
+3. **Implement retry logic** with exponential backoff
+4. **Keep VoiceXML simple** - max 3-4 menu options
+5. **Respect calling hours** - 9 AM to 8 PM
+6. **Handle errors gracefully** - provide fallback options
+7. **Monitor call quality** - track completion rates
+8. **Test thoroughly** - use sandbox environment
+
+---
+
+## Support
+
+- **Documentation:** [docs.sendexa.co](https://docs.sendexa.co)
+- **API Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Email:** support@sendexa.co
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+- **GitHub:** [github.com/sendexa](https://github.com/sendexa)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Outbound calling
+- Voice broadcasting
+- Text-to-speech
+- IVR support
+- Call recording
+- Webhook notifications

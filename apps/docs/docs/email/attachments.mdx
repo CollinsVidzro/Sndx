@@ -1,0 +1,185 @@
+---
+title: Email Attachments
+description: Send files with your emails including PDFs, images, and documents with Base64 encoding.
+date: 2025-03-12
+---
+
+# Email Attachments
+
+Send files with your emails including PDFs, images, office documents, and more. Attachments are encoded in Base64 and sent with the email payload.
+
+## Quick Example
+
+```javascript
+await sendEmail({
+  to: 'user@example.com',
+  from: 'billing@yourcompany.com',
+  subject: 'Your Invoice',
+  html: '<h1>Invoice Attached</h1>',
+  attachments: [
+    {
+      filename: 'invoice.pdf',
+      content: 'JVBERi0xLjQKJeLjz9MKMyAwIG9...',
+      type: 'application/pdf',
+    },
+  ],
+});
+```
+
+## Attachment Format
+
+```json
+{
+  "filename": "document.pdf",
+  "content": "base64_encoded_content",
+  "type": "application/pdf",
+  "disposition": "attachment",
+  "contentId": "unique_id"
+}
+```
+
+### Parameters
+
+| Parameter     | Type   | Required | Description                 |
+| ------------- | ------ | -------- | --------------------------- |
+| `filename`    | string | Yes      | File name with extension    |
+| `content`     | string | Yes      | Base64 encoded file content |
+| `type`        | string | Yes      | MIME type                   |
+| `disposition` | string | No       | 'attachment' or 'inline'    |
+| `contentId`   | string | No       | For inline images           |
+
+## Supported File Types
+
+| Type | MIME Type                                                               | Max Size |
+| ---- | ----------------------------------------------------------------------- | -------- |
+| PDF  | application/pdf                                                         | 10MB     |
+| JPEG | image/jpeg                                                              | 5MB      |
+| PNG  | image/png                                                               | 5MB      |
+| GIF  | image/gif                                                               | 5MB      |
+| DOCX | application/vnd.openxmlformats-officedocument.wordprocessingml.document | 10MB     |
+| XLSX | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet       | 10MB     |
+| TXT  | text/plain                                                              | 1MB      |
+| ZIP  | application/zip                                                         | 10MB     |
+
+## Code Examples
+
+### Node.js with File System
+
+```javascript
+const fs = require('fs');
+const axios = require('axios');
+
+async function sendEmailWithPDF(recipient, pdfPath) {
+  // Read file and convert to base64
+  const pdfBuffer = fs.readFileSync(pdfPath);
+  const base64Content = pdfBuffer.toString('base64');
+
+  await axios.post(
+    'https://api.sendexa.co/v1/email/send',
+    {
+      to: recipient,
+      from: 'billing@yourcompany.com',
+      subject: 'Your Invoice',
+      html: '<h1>Please find your invoice attached</h1>',
+      attachments: [
+        {
+          filename: 'invoice.pdf',
+          content: base64Content,
+          type: 'application/pdf',
+        },
+      ],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.SENDEXA_API_TOKEN}`,
+      },
+    }
+  );
+}
+```
+
+### Python
+
+```python
+import base64
+import requests
+
+def send_email_with_attachment(recipient, file_path):
+    # Read and encode file
+    with open(file_path, 'rb') as f:
+        content = base64.b64encode(f.read()).decode()
+
+    response = requests.post(
+        'https://api.sendexa.co/v1/email/send',
+        json={
+            'to': recipient,
+            'from': 'billing@yourcompany.com',
+            'subject': 'Document Attached',
+            'html': '<h1>Your document is attached</h1>',
+            'attachments': [
+                {
+                    'filename': 'document.pdf',
+                    'content': content,
+                    'type': 'application/pdf'
+                }
+            ]
+        },
+        headers={
+            'Authorization': f'Bearer {os.getenv("SENDEXA_API_TOKEN")}'
+        }
+    )
+    return response.json()
+```
+
+## Inline Images
+
+Use inline images in HTML content:
+
+```javascript
+await sendEmail({
+  to: 'user@example.com',
+  subject: 'Newsletter',
+  html: '<h1>Check out our logo</h1><img src="cid:logo">',
+  attachments: [
+    {
+      filename: 'logo.png',
+      content: base64ImageContent,
+      type: 'image/png',
+      disposition: 'inline',
+      contentId: 'logo',
+    },
+  ],
+});
+```
+
+## Multiple Attachments
+
+```javascript
+attachments: [
+  {
+    filename: 'invoice.pdf',
+    content: pdfBase64,
+    type: 'application/pdf',
+  },
+  {
+    filename: 'receipt.pdf',
+    content: receiptBase64,
+    type: 'application/pdf',
+  },
+  {
+    filename: 'terms.pdf',
+    content: termsBase64,
+    type: 'application/pdf',
+  },
+];
+```
+
+## Best Practices
+
+1. **Compress files** - Reduce file size before sending
+2. **Limit attachments** - Max 5 files per email
+3. **Check file size** - Stay under 10MB total
+4. **Validate MIME types** - Use correct content types
+5. **Handle errors** - Large files may fail
+
+---

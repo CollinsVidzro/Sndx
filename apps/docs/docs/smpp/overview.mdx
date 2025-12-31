@@ -1,0 +1,726 @@
+---
+title: SMPP Direct Overview
+description: Connect directly to Sendexa's SMPP gateway for high-volume SMS messaging with low latency and maximum control.
+date: 2025-03-12
+---
+
+# SMPP Direct Overview
+
+Connect directly to Sendexa's SMPP (Short Message Peer-to-Peer) gateway for enterprise-grade SMS messaging. Perfect for high-volume applications requiring low latency and direct protocol control.
+
+---
+
+## Why Choose SMPP Direct?
+
+### Enterprise Performance
+
+- **High Throughput** - Send thousands of messages per second
+- **Low Latency** - Sub-second message delivery
+- **Direct Connection** - No HTTP overhead
+- **Persistent Connection** - Maintain always-on SMPP sessions
+- **Binary Protocol** - Efficient data transmission
+
+### Advanced Features
+
+- **Delivery Reports** - Real-time DLRs via SMPP
+- **Long Message Support** - Automatic concatenation
+- **Unicode Messages** - Full international character support
+- **TLV Parameters** - Extended SMPP functionality
+- **Connection Pooling** - Multiple concurrent binds
+
+### Built for Africa
+
+- **Local SMPP Servers** - Low latency across Africa
+- **Direct Operator Connections** - Premium routing
+- **Competitive Pricing** - Enterprise volume discounts
+- **24/7 Support** - Dedicated technical support
+
+---
+
+## SMPP vs HTTP API
+
+| Feature        | SMPP Direct            | HTTP API            |
+| -------------- | ---------------------- | ------------------- |
+| **Throughput** | 1000+ msgs/sec         | 60 msgs/min         |
+| **Latency**    | < 100ms                | 200-500ms           |
+| **Connection** | Persistent             | Request/Response    |
+| **Protocol**   | Binary                 | JSON/REST           |
+| **Complexity** | Higher                 | Lower               |
+| **Use Case**   | Enterprise/High-volume | Standard/Low-volume |
+| **Setup**      | SMPP Client required   | Simple HTTP calls   |
+
+**When to use SMPP:**
+
+- Sending 10,000+ messages per day
+- Need sub-second latency
+- Require persistent connections
+- Have existing SMPP infrastructure
+- Need maximum throughput
+
+**When to use HTTP API:**
+
+- Quick integration needed
+- Lower volume messaging
+- No SMPP client available
+- Simpler setup preferred
+
+---
+
+## SMPP Protocol Version
+
+Sendexa supports **SMPP v3.4** (most common) and **SMPP v5.0**.
+
+**Recommended:** SMPP v3.4 for maximum compatibility.
+
+---
+
+## Connection Details
+
+### SMPP Server Endpoints
+
+**Primary Server:**
+
+```
+Host: smpp.sendexa.co
+Port: 2775 (SMPP)
+Port: 2776 (SMPP over TLS)
+```
+
+**Backup Server:**
+
+```
+Host: smpp-backup.sendexa.co
+Port: 2775 (SMPP)
+Port: 2776 (SMPP over TLS)
+```
+
+**Regional Servers:**
+
+| Region          | Host               | Latency |
+| --------------- | ------------------ | ------- |
+| West Africa     | smpp-wa.sendexa.co | < 50ms  |
+| East Africa     | smpp-ea.sendexa.co | < 50ms  |
+| Southern Africa | smpp-sa.sendexa.co | < 50ms  |
+
+### Connection Parameters
+
+| Parameter             | Value             | Description              |
+| --------------------- | ----------------- | ------------------------ |
+| **System ID**         | Your username     | Provided in dashboard    |
+| **Password**          | Your password     | Provided in dashboard    |
+| **System Type**       | "" (empty)        | Leave blank              |
+| **Interface Version** | 0x34              | SMPP v3.4                |
+| **Address Range**     | "" (empty)        | Leave blank              |
+| **TON**               | 1 (International) | Type of Number           |
+| **NPI**               | 1 (E.164)         | Numbering Plan Indicator |
+
+---
+
+## Getting Started
+
+### 1. Create SMPP Account
+
+1. Log in to [auth.sendexa.co](https://auth.sendexa.co)
+2. Navigate to **SMPP → Accounts**
+3. Click **Create SMPP Account**
+4. Note your credentials:
+   - System ID (username)
+   - Password
+   - Allowed IPs (for security)
+
+### 2. Whitelist Your IP
+
+For security, whitelist your server IPs:
+
+1. Go to **SMPP → IP Whitelist**
+2. Add your server IP addresses
+3. Click **Save**
+
+### 3. Test Connection
+
+Use telnet to test connectivity:
+
+```bash
+telnet smpp.sendexa.co 2775
+```
+
+If successful, you'll see a connection established.
+
+### 4. Install SMPP Client
+
+Choose an SMPP client library for your platform:
+
+**Node.js:**
+
+```bash
+npm install smpp
+```
+
+**Python:**
+
+```bash
+pip install smpplib
+```
+
+**PHP:**
+
+```bash
+composer require onlinecity/php-smpp
+```
+
+**Java:**
+
+```bash
+# Add to pom.xml
+<dependency>
+    <groupId>org.jsmpp</groupId>
+    <artifactId>jsmpp</artifactId>
+    <version>2.3.11</version>
+</dependency>
+```
+
+### 5. Connect and Send
+
+See [Connect to SMPP](/docs/smpp/connect) for detailed connection examples.
+
+---
+
+## Message Flow
+
+```
+┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│   Your App  │────────▶│   Sendexa   │────────▶│   Mobile    │
+│             │  SMPP   │    SMPP     │         │   Network   │
+│             │         │   Gateway   │         │             │
+└─────────────┘         └─────────────┘         └─────────────┘
+       │                       │                        │
+       │◀──────────────────────│                        │
+       │    Delivery Report    │◀───────────────────────│
+       │                       │        DLR             │
+```
+
+### Message Lifecycle
+
+1. **Bind** - Establish SMPP connection
+2. **Submit_SM** - Send message
+3. **Submit_SM_Resp** - Receive message ID
+4. **Deliver_SM** - Receive delivery report
+5. **Unbind** - Close connection (optional)
+
+---
+
+## Supported Operations
+
+### Transmitter (TX) Operations
+
+- `bind_transmitter` - Send messages only
+- `submit_sm` - Submit single message
+- `submit_multi` - Submit to multiple recipients
+- `data_sm` - Send data message
+- `unbind` - Close connection
+
+### Receiver (RX) Operations
+
+- `bind_receiver` - Receive DLRs only
+- `deliver_sm` - Receive delivery reports
+- `unbind` - Close connection
+
+### Transceiver (TRX) Operations
+
+- `bind_transceiver` - Send and receive (recommended)
+- All TX and RX operations
+
+**Recommended:** Use `bind_transceiver` for full functionality.
+
+---
+
+## Message Types
+
+### Standard SMS
+
+- **Character Set:** GSM 7-bit
+- **Max Length:** 160 characters
+- **Encoding:** Default
+
+### Unicode SMS
+
+- **Character Set:** UCS-2
+- **Max Length:** 70 characters
+- **Encoding:** UTF-16BE
+- **Data Coding:** 0x08
+
+### Long Messages
+
+- **Concatenation:** Automatic
+- **UDH Header:** Added automatically
+- **Max Parts:** 10 parts
+- **Charged:** Per segment
+
+### Flash SMS
+
+- **Class:** Class 0
+- **Display:** Immediate screen display
+- **Storage:** Not saved to inbox
+
+---
+
+## Pricing
+
+### Message Rates (Ghana)
+
+| Network    | Price per SMS |
+| ---------- | ------------- |
+| MTN        | 0.030 GHS     |
+| Vodafone   | 0.030 GHS     |
+| AirtelTigo | 0.030 GHS     |
+
+**Volume Discounts:**
+
+- 100K+ messages/month: 15% discount
+- 500K+ messages/month: 25% discount
+- 1M+ messages/month: Custom pricing
+
+### Other Countries
+
+See [Pricing](/pricing) for detailed rates across Africa.
+
+---
+
+## Connection Types
+
+### Single Connection
+
+- One bind per session
+- Suitable for low-volume
+- Simple to manage
+
+```
+Your App ─────▶ SMPP Server
+   (1 bind)
+```
+
+### Connection Pool
+
+- Multiple concurrent binds
+- High throughput
+- Load distribution
+
+```
+Your App ─────▶ SMPP Server (bind 1)
+        ├─────▶ SMPP Server (bind 2)
+        ├─────▶ SMPP Server (bind 3)
+        └─────▶ SMPP Server (bind 4)
+```
+
+**Recommended Pool Size:**
+
+- Low volume: 1-2 connections
+- Medium volume: 3-5 connections
+- High volume: 10+ connections
+
+---
+
+## Throttling & Throughput
+
+### Throughput Limits
+
+| Tier       | Messages/Second | Concurrent Binds |
+| ---------- | --------------- | ---------------- |
+| Basic      | 10              | 2                |
+| Standard   | 50              | 5                |
+| Premium    | 100             | 10               |
+| Enterprise | Custom          | Custom           |
+
+### Throttling Response
+
+When rate limited, you'll receive:
+
+```
+Command Status: 0x00000058 (ESME_RTHROTTLED)
+```
+
+**Best Practice:** Implement exponential backoff.
+
+---
+
+## Delivery Reports (DLR)
+
+### DLR Request
+
+Set `registered_delivery` parameter to request DLR:
+
+```
+registered_delivery = 0x01  # Request DLR
+```
+
+### DLR Status Codes
+
+| Status  | Code | Description          |
+| ------- | ---- | -------------------- |
+| DELIVRD | 0    | Delivered to handset |
+| EXPIRED | 1    | Message expired      |
+| DELETED | 2    | Deleted by operator  |
+| UNDELIV | 3    | Undeliverable        |
+| ACCEPTD | 4    | Accepted by operator |
+| UNKNOWN | 5    | Unknown status       |
+| REJECTD | 6    | Rejected by operator |
+
+### DLR Format
+
+```
+id:1234567890 sub:001 dlvrd:001 submit date:2503121420
+done date:2503121421 stat:DELIVRD err:000 text:Hello
+```
+
+---
+
+## Character Encoding
+
+### GSM 7-bit Alphabet
+
+Standard characters (160 per SMS):
+
+```
+A-Z, a-z, 0-9, @, £, $, ¥, è, é, ù, ì, ò, Ç, Ø, ø, Å, å
+Æ, æ, ß, É, !, ", #, ¤, %, &, ', (, ), *, +, ,, -, ., /
+:, ;, <, =, >, ?, ¡, Ä, Ö, Ñ, Ü, §, ¿, ä, ö, ñ, ü, à
+```
+
+### Extended GSM Characters
+
+Extended chars (2 chars each):
+
+```
+^, {, }, \, [, ], ~, |, €
+```
+
+### Unicode (UCS-2)
+
+For non-GSM characters:
+
+- Arabic: أ ب ت ث ج
+- Chinese: 你好
+- Emoji: 😀 ❤️ 🎉
+
+**Set data_coding = 0x08 for Unicode**
+
+---
+
+## TLV Parameters
+
+Optional parameters for extended functionality.
+
+### Common TLV Parameters
+
+| Tag    | Name                 | Description                |
+| ------ | -------------------- | -------------------------- |
+| 0x0424 | message_payload      | Long message content       |
+| 0x001E | network_error_code   | Network error details      |
+| 0x001D | receipted_message_id | Original message ID in DLR |
+| 0x0427 | sar_msg_ref_num      | Concatenation reference    |
+| 0x0428 | sar_total_segments   | Total message parts        |
+| 0x0429 | sar_segment_seqnum   | Current segment number     |
+
+---
+
+## Best Practices
+
+### 1. Use Connection Pooling
+
+```javascript
+// Maintain multiple connections
+const connectionPool = [];
+for (let i = 0; i < 5; i++) {
+  const session = await createSMPPConnection();
+  connectionPool.push(session);
+}
+
+// Round-robin distribution
+let currentIndex = 0;
+function getNextConnection() {
+  const conn = connectionPool[currentIndex];
+  currentIndex = (currentIndex + 1) % connectionPool.length;
+  return conn;
+}
+```
+
+### 2. Implement Enquire Link
+
+Keep connections alive with periodic pings:
+
+```javascript
+setInterval(() => {
+  session.enquire_link({}, (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Connection alive');
+    }
+  });
+}, 30000); // Every 30 seconds
+```
+
+### 3. Handle Reconnection
+
+```javascript
+function connect() {
+  session.connect();
+
+  session.on('close', () => {
+    console.log('Connection closed, reconnecting...');
+    setTimeout(connect, 5000);
+  });
+
+  session.on('error', (err) => {
+    console.error('SMPP error:', err);
+  });
+}
+```
+
+### 4. Queue Messages
+
+Implement message queue for reliability:
+
+```javascript
+const messageQueue = [];
+
+function queueMessage(message) {
+  messageQueue.push(message);
+  processQueue();
+}
+
+async function processQueue() {
+  while (messageQueue.length > 0) {
+    const message = messageQueue[0];
+    try {
+      await sendSMS(message);
+      messageQueue.shift(); // Remove on success
+    } catch (error) {
+      console.error('Send failed, retrying...', error);
+      await sleep(5000);
+    }
+  }
+}
+```
+
+### 5. Monitor Connection Health
+
+```javascript
+let messagesPerMinute = 0;
+let lastCheck = Date.now();
+
+setInterval(() => {
+  const now = Date.now();
+  const elapsed = (now - lastCheck) / 1000 / 60;
+  const rate = messagesPerMinute / elapsed;
+
+  console.log(`Current rate: ${rate.toFixed(2)} msgs/min`);
+
+  if (rate < expectedRate * 0.5) {
+    console.warn('Low throughput detected');
+    // Investigate or restart connections
+  }
+
+  messagesPerMinute = 0;
+  lastCheck = now;
+}, 60000);
+```
+
+---
+
+## Security
+
+### IP Whitelisting
+
+Only allow connections from trusted IPs:
+
+1. Dashboard → SMPP → IP Whitelist
+2. Add your server IPs
+3. Block all other IPs
+
+### TLS Encryption
+
+Use SMPP over TLS for secure transmission:
+
+```
+Port: 2776 (TLS)
+```
+
+### Strong Passwords
+
+- Minimum 12 characters
+- Mix of uppercase, lowercase, numbers, symbols
+- Rotate every 90 days
+
+### Monitor Activity
+
+- Review connection logs daily
+- Alert on unusual patterns
+- Track message volumes
+
+---
+
+## Troubleshooting
+
+### Connection Refused
+
+**Problem:** Cannot connect to SMPP server
+
+**Solutions:**
+
+1. Check if IP is whitelisted
+2. Verify correct host and port
+3. Check firewall rules
+4. Test with telnet
+
+### Bind Failed
+
+**Problem:** Bind request rejected
+
+**Solutions:**
+
+1. Verify system_id and password
+2. Check if account is active
+3. Ensure not exceeding concurrent bind limit
+4. Review error code in bind_resp
+
+### Throttling Errors
+
+**Problem:** Receiving ESME_RTHROTTLED
+
+**Solutions:**
+
+1. Reduce message rate
+2. Implement exponential backoff
+3. Use connection pooling
+4. Upgrade to higher tier
+
+### Messages Not Delivered
+
+**Problem:** Submit successful but no delivery
+
+**Solutions:**
+
+1. Check DLR for error details
+2. Verify recipient number format
+3. Ensure sufficient balance
+4. Check network availability
+
+---
+
+## Monitoring & Logs
+
+### Dashboard Monitoring
+
+View real-time stats:
+
+1. Dashboard → SMPP → Monitoring
+2. See:
+   - Active connections
+   - Messages sent/minute
+   - Delivery rates
+   - Error rates
+
+### Log Files
+
+Access SMPP logs:
+
+1. Dashboard → SMPP → Logs
+2. Filter by:
+   - Date range
+   - Connection ID
+   - Status codes
+   - Phone numbers
+
+---
+
+## Testing
+
+### Test Credentials
+
+**Sandbox Environment:**
+
+```
+Host: smpp-sandbox.sendexa.co
+Port: 2775
+System ID: test_user
+Password: test_pass
+```
+
+**Test Numbers:**
+| Number | Behavior |
+|--------|----------|
+| +233500000001 | Always delivers |
+| +233500000002 | Always fails |
+| +233500000003 | Delays 30 seconds |
+
+---
+
+## Migration from HTTP API
+
+### Step-by-Step Migration
+
+1. **Setup SMPP account** in dashboard
+2. **Install SMPP client** library
+3. **Test connection** in sandbox
+4. **Implement basic send** functionality
+5. **Add DLR handling**
+6. **Run parallel** (SMPP + HTTP) for 1 week
+7. **Monitor metrics** for comparison
+8. **Switch to SMPP** when stable
+9. **Decommission HTTP** integration
+
+### Code Migration Example
+
+**Before (HTTP):**
+
+```javascript
+await axios.post('https://api.sendexa.co/v1/sms/send', {
+  to: '233501234567',
+  from: 'Sendexa',
+  content: 'Hello',
+});
+```
+
+**After (SMPP):**
+
+```javascript
+session.submit_sm(
+  {
+    destination_addr: '233501234567',
+    short_message: 'Hello',
+    source_addr: 'Sendexa',
+  },
+  callback
+);
+```
+
+---
+
+## Support
+
+### Documentation
+
+- [Connect to SMPP](/docs/smpp/connect)
+- [Send SMS](/docs/smpp/send)
+- [Delivery Reports](/docs/smpp/dlr)
+- [API Reference](/docs/smpp/v1)
+
+### Get Help
+
+- **Email:** smpp-support@sendexa.co
+- **Discord:** [Join community](https://discord.gg/sendexa)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+
+### Emergency Support
+
+- **Phone:** +233 55 553 9152 (Enterprise only)
+- **Available:** 24/7 for critical issues
+
+---
+
+## Next Steps
+
+1. 🔌 **[Connect to SMPP](/docs/smpp/connect)** - Establish your first connection
+2. 📤 **[Send SMS](/docs/smpp/send)** - Submit your first message
+3. 📊 **[Delivery Reports](/docs/smpp/dlr)** - Handle DLRs
+4. 🔔 **[Set Up Webhooks](/docs/smpp/webhooks)** - Receive HTTP callbacks
+5. 🛠️ **[API Reference](/docs/smpp/v1)** - Complete SMPP specification

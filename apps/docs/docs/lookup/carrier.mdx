@@ -1,0 +1,762 @@
+---
+title: Carrier Lookup
+description: Identify mobile network operators and get detailed carrier information for any phone number using the Sendexa Carrier Lookup API.
+date: 2025-03-12
+---
+
+# Carrier Lookup
+
+Identify the mobile network operator for any phone number. Get detailed carrier information including network name, country, line type, and portability status.
+
+---
+
+## Quick Start
+
+### Basic Carrier Lookup
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/carrier' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_number": "233501234567"
+  }'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "carrier": "MTN Ghana",
+  "carrier_code": "MTN",
+  "line_type": "mobile",
+  "ported": false,
+  "roaming": false
+}
+```
+
+---
+
+## Endpoint
+
+### POST /v1/lookup/carrier
+
+Get carrier information for a phone number.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter      | Type   | Required | Description                                           |
+| -------------- | ------ | -------- | ----------------------------------------------------- |
+| `phone_number` | string | Yes      | Phone number to lookup (with or without country code) |
+| `country_hint` | string | No       | 2-letter country code if number has no country code   |
+
+---
+
+## Parameter Details
+
+### phone_number
+
+The phone number to lookup. Can be in various formats:
+
+```json
+{
+  "phone_number": "233501234567"
+}
+```
+
+**Accepted Formats:**
+
+- International format: `+233501234567`
+- Without plus: `233501234567`
+- National format: `0501234567` (requires country_hint)
+- With spaces: `+233 50 123 4567`
+- With dashes: `+233-50-123-4567`
+
+### country_hint
+
+Optional country code to help parse national format numbers:
+
+```json
+{
+  "phone_number": "0501234567",
+  "country_hint": "GH"
+}
+```
+
+**Use when:**
+
+- Number is in national format
+- Country code is ambiguous
+- Parsing multiple numbers from same country
+
+---
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "phone_number": "233501234567",
+  "valid": true,
+  "international_format": "+233501234567",
+  "national_format": "050 123 4567",
+  "e164_format": "+233501234567",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "country_prefix": "233",
+  "carrier": "MTN Ghana",
+  "carrier_code": "MTN",
+  "line_type": "mobile",
+  "ported": false,
+  "original_carrier": null,
+  "roaming": false,
+  "mcc": "620",
+  "mnc": "01"
+}
+```
+
+### Response Fields
+
+| Field                  | Type    | Description                         |
+| ---------------------- | ------- | ----------------------------------- |
+| `success`              | boolean | Whether lookup succeeded            |
+| `phone_number`         | string  | Original phone number               |
+| `valid`                | boolean | Whether number is valid             |
+| `international_format` | string  | Number in international format      |
+| `national_format`      | string  | Number in national format           |
+| `e164_format`          | string  | Number in E.164 format              |
+| `country_code`         | string  | 2-letter country code               |
+| `country_name`         | string  | Full country name                   |
+| `country_prefix`       | string  | Country calling code                |
+| `carrier`              | string  | Carrier/operator name               |
+| `carrier_code`         | string  | Short carrier code                  |
+| `line_type`            | string  | Type of line (mobile/landline/voip) |
+| `ported`               | boolean | Whether number has been ported      |
+| `original_carrier`     | string  | Original carrier (if ported)        |
+| `roaming`              | boolean | Whether number is roaming           |
+| `mcc`                  | string  | Mobile Country Code                 |
+| `mnc`                  | string  | Mobile Network Code                 |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function carrierLookup(phoneNumber, countryHint = null) {
+  try {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/lookup/carrier',
+      {
+        phone_number: phoneNumber,
+        country_hint: countryHint,
+      },
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const data = response.data;
+
+    console.log(`Carrier: ${data.carrier}`);
+    console.log(`Line Type: ${data.line_type}`);
+    console.log(`Country: ${data.country_name}`);
+
+    return data;
+  } catch (error) {
+    console.error('Lookup failed:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Single lookup
+const result = await carrierLookup('233501234567');
+
+// With country hint
+const result2 = await carrierLookup('0501234567', 'GH');
+
+// Check if mobile
+if (result.line_type === 'mobile') {
+  console.log('Can send SMS');
+} else {
+  console.log('Cannot send SMS');
+}
+
+// Check carrier for routing
+if (result.carrier_code === 'MTN') {
+  // Use MTN-optimized route
+  await sendViaMTNRoute(phoneNumber, message);
+}
+```
+
+### Python
+
+```python
+import requests
+
+def carrier_lookup(phone_number, country_hint=None):
+    """Lookup carrier information for a phone number"""
+    url = 'https://api.sendexa.co/v1/lookup/carrier'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'phone_number': phone_number
+    }
+
+    if country_hint:
+        payload['country_hint'] = country_hint
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"Carrier: {data['carrier']}")
+        print(f"Line Type: {data['line_type']}")
+        print(f"Country: {data['country_name']}")
+
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Lookup failed: {e}")
+        raise
+
+# Single lookup
+result = carrier_lookup('233501234567')
+
+# With country hint
+result = carrier_lookup('0501234567', 'GH')
+
+# Check if number is ported
+if result['ported']:
+    print(f"Number ported from {result['original_carrier']} to {result['carrier']}")
+
+# Filter by carrier
+if result['carrier_code'] == 'MTN':
+    # MTN-specific logic
+    send_via_mtn_route(phone_number, message)
+```
+
+### PHP
+
+```php
+<?php
+
+function carrierLookup($phoneNumber, $countryHint = null) {
+    $url = 'https://api.sendexa.co/v1/lookup/carrier';
+    $token = 'your_token';
+
+    $data = ['phone_number' => $phoneNumber];
+
+    if ($countryHint) {
+        $data['country_hint'] = $countryHint;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+
+        echo "Carrier: " . $result['carrier'] . "\n";
+        echo "Line Type: " . $result['line_type'] . "\n";
+        echo "Country: " . $result['country_name'] . "\n";
+
+        return $result;
+    } else {
+        throw new Exception("Lookup failed: " . $response);
+    }
+}
+
+// Single lookup
+$result = carrierLookup('233501234567');
+
+// Check carrier
+if ($result['carrier_code'] === 'Vodafone') {
+    // Vodafone-specific logic
+}
+
+// Check if mobile
+if ($result['line_type'] === 'mobile') {
+    echo "Mobile number - SMS supported\n";
+}
+?>
+```
+
+---
+
+## Common Use Cases
+
+### 1. SMS Routing by Carrier
+
+Route messages to carrier-specific gateways:
+
+```javascript
+async function sendSMSWithCarrierRouting(phoneNumber, message) {
+  // Lookup carrier
+  const lookup = await carrierLookup(phoneNumber);
+
+  // Define routes for each carrier
+  const routes = {
+    MTN: { gateway: 'mtn_gateway', priority: 'high' },
+    Vodafone: { gateway: 'vodafone_gateway', priority: 'normal' },
+    AirtelTigo: { gateway: 'airteltigo_gateway', priority: 'normal' },
+  };
+
+  const route = routes[lookup.carrier_code] || routes.default;
+
+  // Send via appropriate route
+  return await sendSMS(phoneNumber, message, {
+    gateway: route.gateway,
+    priority: route.priority,
+  });
+}
+```
+
+### 2. Carrier-Based Pricing
+
+Apply different pricing based on carrier:
+
+```javascript
+async function calculateSMSCost(phoneNumber, messageLength) {
+  const lookup = await carrierLookup(phoneNumber);
+
+  // Pricing per carrier (per SMS)
+  const pricing = {
+    MTN: 0.035,
+    Vodafone: 0.035,
+    AirtelTigo: 0.035,
+    default: 0.04,
+  };
+
+  const pricePerSMS = pricing[lookup.carrier_code] || pricing.default;
+  const parts = Math.ceil(messageLength / 160);
+  const totalCost = parts * pricePerSMS;
+
+  return {
+    carrier: lookup.carrier,
+    parts,
+    pricePerSMS,
+    totalCost,
+    currency: 'GHS',
+  };
+}
+
+// Usage
+const cost = await calculateSMSCost('233501234567', 320);
+console.log(`Total cost: ${cost.totalCost} ${cost.currency}`);
+```
+
+### 3. Filter Landlines
+
+Exclude landlines from SMS campaigns:
+
+```javascript
+async function filterMobileNumbers(phoneNumbers) {
+  const mobileNumbers = [];
+  const landlines = [];
+
+  for (const number of phoneNumbers) {
+    const lookup = await carrierLookup(number);
+
+    if (lookup.line_type === 'mobile') {
+      mobileNumbers.push({
+        number: lookup.international_format,
+        carrier: lookup.carrier,
+      });
+    } else {
+      landlines.push(number);
+    }
+  }
+
+  return { mobileNumbers, landlines };
+}
+
+// Usage
+const numbers = ['233501234567', '233302123456', '233509876543'];
+const filtered = await filterMobileNumbers(numbers);
+
+console.log(`Mobile: ${filtered.mobileNumbers.length}`);
+console.log(`Landlines: ${filtered.landlines.length}`);
+
+// Send only to mobile numbers
+for (const contact of filtered.mobileNumbers) {
+  await sendSMS(contact.number, message);
+}
+```
+
+### 4. Carrier Analytics
+
+Track carrier distribution:
+
+```javascript
+async function analyzeCarrierDistribution(phoneNumbers) {
+  const carriers = {};
+
+  for (const number of phoneNumbers) {
+    try {
+      const lookup = await carrierLookup(number);
+      const carrier = lookup.carrier_code;
+
+      carriers[carrier] = (carriers[carrier] || 0) + 1;
+    } catch (error) {
+      console.error(`Failed to lookup ${number}`);
+    }
+  }
+
+  // Calculate percentages
+  const total = Object.values(carriers).reduce((a, b) => a + b, 0);
+  const distribution = {};
+
+  for (const [carrier, count] of Object.entries(carriers)) {
+    distribution[carrier] = {
+      count,
+      percentage: ((count / total) * 100).toFixed(2) + '%',
+    };
+  }
+
+  return distribution;
+}
+
+// Usage
+const analysis = await analyzeCarrierDistribution(customerPhones);
+console.log('Carrier Distribution:', analysis);
+// Output: { MTN: { count: 450, percentage: '45%' }, Vodafone: { count: 350, percentage: '35%' }, ... }
+```
+
+### 5. Number Portability Check
+
+Check if numbers have been ported:
+
+```javascript
+async function checkNumberPortability(phoneNumbers) {
+  const results = {
+    ported: [],
+    notPorted: [],
+    details: [],
+  };
+
+  for (const number of phoneNumbers) {
+    const lookup = await carrierLookup(number);
+
+    if (lookup.ported) {
+      results.ported.push(number);
+      results.details.push({
+        number,
+        from: lookup.original_carrier,
+        to: lookup.carrier,
+      });
+    } else {
+      results.notPorted.push(number);
+    }
+  }
+
+  return results;
+}
+
+// Usage
+const portability = await checkNumberPortability(phoneList);
+console.log(`Ported numbers: ${portability.ported.length}`);
+portability.details.forEach((detail) => {
+  console.log(`${detail.number}: ${detail.from} → ${detail.to}`);
+});
+```
+
+---
+
+## Bulk Carrier Lookup
+
+### Lookup Multiple Numbers
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/lookup/carrier/bulk' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone_numbers": [
+      "233501234567",
+      "233509876543",
+      "254712345678"
+    ]
+  }'
+```
+
+### Bulk Response
+
+```json
+{
+  "success": true,
+  "results": [
+    {
+      "phone_number": "233501234567",
+      "valid": true,
+      "carrier": "MTN Ghana",
+      "line_type": "mobile"
+    },
+    {
+      "phone_number": "233509876543",
+      "valid": true,
+      "carrier": "Vodafone Ghana",
+      "line_type": "mobile"
+    },
+    {
+      "phone_number": "254712345678",
+      "valid": true,
+      "carrier": "Safaricom",
+      "line_type": "mobile"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "valid": 3,
+    "invalid": 0
+  }
+}
+```
+
+### Bulk Lookup Implementation
+
+```javascript
+async function bulkCarrierLookup(phoneNumbers) {
+  // Split into batches of 100
+  const batches = chunkArray(phoneNumbers, 100);
+  const results = [];
+
+  for (const batch of batches) {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/lookup/carrier/bulk',
+      { phone_numbers: batch },
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    results.push(...response.data.results);
+
+    // Respect rate limits
+    if (batches.indexOf(batch) < batches.length - 1) {
+      await new Promise((r) => setTimeout(r, 600)); // 100/min = 600ms between requests
+    }
+  }
+
+  return results;
+}
+
+function chunkArray(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+```
+
+---
+
+## Caching Best Practices
+
+### Cache Carrier Lookups
+
+```javascript
+const cache = new Map();
+const CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+async function cachedCarrierLookup(phoneNumber) {
+  const key = phoneNumber.replace(/\D/g, ''); // Normalize
+
+  // Check cache
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('Cache hit');
+    return cached.data;
+  }
+
+  // Lookup
+  console.log('Cache miss - looking up');
+  const result = await carrierLookup(phoneNumber);
+
+  // Cache result
+  cache.set(key, {
+    data: result,
+    timestamp: Date.now(),
+  });
+
+  return result;
+}
+```
+
+### Database Caching
+
+```javascript
+async function lookupWithDatabaseCache(phoneNumber) {
+  // Check database
+  const cached = await db.carrierCache.findOne({
+    where: { phone_number: phoneNumber },
+  });
+
+  const now = new Date();
+  const cacheAge = cached
+    ? (now - cached.updated_at) / 1000 / 60 / 60 / 24
+    : Infinity;
+
+  // Use cache if less than 30 days old
+  if (cached && cacheAge < 30) {
+    return cached.data;
+  }
+
+  // Lookup
+  const result = await carrierLookup(phoneNumber);
+
+  // Save to database
+  await db.carrierCache.upsert({
+    phone_number: phoneNumber,
+    data: result,
+    updated_at: now,
+  });
+
+  return result;
+}
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+#### Invalid Phone Number
+
+```json
+{
+  "success": false,
+  "phone_number": "invalid",
+  "valid": false,
+  "error": {
+    "code": "INVALID_PHONE_NUMBER",
+    "message": "Phone number format is invalid"
+  }
+}
+```
+
+#### Country Not Supported
+
+```json
+{
+  "success": false,
+  "phone_number": "+1234567890",
+  "valid": false,
+  "error": {
+    "code": "COUNTRY_NOT_SUPPORTED",
+    "message": "Carrier lookup not available for this country"
+  }
+}
+```
+
+#### Rate Limit Exceeded
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Try again in 60 seconds.",
+    "retry_after": 60
+  }
+}
+```
+
+### Error Handling Example
+
+```javascript
+async function safeCarrierLookup(phoneNumber) {
+  try {
+    return await carrierLookup(phoneNumber);
+  } catch (error) {
+    const errorCode = error.response?.data?.error?.code;
+
+    switch (errorCode) {
+      case 'INVALID_PHONE_NUMBER':
+        return { valid: false, error: 'Invalid phone number format' };
+
+      case 'COUNTRY_NOT_SUPPORTED':
+        return { valid: false, error: 'Country not supported' };
+
+      case 'RATE_LIMIT_EXCEEDED':
+        // Wait and retry
+        const retryAfter = error.response.data.error.retry_after * 1000;
+        await new Promise((r) => setTimeout(r, retryAfter));
+        return await carrierLookup(phoneNumber);
+
+      default:
+        console.error('Lookup failed:', error);
+        return { valid: false, error: 'Lookup failed' };
+    }
+  }
+}
+```
+
+---
+
+## Testing
+
+### Test in Sandbox
+
+```javascript
+// Use sandbox environment
+const baseUrl = 'https://sandbox-api.sendexa.co';
+
+// Test numbers
+const testNumbers = {
+  mtn: '233500000001', // Returns MTN
+  vodafone: '233500000002', // Returns Vodafone
+  invalid: '233500000003', // Returns invalid
+  ported: '233500000004', // Returns ported number
+};
+
+// Test lookup
+const result = await carrierLookup(testNumbers.mtn);
+console.log('Test result:', result);
+```
+
+---
+
+## Next Steps
+
+- ✅ **[Validate Numbers](/docs/lookup/validate)** - Verify phone numbers
+- 📱 **[Line Type Detection](/docs/lookup/line-type)** - Detect line types
+- 📧 **[Email Verification](/docs/lookup/email-verification)** - Validate emails
+- 🛠️ **[API Reference](/docs/lookup/v1)** - Complete documentation

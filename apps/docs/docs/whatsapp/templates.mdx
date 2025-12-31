@@ -1,0 +1,806 @@
+---
+title: WhatsApp Message Templates
+description: Create, manage, and use WhatsApp message templates. Learn template categories, approval process, and best practices.
+date: 2025-03-12
+---
+
+# WhatsApp Message Templates
+
+Create reusable message templates for WhatsApp Business messaging. Templates must be pre-approved by Meta before use in production.
+
+---
+
+## Overview
+
+### What are Templates?
+
+WhatsApp templates are pre-approved message formats used to initiate conversations with customers. They're required for:
+
+- First contact with customers
+- Messages sent after 24-hour conversation window expires
+- Notifications and alerts
+
+### Template Categories
+
+| Category           | Use Case                        | Examples                              |
+| ------------------ | ------------------------------- | ------------------------------------- |
+| **Utility**        | Account updates, order tracking | Order confirmations, delivery updates |
+| **Authentication** | OTP, verification codes         | Login codes, verification             |
+| **Marketing**      | Promotions, offers              | Sales, new products, special offers   |
+
+---
+
+## Quick Start
+
+### Create Template
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/templates' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "order_confirmation",
+    "category": "UTILITY",
+    "language": "en",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Your order {{1}} has been confirmed! Total: {{2}}. We will notify you when it ships."
+      }
+    ]
+  }'
+```
+
+---
+
+## Template Structure
+
+### Components
+
+Templates consist of multiple components:
+
+1. **Header** (optional) - Text, image, video, or document
+2. **Body** (required) - Main message text
+3. **Footer** (optional) - Additional info
+4. **Buttons** (optional) - Call-to-action buttons
+
+### Component Types
+
+#### 1. Header Component
+
+**Text Header:**
+
+```json
+{
+  "type": "HEADER",
+  "format": "TEXT",
+  "text": "Order Update"
+}
+```
+
+**Image Header:**
+
+```json
+{
+  "type": "HEADER",
+  "format": "IMAGE",
+  "example": {
+    "header_handle": ["https://example.com/image.jpg"]
+  }
+}
+```
+
+**Video Header:**
+
+```json
+{
+  "type": "HEADER",
+  "format": "VIDEO",
+  "example": {
+    "header_handle": ["https://example.com/video.mp4"]
+  }
+}
+```
+
+**Document Header:**
+
+```json
+{
+  "type": "HEADER",
+  "format": "DOCUMENT",
+  "example": {
+    "header_handle": ["https://example.com/document.pdf"]
+  }
+}
+```
+
+#### 2. Body Component
+
+```json
+{
+  "type": "BODY",
+  "text": "Hello {{1}}, your order {{2}} has been confirmed. Total amount: {{3}}."
+}
+```
+
+**Variables:**
+
+- Use `{{1}}`, `{{2}}`, etc. for dynamic content
+- Maximum 10 variables per body
+- Variables must be numbered sequentially
+
+#### 3. Footer Component
+
+```json
+{
+  "type": "FOOTER",
+  "text": "Reply STOP to unsubscribe"
+}
+```
+
+**Limits:**
+
+- Maximum 60 characters
+- No variables allowed
+- Plain text only
+
+#### 4. Button Components
+
+**Quick Reply Buttons:**
+
+```json
+{
+  "type": "BUTTONS",
+  "buttons": [
+    {
+      "type": "QUICK_REPLY",
+      "text": "Yes"
+    },
+    {
+      "type": "QUICK_REPLY",
+      "text": "No"
+    }
+  ]
+}
+```
+
+**Call Button:**
+
+```json
+{
+  "type": "BUTTONS",
+  "buttons": [
+    {
+      "type": "PHONE_NUMBER",
+      "text": "Call Us",
+      "phone_number": "+233501234567"
+    }
+  ]
+}
+```
+
+**URL Button:**
+
+```json
+{
+  "type": "BUTTONS",
+  "buttons": [
+    {
+      "type": "URL",
+      "text": "View Order",
+      "url": "https://example.com/orders/{{1}}"
+    }
+  ]
+}
+```
+
+**Button Limits:**
+
+- Maximum 3 buttons per template
+- Maximum 25 characters per button text
+- Only 1 variable allowed in URL buttons (at the end)
+
+---
+
+## Create Template
+
+### POST /v1/whatsapp/templates
+
+Create a new message template.
+
+**Rate Limit:** 10 requests per minute
+
+### Request Parameters
+
+| Parameter    | Type   | Required | Description                                     |
+| ------------ | ------ | -------- | ----------------------------------------------- |
+| `name`       | string | Yes      | Template name (lowercase, underscore separated) |
+| `category`   | string | Yes      | UTILITY, AUTHENTICATION, or MARKETING           |
+| `language`   | string | Yes      | Language code (e.g., en, fr, es)                |
+| `components` | array  | Yes      | Array of template components                    |
+
+### Complete Example
+
+```json
+{
+  "name": "order_confirmation",
+  "category": "UTILITY",
+  "language": "en",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "Order Confirmation"
+    },
+    {
+      "type": "BODY",
+      "text": "Hi {{1}}, your order {{2}} has been confirmed!\n\nItems: {{3}}\nTotal: {{4}}\n\nEstimated delivery: {{5}}\n\nThank you for shopping with us!"
+    },
+    {
+      "type": "FOOTER",
+      "text": "Questions? Reply to this message"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "URL",
+          "text": "Track Order",
+          "url": "https://example.com/track/{{1}}"
+        },
+        {
+          "type": "PHONE_NUMBER",
+          "text": "Call Support",
+          "phone_number": "+233501234567"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "template": {
+    "id": "tmpl_abc123def456",
+    "name": "order_confirmation",
+    "category": "UTILITY",
+    "language": "en",
+    "status": "PENDING",
+    "components": [...],
+    "created_at": "2025-03-12T14:20:00Z"
+  },
+  "message": "Template submitted for approval. Review typically takes 24-48 hours."
+}
+```
+
+---
+
+## Template Status
+
+| Status     | Description                         |
+| ---------- | ----------------------------------- |
+| `PENDING`  | Awaiting Meta approval              |
+| `APPROVED` | Approved and ready to use           |
+| `REJECTED` | Rejected by Meta (see reason)       |
+| `PAUSED`   | Temporarily paused (quality issues) |
+| `DISABLED` | Disabled by business                |
+
+---
+
+## Get Template
+
+### GET /v1/whatsapp/templates/:id
+
+Retrieve template details.
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/templates/tmpl_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "template": {
+    "id": "tmpl_abc123def456",
+    "name": "order_confirmation",
+    "category": "UTILITY",
+    "language": "en",
+    "status": "APPROVED",
+    "quality_score": "HIGH",
+    "components": [...],
+    "usage_count": 1250,
+    "created_at": "2025-03-10T09:00:00Z",
+    "approved_at": "2025-03-11T10:30:00Z"
+  }
+}
+```
+
+---
+
+## List Templates
+
+### GET /v1/whatsapp/templates
+
+Retrieve all templates.
+
+#### Query Parameters
+
+| Parameter  | Type    | Description                                    |
+| ---------- | ------- | ---------------------------------------------- |
+| `status`   | string  | Filter by status (PENDING, APPROVED, REJECTED) |
+| `category` | string  | Filter by category                             |
+| `language` | string  | Filter by language                             |
+| `limit`    | integer | Results per page (max 100)                     |
+| `offset`   | integer | Pagination offset                              |
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/templates?status=APPROVED&category=UTILITY' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "tmpl_abc123",
+      "name": "order_confirmation",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "language": "en",
+      "created_at": "2025-03-10T09:00:00Z"
+    },
+    {
+      "id": "tmpl_def456",
+      "name": "delivery_update",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "language": "en",
+      "created_at": "2025-03-08T15:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 15,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+---
+
+## Update Template
+
+### PUT /v1/whatsapp/templates/:id
+
+Update template (requires re-approval for content changes).
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/whatsapp/templates/tmpl_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Updated message text {{1}}"
+      }
+    ]
+  }'
+```
+
+**Note:** Content updates require Meta re-approval.
+
+---
+
+## Delete Template
+
+### DELETE /v1/whatsapp/templates/:id
+
+Delete a template permanently.
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/whatsapp/templates/tmpl_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## Template Best Practices
+
+### 1. Clear and Concise
+
+✅ **Good:**
+
+```
+Your order {{1}} has been confirmed. Total: {{2}}.
+```
+
+❌ **Bad:**
+
+```
+Hello dear valued customer! We are super excited to inform you that...
+```
+
+### 2. Proper Variable Usage
+
+✅ **Good:**
+
+```
+Hi {{1}}, your appointment with {{2}} is on {{3}} at {{4}}.
+```
+
+❌ **Bad:**
+
+```
+Hi there, your appointment is tomorrow.
+```
+
+### 3. Category Guidelines
+
+**Utility Templates:**
+
+- Transactional updates only
+- No promotional content
+- Clear, informative purpose
+
+**Authentication:**
+
+- OTP and verification only
+- Short and direct
+- Include expiry time
+
+**Marketing:**
+
+- Clear opt-out instructions
+- Relevant offers only
+- Not too frequent
+
+### 4. Compliance
+
+- Include opt-out option for marketing
+- Don't impersonate other businesses
+- No misleading content
+- Follow local regulations
+
+---
+
+## Common Template Examples
+
+### Order Confirmation
+
+```json
+{
+  "name": "order_confirmation",
+  "category": "UTILITY",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Order {{1}} confirmed!\n\nTotal: {{2}}\nDelivery: {{3}}\n\nTrack your order anytime."
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "URL",
+          "text": "Track Order",
+          "url": "https://example.com/track/{{1}}"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### OTP Authentication
+
+```json
+{
+  "name": "otp_verification",
+  "category": "AUTHENTICATION",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Your verification code is: {{1}}\n\nThis code expires in 10 minutes.\n\nDo not share this code with anyone."
+    }
+  ]
+}
+```
+
+### Appointment Reminder
+
+```json
+{
+  "name": "appointment_reminder",
+  "category": "UTILITY",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Reminder: You have an appointment with {{1}} on {{2}} at {{3}}.\n\nLocation: {{4}}"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Confirm"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Reschedule"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Promotional Offer
+
+```json
+{
+  "name": "flash_sale",
+  "category": "MARKETING",
+  "language": "en",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "IMAGE",
+      "example": {
+        "header_handle": ["https://example.com/sale.jpg"]
+      }
+    },
+    {
+      "type": "BODY",
+      "text": "🎉 FLASH SALE!\n\n{{1}}% OFF on {{2}}\n\nValid until {{3}}\n\nUse code: {{4}}"
+    },
+    {
+      "type": "FOOTER",
+      "text": "Reply STOP to unsubscribe"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "URL",
+          "text": "Shop Now",
+          "url": "https://example.com/sale"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Approval Process
+
+### Submission
+
+1. Create template via API
+2. Template enters `PENDING` status
+3. Meta reviews (24-48 hours typically)
+
+### Review Criteria
+
+Meta reviews templates for:
+
+- Policy compliance
+- Clear purpose
+- Proper category
+- No prohibited content
+- Grammar and formatting
+
+### After Approval
+
+- Status changes to `APPROVED`
+- Template can be used immediately
+- Monitor quality score
+- Track usage metrics
+
+### If Rejected
+
+- Check rejection reason
+- Fix issues
+- Resubmit template
+- Common issues:
+  - Wrong category
+  - Promotional content in utility templates
+  - Missing opt-out for marketing
+  - Unclear purpose
+
+---
+
+## Quality Scores
+
+Templates receive quality scores based on:
+
+- User block rate
+- User report rate
+- Delivery success rate
+
+| Score      | Status     | Action                 |
+| ---------- | ---------- | ---------------------- |
+| **HIGH**   | ✅ Good    | No action needed       |
+| **MEDIUM** | ⚠️ Warning | Monitor usage          |
+| **LOW**    | ❌ Problem | Template may be paused |
+
+### Maintaining Quality
+
+- Send relevant messages only
+- Don't spam users
+- Provide opt-out options
+- Use proper categories
+- Monitor engagement
+
+---
+
+## Code Examples
+
+### JavaScript
+
+```javascript
+const axios = require('axios');
+
+class TemplateManager {
+  constructor(apiToken) {
+    this.apiToken = apiToken;
+    this.baseUrl = 'https://api.sendexa.co/v1/whatsapp/templates';
+  }
+
+  async createTemplate(templateData) {
+    try {
+      const response = await axios.post(this.baseUrl, templateData, {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log(`Template created: ${response.data.template.id}`);
+      console.log(`Status: ${response.data.template.status}`);
+      return response.data.template;
+    } catch (error) {
+      console.error('Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async getApprovedTemplates() {
+    const response = await axios.get(`${this.baseUrl}?status=APPROVED`, {
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`,
+      },
+    });
+
+    return response.data.data;
+  }
+
+  async waitForApproval(templateId, maxWait = 172800000) {
+    // 48 hours max wait
+    const start = Date.now();
+
+    while (Date.now() - start < maxWait) {
+      const response = await axios.get(`${this.baseUrl}/${templateId}`, {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+        },
+      });
+
+      const template = response.data.template;
+
+      if (template.status === 'APPROVED') {
+        console.log('Template approved!');
+        return template;
+      } else if (template.status === 'REJECTED') {
+        throw new Error('Template rejected');
+      }
+
+      // Check every hour
+      await new Promise((resolve) => setTimeout(resolve, 3600000));
+    }
+
+    throw new Error('Approval timeout');
+  }
+}
+
+// Usage
+const manager = new TemplateManager('your_token');
+
+// Create template
+const template = await manager.createTemplate({
+  name: 'order_update',
+  category: 'UTILITY',
+  language: 'en',
+  components: [
+    {
+      type: 'BODY',
+      text: 'Your order {{1}} has been shipped! Track: {{2}}',
+    },
+  ],
+});
+
+// List approved templates
+const approved = await manager.getApprovedTemplates();
+console.log(`${approved.length} approved templates`);
+```
+
+---
+
+## Troubleshooting
+
+### Template Rejected
+
+**Common Reasons:**
+
+1. Wrong category selection
+2. Marketing content in utility template
+3. Missing opt-out for marketing
+4. Unclear purpose
+5. Grammar/spelling errors
+
+**Solution:** Review Meta guidelines and resubmit.
+
+### Template Paused
+
+**Reason:** Low quality score due to blocks/reports
+
+**Solution:**
+
+- Review message relevance
+- Reduce send frequency
+- Improve targeting
+- Check for spam-like content
+
+### Variables Not Working
+
+**Problem:** Template shows `{{1}}` instead of value
+
+**Solution:**
+
+```javascript
+// Ensure parameters match template variables
+{
+  type: 'template',
+  template: {
+    name: 'order_update',
+    language: 'en',
+    components: [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: 'ORD-12345' },  // {{1}}
+          { type: 'text', text: 'track.example.com/123' }  // {{2}}
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Next Steps
+
+- 📱 **[Send Messages](/docs/whatsapp/send)** - Use your templates
+- 📢 **[Create Broadcasts](/docs/whatsapp/broadcasts)** - Send to multiple contacts
+- 🔔 **[Set Up Webhooks](/docs/whatsapp/webhooks)** - Track delivery
+- 🛠️ **[API Reference](/docs/whatsapp/v1)** - Complete documentation

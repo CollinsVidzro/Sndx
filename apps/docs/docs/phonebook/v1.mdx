@@ -1,0 +1,325 @@
+---
+title: Phonebook API v1 Reference
+description: Complete API reference for the Sendexa Phonebook API v1 with all endpoints and parameters.
+date: 2025-03-12
+---
+
+# Phonebook API v1 Reference
+
+Complete reference documentation for the Sendexa Phonebook API v1.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+---
+
+## Authentication
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+---
+
+## Endpoints Overview
+
+### Contacts
+
+| Endpoint                      | Method | Purpose        |
+| ----------------------------- | ------ | -------------- |
+| `/v1/phonebook/contacts`      | POST   | Create contact |
+| `/v1/phonebook/contacts`      | GET    | List contacts  |
+| `/v1/phonebook/contacts/:id`  | GET    | Get contact    |
+| `/v1/phonebook/contacts/:id`  | PUT    | Update contact |
+| `/v1/phonebook/contacts/:id`  | DELETE | Delete contact |
+| `/v1/phonebook/contacts/bulk` | POST   | Bulk import    |
+
+### Groups
+
+| Endpoint                                       | Method | Purpose        |
+| ---------------------------------------------- | ------ | -------------- |
+| `/v1/phonebook/groups`                         | POST   | Create group   |
+| `/v1/phonebook/groups`                         | GET    | List groups    |
+| `/v1/phonebook/groups/:id`                     | GET    | Get group      |
+| `/v1/phonebook/groups/:id`                     | PUT    | Update group   |
+| `/v1/phonebook/groups/:id`                     | DELETE | Delete group   |
+| `/v1/phonebook/groups/:id/contacts`            | POST   | Add contact    |
+| `/v1/phonebook/groups/:id/contacts`            | GET    | List contacts  |
+| `/v1/phonebook/groups/:id/contacts/:contactId` | DELETE | Remove contact |
+
+---
+
+## Contact Endpoints
+
+### POST /v1/phonebook/contacts
+
+Create a new contact.
+
+**Request:**
+
+```json
+{
+  "phone": "233501234567",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "custom_fields": {
+    "city": "Accra"
+  },
+  "tags": ["customer"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "contact_abc123",
+    "phone": "233501234567",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "status": "active",
+    "subscribed": true,
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+### GET /v1/phonebook/contacts
+
+List contacts with optional filtering.
+
+**Query Parameters:**
+
+- `limit` - Results per page (max 100)
+- `offset` - Pagination offset
+- `search` - Search term
+- `tags` - Comma-separated tags
+- `subscribed` - Filter by subscription
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "contacts": [...],
+  "pagination": {
+    "total": 1250,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+### GET /v1/phonebook/contacts/:id
+
+Get contact details.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "contact_abc123",
+    "phone": "233501234567",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "custom_fields": {},
+    "tags": [],
+    "groups": [],
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+### PUT /v1/phonebook/contacts/:id
+
+Update contact.
+
+**Request:**
+
+```json
+{
+  "first_name": "Jonathan",
+  "custom_fields": {
+    "tier": "gold"
+  }
+}
+```
+
+---
+
+### DELETE /v1/phonebook/contacts/:id
+
+Delete contact.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Contact deleted"
+}
+```
+
+---
+
+### POST /v1/phonebook/contacts/bulk
+
+Bulk import contacts.
+
+**Request:**
+
+```json
+{
+  "contacts": [
+    {
+      "phone": "233501234567",
+      "first_name": "John"
+    },
+    {
+      "phone": "233509876543",
+      "first_name": "Jane"
+    }
+  ],
+  "skip_duplicates": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "summary": {
+    "total": 2,
+    "created": 2,
+    "updated": 0,
+    "failed": 0
+  }
+}
+```
+
+---
+
+## Group Endpoints
+
+### POST /v1/phonebook/groups
+
+Create a group.
+
+**Request:**
+
+```json
+{
+  "name": "Premium Customers",
+  "description": "High-value customers"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "group": {
+    "id": "group_xyz789",
+    "name": "Premium Customers",
+    "contact_count": 0,
+    "created_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+### POST /v1/phonebook/groups/:id/contacts
+
+Add contact to group.
+
+**Request:**
+
+```json
+{
+  "contact_id": "contact_abc123"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Contact added to group"
+}
+```
+
+---
+
+## Error Codes
+
+| Code                  | HTTP | Description          |
+| --------------------- | ---- | -------------------- |
+| `INVALID_TOKEN`       | 401  | Invalid API token    |
+| `CONTACT_NOT_FOUND`   | 404  | Contact not found    |
+| `DUPLICATE_PHONE`     | 400  | Phone already exists |
+| `DUPLICATE_EMAIL`     | 400  | Email already exists |
+| `GROUP_NOT_FOUND`     | 404  | Group not found      |
+| `RATE_LIMIT_EXCEEDED` | 429  | Too many requests    |
+
+---
+
+## Rate Limits
+
+| Endpoint Type | Limit   |
+| ------------- | ------- |
+| Read          | 100/min |
+| Write         | 60/min  |
+| Bulk          | 10/min  |
+
+---
+
+## SDKs
+
+**Node.js:**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+**Python:**
+
+```bash
+pip install sendexa
+```
+
+**PHP:**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+---
+
+## Support
+
+- **Email:** support@sendexa.co
+- **Discord:** [discord.gg/sendexa](https://discord.gg/sendexa)
+- **Docs:** [docs.sendexa.co](https://docs.sendexa.co)

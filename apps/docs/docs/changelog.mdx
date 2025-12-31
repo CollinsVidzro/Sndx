@@ -1,0 +1,225 @@
+---
+title: Changelog
+description: Latest updates, new features, improvements, and fixes across the Sendexa messaging platform.
+date: 2025-08-01
+---
+
+# Changelog
+
+This page documents notable changes, improvements, and feature releases across Sendexa APIs, dashboards, and internal systems.
+
+> 🚀 **Sendexa development officially began on April 21, 2025.**  
+> All entries below reflect real development milestones from that date onward.
+
+---
+
+## 2025
+
+### August 2025
+
+#### August 1, 2025 – v0.6.0 (Public Beta)
+
+**🎉 New Features**
+
+- **SMS API v2 (Beta)**
+  - Token-based authentication (Bearer tokens)
+  - `/v2/sms/send` quick-send endpoint
+  - Improved request validation and error responses
+  - Structured message IDs for tracking
+  - Built for scalability and future SMPP routing
+
+- **Client Dashboard (Beta)**
+  - SMS sending interface
+  - Message history and delivery status
+  - Credit balance visibility
+  - Sender ID listing
+  - Responsive layout improvements
+
+- **OTP API (Beta)**
+  - `/v1/otp/request`
+  - `/v1/otp/verify`
+  - `/v1/otp/resend`
+  - Designed for login, verification, and 2FA use cases
+  - Dedicated base domain: `2fa.sendexa.co`
+
+**✨ Improvements**
+
+- Unified API response structure across SMS and OTP
+- Improved dashboard navigation and layout consistency
+- Better phone number normalization (Ghana-first)
+
+**🐛 Bug Fixes**
+
+- Fixed inconsistent SMS sender display in dashboard previews
+- Resolved OTP resend cooldown edge cases
+- Corrected message cost estimation for multi-part SMS
+
+**📚 Documentation**
+
+- SMS v2 Quick Send documentation
+- OTP API reference and flow guides
+- Updated authentication guide
+- Improved onboarding steps for new developers
+
+---
+
+### July 2025
+
+#### July 10, 2025 – v0.5.0 (Private Beta)
+
+**🎉 New Features**
+
+- **Authentication System**
+  - Phone number + PIN login
+  - Secure session cookies
+  - Token issuance for API access
+  - Built on Supabase auth infrastructure
+
+- **Sender ID Management (Initial)**
+  - Sender ID submission
+  - Pending / approved status
+  - Manual review workflow (internal)
+
+- **Internal Admin Dashboard**
+  - User monitoring
+  - Activity tracking (IP, request metadata)
+  - Basic abuse detection tooling
+
+**✨ Improvements**
+
+- API latency optimizations
+- Cleaner error messages for failed requests
+- Dashboard layout refinements
+
+**🐛 Bug Fixes**
+
+- Fixed duplicate login sessions
+- Corrected timezone handling in message logs
+- Resolved dashboard horizontal scrolling issues
+
+---
+
+### June 2025
+
+#### June 14, 2025 – v0.4.0 (Internal Alpha)
+
+**🎉 New Features**
+
+- **SMS API v1 (Alpha)**
+  - Single-recipient SMS sending
+  - Basic delivery status tracking
+  - Ghana network support (MTN, Vodafone, AirtelTigo)
+  - Token-based authorization
+
+- **Credits & Billing Logic (Internal)**
+  - Wallet balance tracking
+  - Cost deduction per message
+  - Internal transaction logs
+
+**✨ Improvements**
+
+- Refined API folder structure
+- Improved environment configuration
+- Standardized error codes
+
+**🐛 Bug Fixes**
+
+- Fixed message encoding edge cases
+- Resolved incorrect credit deductions on failed sends
+
+---
+
+### May 2025
+
+#### May 4, 2025 – v0.3.0
+
+**🎉 New Features**
+
+- **Dashboard Foundation**
+  - Client dashboard layout
+  - Sidebar navigation
+  - Account settings screens
+  - Profile and organization setup
+
+- **Activity Monitoring (Internal)**
+  - Request logging
+  - User activity tracking
+  - Early-stage fraud and abuse visibility
+
+**✨ Improvements**
+
+- Improved UI consistency using shared components
+- Faster dashboard page loads
+- Cleaner routing structure
+
+---
+
+### April 2025
+
+#### April 21, 2025 – v0.1.0 (Project Kickoff)
+
+**🚀 Project Initiation**
+
+- Sendexa project officially started
+- Core vision defined: SMS, OTP, Email, and Voice APIs
+- Ghana-first market focus
+- Initial system architecture planning
+- Documentation and branding groundwork
+
+---
+
+## Breaking Changes
+
+> ⚠️ No breaking changes yet  
+The platform is still in **pre-v1 development**. Breaking changes will be clearly announced once APIs approach stable v1 releases.
+
+---
+
+## Deprecation Notices
+
+None at this time.
+
+---
+
+## Upcoming Features
+
+### Q4 2025 (October – December)
+
+**🔮 Planned**
+
+- **SMPP Server (Enterprise)**
+  - SMPP v3.4 support
+  - High-throughput routing
+  - Direct operator connectivity
+
+- **Email API (Transactional)**
+  - Template-based emails
+  - Delivery and open tracking
+  - System and billing emails
+
+- **Improved Reporting**
+  - Delivery rate analytics
+  - Credit usage reports
+  - Exportable logs
+
+---
+
+## Platform Status
+
+### Current Version
+
+**Platform Stage:** Public Beta  
+**Latest Version:** v0.6.0  
+**Market Focus:** Ghana 🇬🇭
+
+---
+
+## Feedback & Support
+
+- **Documentation:** https://docs.sendexa.co
+- **Support Email:** support@sendexa.co
+- **Developer Feedback:** feedback@sendexa.co
+
+---
+
+_Sendexa — Reliable communication APIs, built for Africa._

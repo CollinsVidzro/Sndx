@@ -1,0 +1,811 @@
+---
+title: Send SMS via SMPP
+description: Learn how to send SMS messages through SMPP with support for long messages, Unicode, flash SMS, and delivery reports.
+date: 2025-03-12
+---
+
+# Send SMS via SMPP
+
+Send SMS messages through the SMPP protocol with full control over encoding, delivery reports, and message parameters.
+
+---
+
+## Quick Start
+
+### Basic SMS
+
+```javascript
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: 'Hello from SMPP!',
+  },
+  (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Message ID:', pdu.message_id);
+    }
+  }
+);
+```
+
+---
+
+## Submit_SM Parameters
+
+### Required Parameters
+
+| Parameter          | Type          | Description            | Example        |
+| ------------------ | ------------- | ---------------------- | -------------- |
+| `destination_addr` | String        | Recipient phone number | "233501234567" |
+| `short_message`    | String/Buffer | Message content        | "Hello World"  |
+
+### Optional Parameters
+
+| Parameter                 | Type   | Default | Description                           |
+| ------------------------- | ------ | ------- | ------------------------------------- |
+| `source_addr`             | String | ""      | Sender ID/number                      |
+| `source_addr_ton`         | Byte   | 0x05    | Alphanumeric (5) or International (1) |
+| `source_addr_npi`         | Byte   | 0x00    | Numbering plan                        |
+| `dest_addr_ton`           | Byte   | 0x01    | International format                  |
+| `dest_addr_npi`           | Byte   | 0x01    | E.164 numbering                       |
+| `esm_class`               | Byte   | 0x00    | Message mode                          |
+| `protocol_id`             | Byte   | 0x00    | Protocol identifier                   |
+| `priority_flag`           | Byte   | 0x00    | Priority (0-3)                        |
+| `schedule_delivery_time`  | String | ""      | Scheduled delivery                    |
+| `validity_period`         | String | ""      | Message validity                      |
+| `registered_delivery`     | Byte   | 0x01    | Request DLR (0 or 1)                  |
+| `replace_if_present_flag` | Byte   | 0x00    | Replace message                       |
+| `data_coding`             | Byte   | 0x00    | Character encoding                    |
+| `sm_default_msg_id`       | Byte   | 0x00    | Default message                       |
+
+---
+
+## Standard SMS
+
+### GSM 7-bit (160 characters)
+
+```javascript
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    source_addr_ton: 0x05, // Alphanumeric
+    source_addr_npi: 0x00,
+    destination_addr: '233501234567',
+    dest_addr_ton: 0x01, // International
+    dest_addr_npi: 0x01,
+    short_message: 'Hello! This is a standard GSM message.',
+    registered_delivery: 0x01, // Request DLR
+    data_coding: 0x00, // GSM 7-bit (default)
+  },
+  (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Message sent, ID:', pdu.message_id);
+    } else {
+      console.error('Send failed:', pdu.command_status);
+    }
+  }
+);
+```
+
+---
+
+## Unicode SMS
+
+### UCS-2 Encoding (70 characters)
+
+```javascript
+// For non-GSM characters (Arabic, Chinese, Emoji, etc.)
+const message = 'مرحبا بك في سنديكسا'; // Arabic
+const messageBuffer = Buffer.from(message, 'utf16be');
+
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    source_addr_ton: 0x05,
+    destination_addr: '233501234567',
+    dest_addr_ton: 0x01,
+    dest_addr_npi: 0x01,
+    short_message: messageBuffer,
+    data_coding: 0x08, // UCS-2
+    registered_delivery: 0x01,
+  },
+  (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Unicode message sent:', pdu.message_id);
+    }
+  }
+);
+```
+
+### Character Detection
+
+```javascript
+function needsUnicode(text) {
+  // Check if text contains non-GSM characters
+  const gsmChars =
+    /^[A-Za-z0-9 \r\n@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà^{}\\[~\]|€]*$/;
+  return !gsmChars.test(text);
+}
+
+function sendSMS(to, text) {
+  const isUnicode = needsUnicode(text);
+
+  const params = {
+    destination_addr: to,
+    source_addr: 'Sendexa',
+    registered_delivery: 0x01,
+  };
+
+  if (isUnicode) {
+    params.short_message = Buffer.from(text, 'utf16be');
+    params.data_coding = 0x08;
+  } else {
+    params.short_message = text;
+    params.data_coding = 0x00;
+  }
+
+  session.submit_sm(params, callback);
+}
+```
+
+---
+
+## Long Messages
+
+### Automatic Concatenation
+
+Long messages are split into multiple parts automatically.
+
+```javascript
+const longMessage =
+  'This is a very long message that exceeds 160 characters. '.repeat(3);
+
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: longMessage,
+    registered_delivery: 0x01,
+  },
+  (pdu) => {
+    console.log('Long message sent:', pdu.message_id);
+  }
+);
+```
+
+### Manual Concatenation with UDH
+
+```javascript
+function splitMessage(text, isUnicode = false) {
+  const maxLength = isUnicode ? 67 : 153; // Account for UDH
+  const parts = [];
+
+  for (let i = 0; i < text.length; i += maxLength) {
+    parts.push(text.substring(i, i + maxLength));
+  }
+
+  return parts;
+}
+
+function sendLongMessage(to, text) {
+  const isUnicode = needsUnicode(text);
+  const parts = splitMessage(text, isUnicode);
+  const refNum = Math.floor(Math.random() * 255); // Reference number
+
+  parts.forEach((part, index) => {
+    // Create UDH header
+    const udh = Buffer.from([
+      0x05, // UDH Length
+      0x00, // IEI (concatenation)
+      0x03, // IEDL (length)
+      refNum, // Reference number
+      parts.length, // Total parts
+      index + 1, // Current part
+    ]);
+
+    const message = isUnicode
+      ? Buffer.concat([udh, Buffer.from(part, 'utf16be')])
+      : Buffer.concat([udh, Buffer.from(part)]);
+
+    session.submit_sm(
+      {
+        source_addr: 'Sendexa',
+        destination_addr: to,
+        short_message: message,
+        esm_class: 0x40, // UDH indicator
+        data_coding: isUnicode ? 0x08 : 0x00,
+        registered_delivery: 0x01,
+      },
+      (pdu) => {
+        console.log(`Part ${index + 1}/${parts.length} sent:`, pdu.message_id);
+      }
+    );
+  });
+}
+
+// Usage
+sendLongMessage('233501234567', 'Very long message here...');
+```
+
+---
+
+## Flash SMS
+
+Flash messages appear immediately on screen without saving to inbox.
+
+```javascript
+session.submit_sm(
+  {
+    source_addr: 'ALERT',
+    destination_addr: '233501234567',
+    short_message: 'URGENT: Emergency alert message',
+    data_coding: 0xf0, // Flash SMS (Class 0)
+    registered_delivery: 0x01,
+  },
+  (pdu) => {
+    console.log('Flash SMS sent:', pdu.message_id);
+  }
+);
+```
+
+### Message Classes
+
+| Class | data_coding | Storage                   |
+| ----- | ----------- | ------------------------- |
+| 0     | 0xF0        | Flash (immediate display) |
+| 1     | 0xF1        | Phone memory              |
+| 2     | 0xF2        | SIM memory                |
+| 3     | 0xF3        | SIM toolkit               |
+
+---
+
+## Delivery Reports
+
+### Request DLR
+
+```javascript
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: 'Message with DLR',
+    registered_delivery: 0x01, // Request DLR
+  },
+  (pdu) => {
+    console.log('Message ID for DLR tracking:', pdu.message_id);
+  }
+);
+```
+
+### DLR Options
+
+| Value | Description         |
+| ----- | ------------------- |
+| 0x00  | No DLR              |
+| 0x01  | DLR requested       |
+| 0x02  | DLR on failure only |
+
+---
+
+## Scheduled Messages
+
+### Schedule for Future Delivery
+
+```javascript
+// Schedule for 1 hour from now
+const scheduleTime = new Date(Date.now() + 3600000);
+const smppTime = formatSMPPTime(scheduleTime);
+
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: 'Scheduled message',
+    schedule_delivery_time: smppTime,
+    registered_delivery: 0x01,
+  },
+  (pdu) => {
+    console.log('Scheduled message ID:', pdu.message_id);
+  }
+);
+
+function formatSMPPTime(date) {
+  // Format: YYMMDDhhmmss000R
+  const pad = (n) => String(n).padStart(2, '0');
+  return [
+    date.getFullYear().toString().substr(2),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    '000R', // Relative time
+  ].join('');
+}
+```
+
+---
+
+## Validity Period
+
+Set how long message should attempt delivery.
+
+```javascript
+// Valid for 24 hours
+const validFor = new Date(Date.now() + 86400000);
+const validityPeriod = formatSMPPTime(validFor);
+
+session.submit_sm(
+  {
+    source_addr: 'Sendexa',
+    destination_addr: '233501234567',
+    short_message: 'Message with validity',
+    validity_period: validityPeriod,
+    registered_delivery: 0x01,
+  },
+  callback
+);
+```
+
+---
+
+## Submit Multiple (submit_multi)
+
+Send same message to multiple recipients in one PDU.
+
+```javascript
+session.submit_multi(
+  {
+    source_addr: 'Sendexa',
+    dest_addresses: [
+      {
+        dest_addr_ton: 0x01,
+        dest_addr_npi: 0x01,
+        destination_addr: '233501234567',
+      },
+      {
+        dest_addr_ton: 0x01,
+        dest_addr_npi: 0x01,
+        destination_addr: '233509876543',
+      },
+      {
+        dest_addr_ton: 0x01,
+        dest_addr_npi: 0x01,
+        destination_addr: '233543219876',
+      },
+    ],
+    short_message: 'Bulk message to multiple recipients',
+    registered_delivery: 0x01,
+  },
+  (pdu) => {
+    if (pdu.command_status === 0) {
+      console.log('Bulk message sent:', pdu.message_id);
+      console.log('Unsuccess addresses:', pdu.unsuccess_smes);
+    }
+  }
+);
+```
+
+---
+
+## Code Examples
+
+### Node.js Complete Example
+
+```javascript
+const smpp = require('smpp');
+
+class SMPPMessenger {
+  constructor(config) {
+    this.config = config;
+    this.session = null;
+    this.messageQueue = [];
+    this.processing = false;
+  }
+
+  connect() {
+    this.session = smpp.connect({
+      url: `smpp://${this.config.host}:${this.config.port}`,
+    });
+
+    this.session.bind_transceiver(
+      {
+        system_id: this.config.systemId,
+        password: this.config.password,
+      },
+      (pdu) => {
+        if (pdu.command_status === 0) {
+          console.log('Connected, processing queue...');
+          this.processQueue();
+        }
+      }
+    );
+  }
+
+  sendSMS(to, message, options = {}) {
+    return new Promise((resolve, reject) => {
+      const isUnicode = this.needsUnicode(message);
+
+      const params = {
+        source_addr: options.from || 'Sendexa',
+        source_addr_ton: 0x05,
+        source_addr_npi: 0x00,
+        destination_addr: to,
+        dest_addr_ton: 0x01,
+        dest_addr_npi: 0x01,
+        registered_delivery: options.dlr ? 0x01 : 0x00,
+        data_coding: isUnicode ? 0x08 : 0x00,
+        short_message: isUnicode ? Buffer.from(message, 'utf16be') : message,
+      };
+
+      this.session.submit_sm(params, (pdu) => {
+        if (pdu.command_status === 0) {
+          resolve({
+            messageId: pdu.message_id,
+            status: 'sent',
+          });
+        } else {
+          reject({
+            error: 'SUBMIT_FAILED',
+            status: pdu.command_status,
+          });
+        }
+      });
+    });
+  }
+
+  needsUnicode(text) {
+    const gsmChars =
+      /^[A-Za-z0-9 \r\n@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà^{}\\[~\]|€]*$/;
+    return !gsmChars.test(text);
+  }
+
+  queueMessage(to, message, options) {
+    this.messageQueue.push({ to, message, options });
+    this.processQueue();
+  }
+
+  async processQueue() {
+    if (this.processing || this.messageQueue.length === 0) {
+      return;
+    }
+
+    this.processing = true;
+
+    while (this.messageQueue.length > 0) {
+      const msg = this.messageQueue.shift();
+
+      try {
+        const result = await this.sendSMS(msg.to, msg.message, msg.options);
+        console.log('Sent:', result.messageId);
+      } catch (error) {
+        console.error('Failed:', error);
+        // Re-queue on certain errors
+        if (error.status === 0x00000058) {
+          // Throttled
+          this.messageQueue.unshift(msg);
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+
+      // Small delay between messages
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    this.processing = false;
+  }
+}
+
+// Usage
+const messenger = new SMPPMessenger({
+  host: 'smpp.sendexa.co',
+  port: 2775,
+  systemId: 'your_username',
+  password: 'your_password',
+});
+
+messenger.connect();
+
+// Send message
+await messenger.sendSMS('233501234567', 'Hello from SMPP!', {
+  from: 'Sendexa',
+  dlr: true,
+});
+
+// Queue multiple messages
+messenger.queueMessage('233501234567', 'Message 1');
+messenger.queueMessage('233509876543', 'Message 2');
+messenger.queueMessage('233543219876', 'Message 3');
+```
+
+### Python Example
+
+```python
+import smpplib.gsm
+import smpplib.client
+import smpplib.consts
+
+class SMPPMessenger:
+    def __init__(self, host, port, system_id, password):
+        self.client = smpplib.client.Client(host, port)
+        self.system_id = system_id
+        self.password = password
+
+    def connect(self):
+        """Connect and bind to SMPP server"""
+        self.client.connect()
+        self.client.bind_transceiver(
+            system_id=self.system_id,
+            password=self.password
+        )
+        print('Connected to SMPP')
+
+    def send_sms(self, to, message, sender='Sendexa', request_dlr=True):
+        """Send SMS message"""
+        parts, encoding_flag, msg_type_flag = smpplib.gsm.make_pdu(
+            to,
+            message,
+            data_coding=smpplib.consts.SMPP_ENCODING_DEFAULT
+        )
+
+        for part in parts:
+            pdu = self.client.send_message(
+                source_addr_ton=smpplib.consts.SMPP_TON_ALNUM,
+                source_addr=sender,
+                dest_addr_ton=smpplib.consts.SMPP_TON_INTL,
+                destination_addr=to,
+                short_message=part,
+                data_coding=encoding_flag,
+                esm_class=msg_type_flag,
+                registered_delivery=request_dlr
+            )
+
+            print(f'Message sent, ID: {pdu.message_id}')
+            return pdu.message_id
+
+    def send_unicode(self, to, message, sender='Sendexa'):
+        """Send Unicode SMS"""
+        message_bytes = message.encode('utf-16-be')
+
+        pdu = self.client.send_message(
+            source_addr_ton=smpplib.consts.SMPP_TON_ALNUM,
+            source_addr=sender,
+            dest_addr_ton=smpplib.consts.SMPP_TON_INTL,
+            destination_addr=to,
+            short_message=message_bytes,
+            data_coding=8,  # UCS-2
+            registered_delivery=True
+        )
+
+        return pdu.message_id
+
+    def disconnect(self):
+        """Disconnect from SMPP"""
+        self.client.unbind()
+        self.client.disconnect()
+
+# Usage
+messenger = SMPPMessenger(
+    'smpp.sendexa.co',
+    2775,
+    'your_username',
+    'your_password'
+)
+
+messenger.connect()
+
+# Send SMS
+messenger.send_sms('233501234567', 'Hello from Python SMPP!')
+
+# Send Unicode
+messenger.send_unicode('233501234567', 'مرحبا 👋')
+
+messenger.disconnect()
+```
+
+### PHP Example
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use OnlineCity\Smpp\Transport;
+use OnlineCity\Smpp\Client;
+use OnlineCity\Smpp\Address;
+use OnlineCity\Smpp\SMPP;
+
+class SMPPMessenger
+{
+    private $client;
+
+    public function __construct($host, $port, $systemId, $password)
+    {
+        $transport = new Transport([$host], $port);
+        $transport->open();
+
+        $this->client = new Client($transport);
+        $this->client->bindTransceiver($systemId, $password);
+
+        echo "Connected to SMPP\n";
+    }
+
+    public function sendSMS($to, $message, $from = 'Sendexa')
+    {
+        $from = new Address($from, SMPP::TON_ALPHANUMERIC);
+        $to = new Address($to, SMPP::TON_INTERNATIONAL);
+
+        // Detect encoding
+        $isUnicode = !$this->isGSM($message);
+
+        if ($isUnicode) {
+            $message = iconv('UTF-8', 'UTF-16BE', $message);
+            $dataCoding = SMPP::DATA_CODING_UCS2;
+        } else {
+            $dataCoding = SMPP::DATA_CODING_DEFAULT;
+        }
+
+        $messageId = $this->client->sendSMS(
+            $from,
+            $to,
+            $message,
+            null, // tags
+            $dataCoding
+        );
+
+        echo "Message sent, ID: $messageId\n";
+        return $messageId;
+    }
+
+    private function isGSM($text)
+    {
+        $gsm = "@£\$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà^{}\\[~]|€";
+
+        for ($i = 0; $i < strlen($text); $i++) {
+            if (strpos($gsm, $text[$i]) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function disconnect()
+    {
+        $this->client->close();
+        echo "Disconnected from SMPP\n";
+    }
+}
+
+// Usage
+$messenger = new SMPPMessenger(
+    'smpp.sendexa.co',
+    2775,
+    'your_username',
+    'your_password'
+);
+
+$messenger->sendSMS('233501234567', 'Hello from PHP SMPP!');
+$messenger->disconnect();
+?>
+```
+
+---
+
+## Best Practices
+
+### 1. Character Encoding Detection
+
+Always detect whether Unicode is needed:
+
+```javascript
+function detectEncoding(text) {
+  const needsUnicode =
+    !/^[A-Za-z0-9 \r\n@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà^{}\\[~\]|€]*$/.test(
+      text
+    );
+
+  return {
+    encoding: needsUnicode ? 'UCS-2' : 'GSM-7',
+    dataCoding: needsUnicode ? 0x08 : 0x00,
+    maxLength: needsUnicode ? 70 : 160,
+  };
+}
+```
+
+### 2. Message Length Calculation
+
+```javascript
+function calculateParts(text) {
+  const encoding = detectEncoding(text);
+  const partLength = encoding.maxLength;
+  const concatLength = encoding.encoding === 'UCS-2' ? 67 : 153;
+
+  if (text.length <= partLength) {
+    return 1;
+  }
+
+  return Math.ceil(text.length / concatLength);
+}
+
+// Usage
+const parts = calculateParts('Your message here');
+const cost = parts * 0.03; // Cost per part
+console.log(`Message will be ${parts} parts, costing GHS ${cost}`);
+```
+
+### 3. Rate Limiting
+
+```javascript
+class RateLimiter {
+  constructor(maxPerSecond) {
+    this.maxPerSecond = maxPerSecond;
+    this.queue = [];
+    this.processing = false;
+  }
+
+  async sendWithLimit(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const item = this.queue.shift();
+
+    try {
+      const result = await item.fn();
+      item.resolve(result);
+    } catch (error) {
+      item.reject(error);
+    }
+
+    setTimeout(() => {
+      this.processing = false;
+      this.process();
+    }, 1000 / this.maxPerSecond);
+  }
+}
+
+// Usage
+const limiter = new RateLimiter(10); // 10 messages per second
+
+await limiter.sendWithLimit(() =>
+  messenger.sendSMS('233501234567', 'Message 1')
+);
+```
+
+---
+
+## Common Errors
+
+### Error: ESME_RINVDSTADR (0x0000000B)
+
+**Cause:** Invalid destination address
+
+**Solution:** Verify phone number format (international)
+
+### Error: ESME_RTHROTTLED (0x00000058)
+
+**Cause:** Exceeded rate limit
+
+**Solution:** Implement rate limiting and backoff
+
+### Error: ESME_RINVMSGLEN (0x00000001)
+
+**Cause:** Message too long
+
+**Solution:** Split into multiple parts
+
+---
+
+## Next Steps
+
+- 📊 **[Delivery Reports](/docs/smpp/dlr)** - Handle DLRs
+- 🔔 **[Set Up Webhooks](/docs/smpp/webhooks)** - HTTP callbacks
+- 🛠️ **[API Reference](/docs/smpp/v1)** - Complete specification

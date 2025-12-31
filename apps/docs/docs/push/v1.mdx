@@ -1,0 +1,965 @@
+---
+title: Push Notification API v1 Reference
+description: Complete API reference for the Sendexa Push Notification API v1 with all endpoints, parameters, and response formats.
+date: 2025-03-12
+---
+
+# Push Notification API v1 Reference
+
+Complete reference documentation for all Sendexa Push Notification API v1 endpoints. This guide provides detailed information about every endpoint, parameter, response format, and error code.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+All API requests require authentication using Bearer tokens in the `Authorization` header.
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Generate tokens:** [Dashboard → Developers → API Keys](https://auth.sendexa.co/developers/api-keys)
+
+---
+
+## Endpoints Overview
+
+| Endpoint                             | Method | Purpose                        | Rate Limit |
+| ------------------------------------ | ------ | ------------------------------ | ---------- |
+| `/v1/push/send`                      | POST   | Send notification to device(s) | 100/min    |
+| `/v1/push/send/topic`                | POST   | Send to topic subscribers      | 60/min     |
+| `/v1/push/devices`                   | POST   | Register new device            | 100/min    |
+| `/v1/push/devices`                   | GET    | List devices                   | 60/min     |
+| `/v1/push/devices/:id`               | GET    | Get device details             | 100/min    |
+| `/v1/push/devices/:id`               | PUT    | Update device                  | 60/min     |
+| `/v1/push/devices/:id`               | DELETE | Remove device                  | 60/min     |
+| `/v1/push/topics/:topic/subscribe`   | POST   | Subscribe to topic             | 100/min    |
+| `/v1/push/topics/:topic/unsubscribe` | POST   | Unsubscribe from topic         | 100/min    |
+| `/v1/push/devices/:id/topics`        | GET    | List device topics             | 60/min     |
+| `/v1/push/analytics`                 | GET    | Get analytics                  | 30/min     |
+
+---
+
+## Send Notification
+
+### POST /v1/push/send
+
+Send push notifications to one or more devices.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body (Single Device)
+
+| Parameter      | Type    | Required | Description               |
+| -------------- | ------- | -------- | ------------------------- |
+| `device_token` | string  | Yes\*    | Target device token       |
+| `title`        | string  | Yes      | Notification title        |
+| `body`         | string  | Yes      | Notification message      |
+| `data`         | object  | No       | Custom payload data       |
+| `image`        | string  | No       | Image URL                 |
+| `icon`         | string  | No       | Icon URL (Android/Web)    |
+| `badge`        | integer | No       | Badge count (iOS)         |
+| `sound`        | string  | No       | Sound filename            |
+| `actions`      | array   | No       | Action buttons            |
+| `priority`     | string  | No       | `high` or `normal`        |
+| `ttl`          | integer | No       | Time to live (seconds)    |
+| `scheduled_at` | string  | No       | ISO 8601 timestamp        |
+| `collapse_key` | string  | No       | Notification grouping key |
+
+\*Either `device_token`, `device_tokens`, or `user_id` required
+
+#### Request Body (Bulk)
+
+```json
+{
+  "device_tokens": ["token1", "token2", "token3"],
+  "title": "Flash Sale!",
+  "body": "50% off all items today",
+  "image": "https://cdn.shop.com/sale.jpg",
+  "data": {
+    "campaign": "flash_sale_2025",
+    "discount": "50"
+  },
+  "priority": "high"
+}
+```
+
+#### Request Body (User)
+
+```json
+{
+  "user_id": "user-123",
+  "title": "New Message",
+  "body": "You have a new message from John",
+  "data": {
+    "messageId": "msg-456"
+  }
+}
+```
+
+#### Success Response (Single)
+
+```json
+{
+  "success": true,
+  "message": "Push notification sent successfully",
+  "notification": {
+    "id": "notif_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "status": "sent",
+    "platform": "ios",
+    "scheduled": false,
+    "sent_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+#### Success Response (Bulk)
+
+```json
+{
+  "success": true,
+  "message": "Bulk push notifications sent",
+  "notifications": [
+    {
+      "id": "notif_abc123",
+      "device_token": "token1",
+      "status": "sent",
+      "platform": "ios"
+    },
+    {
+      "id": "notif_def456",
+      "device_token": "token2",
+      "status": "sent",
+      "platform": "android"
+    },
+    {
+      "id": "notif_ghi789",
+      "device_token": "token3",
+      "status": "failed",
+      "error": "Invalid device token"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "sent": 2,
+    "failed": 1
+  }
+}
+```
+
+#### Error Response
+
+```json
+{
+  "success": false,
+  "error": "INVALID_DEVICE_TOKEN",
+  "message": "The device token provided is invalid or expired",
+  "device_token": "fL9x..."
+}
+```
+
+---
+
+## Send to Topic
+
+### POST /v1/push/send/topic
+
+Send notification to all subscribers of a topic.
+
+#### Request Body
+
+| Parameter                         | Type   | Required | Description         |
+| --------------------------------- | ------ | -------- | ------------------- |
+| `topic`                           | string | Yes      | Topic name          |
+| `title`                           | string | Yes      | Notification title  |
+| `body`                            | string | Yes      | Notification body   |
+| `data`                            | object | No       | Custom data         |
+| `image`                           | string | No       | Image URL           |
+| All other notification parameters |        |          | Same as device send |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/send/topic' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": "breaking_news",
+    "title": "Breaking News",
+    "body": "Major announcement from the President",
+    "image": "https://cdn.news.com/image.jpg",
+    "data": {
+      "articleId": "news-12345",
+      "category": "politics"
+    }
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Topic notification sent successfully",
+  "topic": "breaking_news",
+  "estimated_devices": 15420,
+  "notification_id": "notif_topic_abc123",
+  "sent_at": "2025-03-12T14:20:00Z"
+}
+```
+
+---
+
+## Register Device
+
+### POST /v1/push/devices
+
+Register a new device for push notifications.
+
+#### Request Body
+
+| Parameter      | Type   | Required | Description                     |
+| -------------- | ------ | -------- | ------------------------------- |
+| `device_token` | string | Yes      | Unique device token             |
+| `platform`     | string | Yes      | `ios`, `android`, or `web`      |
+| `user_id`      | string | No       | Link device to user             |
+| `app_version`  | string | No       | App version (e.g., "2.5.1")     |
+| `os_version`   | string | No       | OS version                      |
+| `device_model` | string | No       | Device model                    |
+| `language`     | string | No       | Language code (e.g., "en")      |
+| `timezone`     | string | No       | Timezone (e.g., "Africa/Accra") |
+| `metadata`     | object | No       | Custom metadata                 |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/devices' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_token": "fL9x8K3mR2nQ5pW7hT6cX4vB9nM1sK0p...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "device_model": "iPhone 14 Pro",
+    "language": "en",
+    "timezone": "Africa/Accra",
+    "metadata": {
+      "subscription_tier": "premium",
+      "notifications_enabled": true
+    }
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Device registered successfully",
+  "device": {
+    "id": "dev_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "device_model": "iPhone 14 Pro",
+    "language": "en",
+    "timezone": "Africa/Accra",
+    "status": "active",
+    "metadata": {
+      "subscription_tier": "premium",
+      "notifications_enabled": true
+    },
+    "created_at": "2025-03-12T14:20:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## List Devices
+
+### GET /v1/push/devices
+
+Retrieve list of registered devices with optional filters.
+
+#### Query Parameters
+
+| Parameter  | Type    | Description                            |
+| ---------- | ------- | -------------------------------------- |
+| `user_id`  | string  | Filter by user ID                      |
+| `platform` | string  | Filter by platform (ios/android/web)   |
+| `status`   | string  | Filter by status (active/inactive)     |
+| `limit`    | integer | Results per page (max 100, default 50) |
+| `offset`   | integer | Pagination offset                      |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices?user_id=user-123&status=active' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "devices": [
+    {
+      "id": "dev_abc123",
+      "device_token": "fL9x...",
+      "platform": "ios",
+      "user_id": "user-123",
+      "status": "active",
+      "last_active": "2025-03-12T14:20:00Z",
+      "created_at": "2025-03-01T10:00:00Z"
+    },
+    {
+      "id": "dev_def456",
+      "device_token": "mK8y...",
+      "platform": "android",
+      "user_id": "user-123",
+      "status": "active",
+      "last_active": "2025-03-11T09:15:00Z",
+      "created_at": "2025-03-05T15:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 2,
+    "limit": 50,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+---
+
+## Get Device Details
+
+### GET /v1/push/devices/:deviceId
+
+Retrieve detailed information about a specific device.
+
+#### Path Parameters
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `deviceId` | string | Yes      | Device ID   |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "device": {
+    "id": "dev_abc123def456",
+    "device_token": "fL9x8K3mR2nQ5pW7...",
+    "platform": "ios",
+    "user_id": "user-123",
+    "app_version": "2.5.1",
+    "os_version": "17.2",
+    "device_model": "iPhone 14 Pro",
+    "language": "en",
+    "timezone": "Africa/Accra",
+    "status": "active",
+    "topics": ["breaking_news", "sports_football"],
+    "metadata": {
+      "subscription_tier": "premium",
+      "notifications_enabled": true
+    },
+    "statistics": {
+      "notifications_sent": 156,
+      "notifications_opened": 89,
+      "open_rate": 57.05
+    },
+    "last_active": "2025-03-12T14:20:00Z",
+    "created_at": "2025-03-01T10:00:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Update Device
+
+### PUT /v1/push/devices/:deviceId
+
+Update device information.
+
+#### Path Parameters
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `deviceId` | string | Yes      | Device ID   |
+
+#### Request Body
+
+| Parameter      | Type   | Description             |
+| -------------- | ------ | ----------------------- |
+| `device_token` | string | Update device token     |
+| `user_id`      | string | Update user association |
+| `app_version`  | string | Update app version      |
+| `language`     | string | Update language         |
+| `timezone`     | string | Update timezone         |
+| `metadata`     | object | Update metadata         |
+
+#### Example Request
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "user_id": "user-456",
+    "language": "fr",
+    "timezone": "Africa/Lagos",
+    "metadata": {
+      "subscription_tier": "premium",
+      "notifications_enabled": true,
+      "email_fallback": "user@example.com"
+    }
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Device updated successfully",
+  "device": {
+    "id": "dev_abc123def456",
+    "user_id": "user-456",
+    "language": "fr",
+    "timezone": "Africa/Lagos",
+    "metadata": {
+      "subscription_tier": "premium",
+      "notifications_enabled": true,
+      "email_fallback": "user@example.com"
+    },
+    "updated_at": "2025-03-12T14:30:00Z"
+  }
+}
+```
+
+---
+
+## Delete Device
+
+### DELETE /v1/push/devices/:deviceId
+
+Remove a device from push notifications.
+
+#### Path Parameters
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `deviceId` | string | Yes      | Device ID   |
+
+#### Example Request
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/push/devices/dev_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Device removed successfully",
+  "device_id": "dev_abc123def456",
+  "deleted_at": "2025-03-12T14:35:00Z"
+}
+```
+
+---
+
+## Subscribe to Topic
+
+### POST /v1/push/topics/:topic/subscribe
+
+Subscribe a device to a topic.
+
+#### Path Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `topic`   | string | Yes      | Topic name  |
+
+#### Request Body
+
+| Parameter   | Type   | Required | Description            |
+| ----------- | ------ | -------- | ---------------------- |
+| `device_id` | string | Yes      | Device ID to subscribe |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/topics/breaking_news/subscribe' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_id": "dev_abc123def456"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Device subscribed to topic successfully",
+  "topic": "breaking_news",
+  "device_id": "dev_abc123def456",
+  "subscribed_at": "2025-03-12T14:40:00Z"
+}
+```
+
+---
+
+## Unsubscribe from Topic
+
+### POST /v1/push/topics/:topic/unsubscribe
+
+Unsubscribe a device from a topic.
+
+#### Path Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `topic`   | string | Yes      | Topic name  |
+
+#### Request Body
+
+| Parameter   | Type   | Required | Description              |
+| ----------- | ------ | -------- | ------------------------ |
+| `device_id` | string | Yes      | Device ID to unsubscribe |
+
+#### Example Request
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/push/topics/breaking_news/unsubscribe' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "device_id": "dev_abc123def456"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Device unsubscribed from topic successfully",
+  "topic": "breaking_news",
+  "device_id": "dev_abc123def456",
+  "unsubscribed_at": "2025-03-12T14:45:00Z"
+}
+```
+
+---
+
+## List Device Topics
+
+### GET /v1/push/devices/:deviceId/topics
+
+Get all topics a device is subscribed to.
+
+#### Path Parameters
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `deviceId` | string | Yes      | Device ID   |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/devices/dev_abc123def456/topics' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "device_id": "dev_abc123def456",
+  "topics": [
+    {
+      "name": "breaking_news",
+      "subscribed_at": "2025-03-01T10:00:00Z"
+    },
+    {
+      "name": "sports_football",
+      "subscribed_at": "2025-03-05T15:30:00Z"
+    },
+    {
+      "name": "weather_alerts",
+      "subscribed_at": "2025-03-10T09:15:00Z"
+    }
+  ],
+  "total": 3
+}
+```
+
+---
+
+## Get Analytics
+
+### GET /v1/push/analytics
+
+Retrieve push notification analytics and statistics.
+
+#### Query Parameters
+
+| Parameter   | Type   | Description           |
+| ----------- | ------ | --------------------- |
+| `date_from` | string | Start date (ISO 8601) |
+| `date_to`   | string | End date (ISO 8601)   |
+| `platform`  | string | Filter by platform    |
+| `topic`     | string | Filter by topic       |
+
+#### Example Request
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/push/analytics?date_from=2025-03-01&date_to=2025-03-12' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "analytics": {
+    "period": {
+      "from": "2025-03-01T00:00:00Z",
+      "to": "2025-03-12T23:59:59Z"
+    },
+    "notifications": {
+      "total_sent": 15420,
+      "total_delivered": 14689,
+      "total_opened": 8234,
+      "total_clicked": 4567,
+      "total_failed": 731
+    },
+    "rates": {
+      "delivery_rate": 95.26,
+      "open_rate": 56.05,
+      "click_rate": 31.11
+    },
+    "by_platform": {
+      "ios": {
+        "sent": 8234,
+        "delivered": 7892,
+        "opened": 4567,
+        "open_rate": 57.86
+      },
+      "android": {
+        "sent": 6234,
+        "delivered": 5987,
+        "opened": 3234,
+        "open_rate": 54.02
+      },
+      "web": {
+        "sent": 952,
+        "delivered": 810,
+        "opened": 433,
+        "open_rate": 53.46
+      }
+    },
+    "top_topics": [
+      {
+        "name": "breaking_news",
+        "sent": 5420,
+        "open_rate": 62.34
+      },
+      {
+        "name": "sports_football",
+        "sent": 3210,
+        "open_rate": 58.92
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description                  |
+| ---- | --------------------- | ---------------------------- |
+| 200  | OK                    | Request successful           |
+| 400  | Bad Request           | Invalid request parameters   |
+| 401  | Unauthorized          | Invalid or missing API token |
+| 402  | Payment Required      | Insufficient account balance |
+| 403  | Forbidden             | Access denied                |
+| 404  | Not Found             | Resource not found           |
+| 422  | Unprocessable Entity  | Validation errors            |
+| 429  | Too Many Requests     | Rate limit exceeded          |
+| 500  | Internal Server Error | Server error                 |
+| 503  | Service Unavailable   | Temporary unavailability     |
+
+### Application Error Codes
+
+| Code                   | HTTP Status | Description                        |
+| ---------------------- | ----------- | ---------------------------------- |
+| `INVALID_TOKEN`        | 401         | API token is invalid or expired    |
+| `INVALID_PARAMETERS`   | 400         | Missing or invalid parameters      |
+| `INVALID_DEVICE_TOKEN` | 400         | Device token is invalid            |
+| `DEVICE_NOT_FOUND`     | 404         | Device ID not found                |
+| `DEVICE_UNREGISTERED`  | 400         | Device has unregistered            |
+| `INVALID_PLATFORM`     | 400         | Platform must be ios/android/web   |
+| `TOPIC_NOT_FOUND`      | 404         | Topic does not exist               |
+| `ALREADY_SUBSCRIBED`   | 400         | Device already subscribed to topic |
+| `NOT_SUBSCRIBED`       | 400         | Device not subscribed to topic     |
+| `MESSAGE_TOO_LONG`     | 400         | Title or body exceeds limit        |
+| `INSUFFICIENT_BALANCE` | 402         | Not enough account credits         |
+| `RATE_LIMIT_EXCEEDED`  | 429         | Too many requests                  |
+| `SERVER_ERROR`         | 500         | Internal server error              |
+| `PROVIDER_ERROR`       | 502         | Upstream provider error            |
+
+---
+
+## Rate Limits
+
+| Endpoint                        | Rate Limit   | Window   |
+| ------------------------------- | ------------ | -------- |
+| `/v1/push/send`                 | 100 requests | 1 minute |
+| `/v1/push/send/topic`           | 60 requests  | 1 minute |
+| `/v1/push/devices` (POST)       | 100 requests | 1 minute |
+| `/v1/push/devices` (GET)        | 60 requests  | 1 minute |
+| `/v1/push/devices/:id` (GET)    | 100 requests | 1 minute |
+| `/v1/push/devices/:id` (PUT)    | 60 requests  | 1 minute |
+| `/v1/push/devices/:id` (DELETE) | 60 requests  | 1 minute |
+| `/v1/push/topics/*`             | 100 requests | 1 minute |
+| `/v1/push/analytics`            | 30 requests  | 1 minute |
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 85
+X-RateLimit-Reset: 1678627800
+```
+
+### Rate Limit Exceeded Response
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests. Please slow down.",
+  "retry_after": 30,
+  "details": {
+    "limit": 100,
+    "window": "1 minute"
+  }
+}
+```
+
+---
+
+## Webhooks
+
+Sendexa can send webhook notifications for push events.
+
+### Webhook Events
+
+| Event            | Trigger                          |
+| ---------------- | -------------------------------- |
+| `push.sent`      | Notification sent to provider    |
+| `push.delivered` | Notification delivered to device |
+| `push.opened`    | User opened notification         |
+| `push.clicked`   | User clicked notification action |
+| `push.failed`    | Notification delivery failed     |
+
+### Webhook Payload
+
+```json
+{
+  "event": "push.opened",
+  "notification_id": "notif_abc123def456",
+  "device_id": "dev_abc123",
+  "device_token": "fL9x8K3mR2nQ5pW7...",
+  "platform": "ios",
+  "user_id": "user-123",
+  "title": "New Message",
+  "body": "You have a new message",
+  "data": {
+    "messageId": "msg-456"
+  },
+  "opened_at": "2025-03-12T14:25:30Z",
+  "timestamp": "2025-03-12T14:25:30Z"
+}
+```
+
+---
+
+## SDKs
+
+### Official SDKs
+
+**iOS**
+
+```bash
+pod 'SendexaPush'
+```
+
+**Android**
+
+```gradle
+implementation 'co.sendexa:push:1.0.0'
+```
+
+**React Native**
+
+```bash
+npm install @sendexa/react-native-push
+```
+
+**Flutter**
+
+```yaml
+sendexa_push: ^1.0.0
+```
+
+**Web**
+
+```bash
+npm install @sendexa/web-push
+```
+
+**Node.js**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Tokens:**
+
+| Token                  | Platform | Behavior                 |
+| ---------------------- | -------- | ------------------------ |
+| `test_ios_success`     | iOS      | Always delivers          |
+| `test_android_success` | Android  | Always delivers          |
+| `test_web_success`     | Web      | Always delivers          |
+| `test_invalid_token`   | Any      | Always fails             |
+| `test_offline_device`  | Any      | Simulates offline device |
+
+---
+
+## Best Practices
+
+### 1. Token Management
+
+- Always update tokens when they change
+- Remove invalid/expired tokens
+- Handle token refresh callbacks
+
+### 2. Error Handling
+
+- Implement retry logic with exponential backoff
+- Remove devices that return `DEVICE_UNREGISTERED`
+- Log errors for debugging
+
+### 3. User Experience
+
+- Request permission at appropriate times
+- Explain notification value to users
+- Respect user preferences and quiet hours
+- Implement frequency caps
+
+### 4. Performance
+
+- Use bulk endpoints for multiple recipients
+- Implement caching where appropriate
+- Use webhooks instead of polling
+
+### 5. Security
+
+- Never expose API tokens in client code
+- Use HTTPS for all requests
+- Validate webhook signatures
+- Rotate tokens regularly
+
+---
+
+## Support
+
+- **Documentation:** [docs.sendexa.co](https://docs.sendexa.co)
+- **API Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Email:** support@sendexa.co
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+- **GitHub:** [github.com/sendexa](https://github.com/sendexa)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Single and bulk push notifications
+- Topic broadcasting
+- Device management
+- Analytics and reporting
+- Webhook notifications

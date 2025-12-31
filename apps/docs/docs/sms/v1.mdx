@@ -1,0 +1,712 @@
+---
+title: SMS API v1 Reference
+description: Complete API reference for the Sendexa SMS API v1 with all endpoints, parameters, and response formats.
+date: 2025-03-12
+---
+
+# SMS API v1 Reference
+
+Complete reference documentation for all Sendexa SMS API v1 endpoints. This guide provides detailed information about every endpoint, parameter, response format, and error code.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+All API requests require authentication using Bearer tokens in the `Authorization` header.
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Generate tokens:** [Dashboard → Developers → API Keys](https://auth.sendexa.co/developers/api-keys)
+
+---
+
+## Endpoints Overview
+
+| Endpoint              | Method | Purpose                  | Rate Limit |
+| --------------------- | ------ | ------------------------ | ---------- |
+| `/v1/sms/send`        | POST   | Send single or bulk SMS  | 60/min     |
+| `/v1/sms/status/:id`  | GET    | Check delivery status    | 100/min    |
+| `/v1/sms/status/bulk` | POST   | Check multiple statuses  | 30/min     |
+| `/v1/sms/resend/:id`  | POST   | Resend failed message    | 30/min     |
+| `/v1/sms/history`     | GET    | Get message history      | 30/min     |
+| `/v1/sms/cancel/:id`  | POST   | Cancel scheduled message | 60/min     |
+
+---
+
+## Send SMS
+
+### POST /v1/sms/send
+
+Send single or bulk SMS messages.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body
+
+| Parameter      | Type         | Required | Description                       |
+| -------------- | ------------ | -------- | --------------------------------- |
+| `to`           | string/array | Yes      | Recipient phone number(s)         |
+| `from`         | string       | Yes      | Approved Sender ID (3-11 chars)   |
+| `content`      | string       | Yes      | Message text (max 1600 chars)     |
+| `reference`    | string       | No       | Custom reference ID               |
+| `callback_url` | string       | No       | Webhook URL for this message      |
+| `scheduled_at` | string       | No       | ISO 8601 timestamp for scheduling |
+
+#### Single SMS Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "from": "YourBrand",
+    "content": "Your OTP is 123456. Valid for 10 minutes."
+  }'
+```
+
+#### Bulk SMS Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": ["233501234567", "233509876543", "233543219876"],
+    "from": "YourBrand",
+    "content": "Flash Sale! 50% off all items today only."
+  }'
+```
+
+#### Success Response (Single)
+
+```json
+{
+  "success": true,
+  "message": "SMS queued for delivery",
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    }
+  ]
+}
+```
+
+#### Success Response (Bulk)
+
+```json
+{
+  "success": true,
+  "message": "Bulk SMS queued for delivery",
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    },
+    {
+      "messageId": "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91",
+      "to": "233509876543",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "queued": 2,
+    "failed": 0,
+    "totalCost": 0.07,
+    "currency": "GHS"
+  }
+}
+```
+
+#### Error Response
+
+```json
+{
+  "success": false,
+  "error": "INVALID_PARAMETERS",
+  "message": "The phone number provided is invalid",
+  "details": {
+    "field": "to",
+    "value": "invalid_number"
+  }
+}
+```
+
+---
+
+## Check Status
+
+### GET /v1/sms/status/:messageId
+
+Query the delivery status of a specific message.
+
+#### Path Parameters
+
+| Parameter   | Type   | Required | Description               |
+| ----------- | ------ | -------- | ------------------------- |
+| `messageId` | string | Yes      | Unique message identifier |
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/sms/status/debd64cc-e2dd-4db7-94ee-0a3bfa6d912f' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "to": "233501234567",
+  "from": "YourBrand",
+  "content": "Your OTP is 123456",
+  "status": "delivered",
+  "parts": 1,
+  "cost": 0.035,
+  "currency": "GHS",
+  "reference": "order-12345-otp",
+  "provider": "MTN",
+  "timestamps": {
+    "queued": "2025-03-12T14:20:00Z",
+    "sent": "2025-03-12T14:20:02Z",
+    "delivered": "2025-03-12T14:20:05Z"
+  }
+}
+```
+
+#### Failed Message Response
+
+```json
+{
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "to": "233501234567",
+  "status": "failed",
+  "error": {
+    "code": "INVALID_NUMBER",
+    "message": "The phone number is invalid or does not exist",
+    "provider_code": "001",
+    "provider_message": "Invalid MSISDN"
+  },
+  "timestamps": {
+    "queued": "2025-03-12T14:20:00Z",
+    "failed": "2025-03-12T14:20:03Z"
+  }
+}
+```
+
+---
+
+## Bulk Status Check
+
+### POST /v1/sms/status/bulk
+
+Check status of multiple messages in one request.
+
+#### Request Body
+
+| Parameter    | Type  | Required | Description                    |
+| ------------ | ----- | -------- | ------------------------------ |
+| `messageIds` | array | Yes      | Array of message IDs (max 100) |
+
+#### Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/status/bulk' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "messageIds": [
+      "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91"
+    ]
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "status": "delivered",
+      "timestamps": {
+        "delivered": "2025-03-12T14:20:05Z"
+      }
+    },
+    {
+      "messageId": "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91",
+      "to": "233509876543",
+      "status": "sent",
+      "timestamps": {
+        "sent": "2025-03-12T14:21:00Z"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Resend Message
+
+### POST /v1/sms/resend/:messageId
+
+Resend a failed message using the original message ID.
+
+#### Path Parameters
+
+| Parameter   | Type   | Required | Description                   |
+| ----------- | ------ | -------- | ----------------------------- |
+| `messageId` | string | Yes      | Original message ID to resend |
+
+#### Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/resend/debd64cc-e2dd-4db7-94ee-0a3bfa6d912f' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Message requeued for delivery",
+  "originalMessageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "newMessageId": "abf9d3e6-d3fc-4e56-9bdf-c84b65e3e340",
+  "retryCount": 1,
+  "maxRetries": 3
+}
+```
+
+#### Error Response (Max Retries)
+
+```json
+{
+  "success": false,
+  "error": "MAX_RETRIES_EXCEEDED",
+  "message": "Maximum retry attempts (3) exceeded for this message",
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "retryCount": 3
+}
+```
+
+---
+
+## Message History
+
+### GET /v1/sms/history
+
+Retrieve historical message data with filters.
+
+#### Query Parameters
+
+| Parameter   | Type    | Required | Description                                     |
+| ----------- | ------- | -------- | ----------------------------------------------- |
+| `limit`     | integer | No       | Results per page (max 100, default 50)          |
+| `offset`    | integer | No       | Pagination offset (default 0)                   |
+| `status`    | string  | No       | Filter by status (queued/sent/delivered/failed) |
+| `from`      | string  | No       | Filter by sender ID                             |
+| `to`        | string  | No       | Filter by recipient number                      |
+| `date_from` | string  | No       | Start date (ISO 8601)                           |
+| `date_to`   | string  | No       | End date (ISO 8601)                             |
+| `reference` | string  | No       | Filter by custom reference                      |
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/sms/history?limit=50&status=delivered&date_from=2025-03-01' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "from": "YourBrand",
+      "content": "Your OTP is 123456",
+      "status": "delivered",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS",
+      "provider": "MTN",
+      "timestamps": {
+        "sent": "2025-03-12T14:20:02Z",
+        "delivered": "2025-03-12T14:20:05Z"
+      }
+    }
+  ],
+  "pagination": {
+    "total": 1250,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Cancel Scheduled Message
+
+### POST /v1/sms/cancel/:messageId
+
+Cancel a scheduled message before it's sent.
+
+#### Path Parameters
+
+| Parameter   | Type   | Required | Description          |
+| ----------- | ------ | -------- | -------------------- |
+| `messageId` | string | Yes      | Message ID to cancel |
+
+#### Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/cancel/debd64cc-e2dd-4db7-94ee-0a3bfa6d912f' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Scheduled message cancelled successfully",
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "status": "cancelled"
+}
+```
+
+#### Error Response (Already Sent)
+
+```json
+{
+  "success": false,
+  "error": "CANNOT_CANCEL",
+  "message": "Message has already been sent and cannot be cancelled",
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "status": "sent"
+}
+```
+
+---
+
+## Error Codes
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description                       |
+| ---- | --------------------- | --------------------------------- |
+| 200  | OK                    | Request successful                |
+| 400  | Bad Request           | Invalid request parameters        |
+| 401  | Unauthorized          | Invalid or missing API token      |
+| 402  | Payment Required      | Insufficient account balance      |
+| 403  | Forbidden             | Access denied (suspended account) |
+| 404  | Not Found             | Resource not found                |
+| 422  | Unprocessable Entity  | Validation errors                 |
+| 429  | Too Many Requests     | Rate limit exceeded               |
+| 500  | Internal Server Error | Server error                      |
+| 503  | Service Unavailable   | Temporary service disruption      |
+
+### Application Error Codes
+
+| Code                       | HTTP Status | Description                     |
+| -------------------------- | ----------- | ------------------------------- |
+| `INVALID_TOKEN`            | 401         | API token is invalid or expired |
+| `INVALID_PARAMETERS`       | 400         | Missing or invalid parameters   |
+| `INVALID_PHONE_NUMBER`     | 400         | Phone number format is invalid  |
+| `INVALID_SENDER_ID`        | 400         | Sender ID is invalid            |
+| `SENDER_ID_NOT_REGISTERED` | 403         | Sender ID not registered        |
+| `MESSAGE_TOO_LONG`         | 400         | Message exceeds maximum length  |
+| `INSUFFICIENT_BALANCE`     | 402         | Not enough account credits      |
+| `RATE_LIMIT_EXCEEDED`      | 429         | Too many requests               |
+| `MESSAGE_NOT_FOUND`        | 404         | Message ID not found            |
+| `CANNOT_RESEND`            | 400         | Message cannot be resent        |
+| `MAX_RETRIES_EXCEEDED`     | 400         | Maximum retries reached         |
+| `CANNOT_CANCEL`            | 400         | Message cannot be cancelled     |
+| `SERVER_ERROR`             | 500         | Internal server error           |
+| `PROVIDER_ERROR`           | 502         | Upstream provider error         |
+
+---
+
+## Rate Limits
+
+| Endpoint              | Rate Limit   | Window   |
+| --------------------- | ------------ | -------- |
+| `/v1/sms/send`        | 60 requests  | 1 minute |
+| `/v1/sms/status/:id`  | 100 requests | 1 minute |
+| `/v1/sms/status/bulk` | 30 requests  | 1 minute |
+| `/v1/sms/resend/:id`  | 30 requests  | 1 minute |
+| `/v1/sms/history`     | 30 requests  | 1 minute |
+| `/v1/sms/cancel/:id`  | 60 requests  | 1 minute |
+
+### Rate Limit Headers
+
+Every response includes rate limit information:
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1678627800
+```
+
+### Rate Limit Exceeded Response
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests. Please slow down.",
+  "retry_after": 30,
+  "details": {
+    "limit": 60,
+    "window": "1 minute"
+  }
+}
+```
+
+---
+
+## Message Status Values
+
+| Status      | Description                         | Billable |
+| ----------- | ----------------------------------- | -------- |
+| `queued`    | Message is waiting in send queue    | No       |
+| `sent`      | Message sent to carrier             | Yes      |
+| `delivered` | Successfully delivered to recipient | Yes      |
+| `failed`    | Delivery failed                     | No\*     |
+
+\*Failed messages may be billable if they reached the carrier
+
+---
+
+## Webhooks
+
+Sendexa can send real-time webhook notifications for SMS events.
+
+### Webhook Events
+
+| Event           | Trigger                        |
+| --------------- | ------------------------------ |
+| `sms.sent`      | Message sent to carrier        |
+| `sms.delivered` | Message delivered to recipient |
+| `sms.failed`    | Message delivery failed        |
+
+### Webhook Payload Example
+
+```json
+{
+  "event": "sms.delivered",
+  "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+  "to": "233501234567",
+  "from": "YourBrand",
+  "status": "delivered",
+  "provider": "MTN",
+  "cost": 0.035,
+  "currency": "GHS",
+  "deliveredAt": "2025-03-12T14:20:05Z",
+  "timestamp": "2025-03-12T14:20:05Z"
+}
+```
+
+See [Webhooks Documentation](/docs/sms/webhooks) for complete guide.
+
+---
+
+## SDKs & Code Examples
+
+### Official SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+---
+
+```javascript
+const Sendexa = require('@sendexa/node-sdk');
+const client = new Sendexa('your_token');
+
+const result = await client.sms.send({
+  to: '233501234567',
+  from: 'YourBrand',
+  content: 'Hello from Sendexa!',
+});
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+---
+
+```python
+from sendexa import Sendexa
+
+client = Sendexa('your_token')
+
+result = client.sms.send(
+    to='233501234567',
+    from='YourBrand',
+    content='Hello from Sendexa!'
+)
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+---
+
+```php
+<?php
+use Sendexa\Client;
+
+$client = new Client('your_token');
+
+$result = $client->sms->send([
+    'to' => '233501234567',
+    'from' => 'YourBrand',
+    'content' => 'Hello from Sendexa!'
+]);
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+Test without consuming credits:
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Test Numbers:**
+| Number | Behavior |
+|--------|----------|
+| `233500000001` | Always delivers successfully |
+| `233500000002` | Always fails (invalid number) |
+| `233500000003` | Delivers after 30 second delay |
+| `233500000004` | Fails after retry attempts |
+
+---
+
+## Best Practices
+
+### 1. Always Validate Phone Numbers
+
+```javascript
+function isValidPhoneNumber(phone) {
+  const cleaned = phone.replace(/[\s\-+]/g, '');
+  return /^\d{10,15}$/.test(cleaned);
+}
+```
+
+### 2. Handle Errors Gracefully
+
+```javascript
+try {
+  const result = await sendSMS(to, content);
+  console.log('Success:', result.messageId);
+} catch (error) {
+  if (error.code === 'INSUFFICIENT_BALANCE') {
+    // Alert admin to top up
+  } else if (error.code === 'RATE_LIMIT_EXCEEDED') {
+    // Implement retry with backoff
+  }
+}
+```
+
+### 3. Use Webhooks Instead of Polling
+
+Webhooks are more efficient and provide real-time updates.
+
+### 4. Implement Exponential Backoff
+
+```javascript
+async function sendWithRetry(data, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await sendSMS(data);
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise((r) => setTimeout(r, Math.pow(2, i) * 1000));
+    }
+  }
+}
+```
+
+### 5. Store Message IDs
+
+Always store message IDs for tracking and support.
+
+---
+
+## Support
+
+- **Documentation:** [docs.sendexa.co](https://docs.sendexa.co)
+- **API Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Email:** support@sendexa.co
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+- **GitHub:** [github.com/sendexa](https://github.com/sendexa)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- Single and bulk SMS sending
+- Delivery status tracking
+- Webhook notifications
+- Message resend capability
+- Scheduled sending

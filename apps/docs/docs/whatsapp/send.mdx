@@ -1,0 +1,996 @@
+---
+title: Send WhatsApp Messages
+description: Learn how to send text, media, interactive, and template messages via the Sendexa WhatsApp API with detailed examples.
+date: 2025-03-12
+---
+
+# Send WhatsApp Messages
+
+Learn how to send various types of WhatsApp messages using the Sendexa API. This guide covers text, media, interactive, and template messages with complete examples.
+
+---
+
+## Quick Start
+
+### Text Message
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "type": "text",
+    "text": {
+      "body": "Hello from Sendexa WhatsApp!"
+    }
+  }'
+```
+
+### Template Message
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "type": "template",
+    "template": {
+      "name": "hello_world",
+      "language": "en"
+    }
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/whatsapp/send
+
+Send WhatsApp messages of any type.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 50 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter           | Type   | Required | Description                                                              |
+| ------------------- | ------ | -------- | ------------------------------------------------------------------------ |
+| `to`                | string | Yes      | Recipient WhatsApp number (international format)                         |
+| `type`              | string | Yes      | Message type: text, image, video, document, audio, template, interactive |
+| `messaging_product` | string | No       | Always "whatsapp" (default)                                              |
+| `recipient_type`    | string | No       | Always "individual" (default)                                            |
+| `context`           | object | No       | Reply context (for threading)                                            |
+
+### Message Type Specific Fields
+
+The additional fields depend on the `type`:
+
+- **text** - requires `text` object
+- **image** - requires `image` object
+- **video** - requires `video` object
+- **document** - requires `document` object
+- **audio** - requires `audio` object
+- **template** - requires `template` object
+- **interactive** - requires `interactive` object
+
+---
+
+## Text Messages
+
+Send simple text messages with optional URL preview.
+
+### Request Format
+
+```json
+{
+  "to": "233501234567",
+  "type": "text",
+  "text": {
+    "body": "Hello! Check our website",
+    "preview_url": true
+  }
+}
+```
+
+### Parameters
+
+| Field         | Type    | Required | Description                        |
+| ------------- | ------- | -------- | ---------------------------------- |
+| `body`        | string  | Yes      | Message text (max 4096 characters) |
+| `preview_url` | boolean | No       | Show link preview (default: false) |
+
+### Example
+
+```javascript
+const axios = require('axios');
+
+async function sendTextMessage(to, message) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/whatsapp/send',
+    {
+      to,
+      type: 'text',
+      text: {
+        body: message,
+        preview_url: true,
+      },
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+
+// Usage
+await sendTextMessage('233501234567', 'Hello! Visit https://example.com');
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "messageId": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+  "to": "233501234567",
+  "status": "sent",
+  "conversation": {
+    "id": "conv_abc123",
+    "type": "business_initiated",
+    "expiry": "2025-03-13T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Media Messages
+
+Send images, videos, documents, or audio files.
+
+### Image Message
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "type": "image",
+    "image": {
+      "url": "https://example.com/product.jpg",
+      "caption": "Check out our new product!"
+    }
+  }'
+```
+
+### Video Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "video",
+  "video": {
+    "url": "https://example.com/demo.mp4",
+    "caption": "Product demo video"
+  }
+}
+```
+
+### Document Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "document",
+  "document": {
+    "url": "https://example.com/invoice.pdf",
+    "filename": "Invoice_12345.pdf",
+    "caption": "Your invoice is ready"
+  }
+}
+```
+
+### Audio Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "audio",
+  "audio": {
+    "url": "https://example.com/message.mp3"
+  }
+}
+```
+
+### Media Parameters
+
+| Field      | Type   | Required | Description                    |
+| ---------- | ------ | -------- | ------------------------------ |
+| `url`      | string | Yes\*    | HTTPS URL to media file        |
+| `id`       | string | Yes\*    | Media ID from upload endpoint  |
+| `caption`  | string | No       | Media caption (max 1024 chars) |
+| `filename` | string | No\*\*   | Document filename              |
+
+\*Either `url` or `id` required
+\*\*Required for documents
+
+### Supported Media Formats
+
+**Images:**
+
+- JPEG, PNG
+- Max 5MB
+- Recommended: 1024x1024px
+
+**Videos:**
+
+- MP4, 3GPP
+- Max 16MB
+- Recommended: H.264 codec
+
+**Documents:**
+
+- PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX
+- Max 100MB
+
+**Audio:**
+
+- AAC, MP3, AMR, OGG (Opus)
+- Max 16MB
+
+### Example: Send Image
+
+```javascript
+async function sendImage(to, imageUrl, caption) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/whatsapp/send',
+    {
+      to,
+      type: 'image',
+      image: {
+        url: imageUrl,
+        caption,
+      },
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+
+// Usage
+await sendImage(
+  '233501234567',
+  'https://example.com/product.jpg',
+  'New arrival! 50% off today'
+);
+```
+
+---
+
+## Template Messages
+
+Send pre-approved template messages. Templates must be created and approved before use.
+
+### Request Format
+
+```json
+{
+  "to": "233501234567",
+  "type": "template",
+  "template": {
+    "name": "order_confirmation",
+    "language": "en",
+    "components": [
+      {
+        "type": "header",
+        "parameters": [
+          {
+            "type": "image",
+            "image": {
+              "url": "https://example.com/product.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "ORD-12345"
+          },
+          {
+            "type": "text",
+            "text": "GHS 150.00"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "sub_type": "url",
+        "index": 0,
+        "parameters": [
+          {
+            "type": "text",
+            "text": "ORD-12345"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Template Components
+
+| Component | Description                                 | Required |
+| --------- | ------------------------------------------- | -------- |
+| `header`  | Template header (text/image/video/document) | No       |
+| `body`    | Template body with variables                | Yes      |
+| `footer`  | Template footer text                        | No       |
+| `button`  | Template buttons (URL/quick reply)          | No       |
+
+### Parameter Types
+
+**Text Parameter:**
+
+```json
+{
+  "type": "text",
+  "text": "John Doe"
+}
+```
+
+**Currency Parameter:**
+
+```json
+{
+  "type": "currency",
+  "currency": {
+    "fallback_value": "GHS 100",
+    "code": "GHS",
+    "amount_1000": 100000
+  }
+}
+```
+
+**Date/Time Parameter:**
+
+```json
+{
+  "type": "date_time",
+  "date_time": {
+    "fallback_value": "March 15, 2025"
+  }
+}
+```
+
+### Example: Order Confirmation
+
+```javascript
+async function sendOrderConfirmation(to, orderId, amount) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/whatsapp/send',
+    {
+      to,
+      type: 'template',
+      template: {
+        name: 'order_confirmation',
+        language: 'en',
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: orderId },
+              { type: 'text', text: amount },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+
+// Usage
+await sendOrderConfirmation('233501234567', 'ORD-12345', 'GHS 150.00');
+```
+
+---
+
+## Interactive Messages
+
+Send messages with buttons or lists for user interaction.
+
+### Button Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "header": {
+      "type": "text",
+      "text": "Order Confirmation"
+    },
+    "body": {
+      "text": "Your order is ready. Would you like to proceed?"
+    },
+    "footer": {
+      "text": "Reply within 24 hours"
+    },
+    "action": {
+      "buttons": [
+        {
+          "type": "reply",
+          "reply": {
+            "id": "confirm_yes",
+            "title": "Yes, Confirm"
+          }
+        },
+        {
+          "type": "reply",
+          "reply": {
+            "id": "confirm_no",
+            "title": "No, Cancel"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### List Message
+
+```json
+{
+  "to": "233501234567",
+  "type": "interactive",
+  "interactive": {
+    "type": "list",
+    "header": {
+      "type": "text",
+      "text": "Choose a Department"
+    },
+    "body": {
+      "text": "How can we help you today?"
+    },
+    "footer": {
+      "text": "Customer Support"
+    },
+    "action": {
+      "button": "Select Option",
+      "sections": [
+        {
+          "title": "Sales",
+          "rows": [
+            {
+              "id": "sales_general",
+              "title": "General Inquiry",
+              "description": "Questions about products"
+            },
+            {
+              "id": "sales_quote",
+              "title": "Request Quote",
+              "description": "Get a price estimate"
+            }
+          ]
+        },
+        {
+          "title": "Support",
+          "rows": [
+            {
+              "id": "support_tech",
+              "title": "Technical Support",
+              "description": "Product issues"
+            },
+            {
+              "id": "support_billing",
+              "title": "Billing",
+              "description": "Payment questions"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Interactive Limits
+
+- **Buttons:** Maximum 3 buttons
+- **Button Title:** Maximum 20 characters
+- **List Sections:** Maximum 10 sections
+- **List Rows:** Maximum 10 rows per section
+- **Row Title:** Maximum 24 characters
+- **Row Description:** Maximum 72 characters
+
+### Example: Send Button Message
+
+```javascript
+async function sendButtonMessage(to, question, buttons) {
+  const response = await axios.post(
+    'https://api.sendexa.co/v1/whatsapp/send',
+    {
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: {
+          text: question,
+        },
+        action: {
+          buttons: buttons.map((btn, index) => ({
+            type: 'reply',
+            reply: {
+              id: btn.id,
+              title: btn.title,
+            },
+          })),
+        },
+      },
+    },
+    {
+      headers: {
+        Authorization: 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+}
+
+// Usage
+await sendButtonMessage(
+  '233501234567',
+  'Would you like to receive order updates?',
+  [
+    { id: 'yes', title: 'Yes, please' },
+    { id: 'no', title: 'No, thanks' },
+  ]
+);
+```
+
+---
+
+## Location Messages
+
+Send or request location information.
+
+### Send Location
+
+```json
+{
+  "to": "233501234567",
+  "type": "location",
+  "location": {
+    "latitude": 5.6037,
+    "longitude": -0.187,
+    "name": "Sendexa Office",
+    "address": "123 Main Street, Accra"
+  }
+}
+```
+
+### Request Location
+
+```json
+{
+  "to": "233501234567",
+  "type": "interactive",
+  "interactive": {
+    "type": "location_request_message",
+    "body": {
+      "text": "Please share your location for delivery"
+    },
+    "action": {
+      "name": "send_location"
+    }
+  }
+}
+```
+
+---
+
+## Contact Messages
+
+Share contact information.
+
+```json
+{
+  "to": "233501234567",
+  "type": "contacts",
+  "contacts": [
+    {
+      "name": {
+        "formatted_name": "John Doe",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "phones": [
+        {
+          "phone": "+233501234567",
+          "type": "MOBILE"
+        }
+      ],
+      "emails": [
+        {
+          "email": "john@example.com",
+          "type": "WORK"
+        }
+      ],
+      "urls": [
+        {
+          "url": "https://johndoe.com",
+          "type": "WORK"
+        }
+      ],
+      "org": {
+        "company": "Example Corp"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Reply Context
+
+Thread messages by replying to previous messages.
+
+```json
+{
+  "to": "233501234567",
+  "type": "text",
+  "text": {
+    "body": "Here's the information you requested"
+  },
+  "context": {
+    "message_id": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA"
+  }
+}
+```
+
+---
+
+## Media Upload
+
+For frequently used media, upload once and reuse the media ID.
+
+### Upload Media
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/media' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -F 'file=@/path/to/image.jpg' \
+  -F 'type=image/jpeg'
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "media_id": "med_abc123def456",
+  "url": "https://cdn.sendexa.co/media/med_abc123def456.jpg",
+  "type": "image/jpeg",
+  "size": 245678
+}
+```
+
+### Use Uploaded Media
+
+```json
+{
+  "to": "233501234567",
+  "type": "image",
+  "image": {
+    "id": "med_abc123def456",
+    "caption": "Product image"
+  }
+}
+```
+
+---
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "messageId": "wamid.HBgNMjMzNTAxMjM0NTY3FQIAERgSQzFGRjREQTU5OTIzRTdBNzYA",
+  "to": "233501234567",
+  "status": "sent",
+  "conversation": {
+    "id": "conv_abc123",
+    "type": "business_initiated",
+    "category": "utility",
+    "expiry": "2025-03-13T14:20:00Z"
+  },
+  "cost": 0.35,
+  "currency": "GHS"
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "INVALID_TEMPLATE",
+  "message": "Template 'order_confirm' not found or not approved",
+  "details": {
+    "template_name": "order_confirm",
+    "status": "not_found"
+  }
+}
+```
+
+---
+
+## Code Examples
+
+### Python
+
+```python
+import requests
+
+def send_whatsapp_message(to, message_type, **kwargs):
+    """Send WhatsApp message via Sendexa API"""
+    url = 'https://api.sendexa.co/v1/whatsapp/send'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'to': to,
+        'type': message_type,
+        **kwargs
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+# Send text message
+send_whatsapp_message(
+    '233501234567',
+    'text',
+    text={'body': 'Hello from Python!'}
+)
+
+# Send template
+send_whatsapp_message(
+    '233501234567',
+    'template',
+    template={
+        'name': 'hello_world',
+        'language': 'en'
+    }
+)
+```
+
+### PHP
+
+```php
+<?php
+
+function sendWhatsAppMessage($to, $type, $data) {
+    $url = 'https://api.sendexa.co/v1/whatsapp/send';
+    $token = 'your_token';
+
+    $payload = [
+        'to' => $to,
+        'type' => $type
+    ];
+    $payload = array_merge($payload, $data);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        return json_decode($response, true);
+    } else {
+        throw new Exception("WhatsApp send failed: " . $response);
+    }
+}
+
+// Send text message
+sendWhatsAppMessage('233501234567', 'text', [
+    'text' => ['body' => 'Hello from PHP!']
+]);
+
+// Send template
+sendWhatsAppMessage('233501234567', 'template', [
+    'template' => [
+        'name' => 'hello_world',
+        'language' => 'en'
+    ]
+]);
+?>
+```
+
+---
+
+## Best Practices
+
+### 1. Use Templates for First Contact
+
+Always use approved templates when initiating conversations:
+
+```javascript
+// âœ… Correct - Use template for first message
+await sendTemplate('233501234567', 'welcome_message');
+
+// âŒ Wrong - Cannot send session message first
+await sendText('233501234567', 'Hello!'); // Will fail
+```
+
+### 2. Track Conversation Windows
+
+```javascript
+// Store conversation expiry
+const conversation = response.data.conversation;
+await db.conversations.update({
+  userId: userId,
+  expiresAt: conversation.expiry,
+});
+
+// Check before sending
+const conv = await db.conversations.findOne({ userId });
+if (new Date() > new Date(conv.expiresAt)) {
+  // Window expired, use template
+  await sendTemplate(phone, 'template_name');
+} else {
+  // Window active, can send session message
+  await sendText(phone, 'Your message');
+}
+```
+
+### 3. Optimize Media
+
+```javascript
+// Upload media once, reuse ID
+const media = await uploadMedia('/path/to/product.jpg');
+const mediaId = media.media_id;
+
+// Send to multiple recipients
+for (const customer of customers) {
+  await sendImage(customer.phone, null, 'New product!', mediaId);
+}
+```
+
+### 4. Handle Errors Gracefully
+
+```javascript
+try {
+  await sendWhatsAppMessage(to, message);
+} catch (error) {
+  if (error.code === 'CONVERSATION_WINDOW_EXPIRED') {
+    // Use template instead
+    await sendTemplate(to, 're_engagement');
+  } else if (error.code === 'RATE_LIMIT_EXCEEDED') {
+    // Queue for later
+    await queue.add({ to, message });
+  } else {
+    // Log and alert
+    console.error('WhatsApp error:', error);
+  }
+}
+```
+
+### 5. Validate Phone Numbers
+
+```javascript
+function isValidWhatsAppNumber(phone) {
+  // Remove all non-digits
+  const cleaned = phone.replace(/\D/g, '');
+
+  // Check length (10-15 digits)
+  if (cleaned.length < 10 || cleaned.length > 15) {
+    return false;
+  }
+
+  return true;
+}
+```
+
+---
+
+## Common Errors
+
+### Error: Template Not Found
+
+```json
+{
+  "error": "TEMPLATE_NOT_FOUND",
+  "message": "Template 'order_status' does not exist or is not approved"
+}
+```
+
+**Solution:** Create and get template approved first.
+
+### Error: Conversation Window Expired
+
+```json
+{
+  "error": "CONVERSATION_WINDOW_EXPIRED",
+  "message": "Cannot send session message, conversation window has expired"
+}
+```
+
+**Solution:** Use a template message to re-engage.
+
+### Error: Invalid Parameter Count
+
+```json
+{
+  "error": "INVALID_PARAMETERS",
+  "message": "Template expects 2 parameters, but 1 provided"
+}
+```
+
+**Solution:** Match parameter count with template definition.
+
+### Error: Media Too Large
+
+```json
+{
+  "error": "MEDIA_TOO_LARGE",
+  "message": "Media file exceeds maximum size of 16MB"
+}
+```
+
+**Solution:** Compress or resize media file.
+
+---
+
+## Next Steps
+
+- 📢 **[Create Broadcasts](/docs/whatsapp/broadcasts)** - Send to multiple contacts
+- 👥 **[Manage Contacts](/docs/whatsapp/contacts)** - Organize recipients
+- 📝 **[Message Templates](/docs/whatsapp/templates)** - Create reusable templates
+- 🔔 **[Set Up Webhooks](/docs/whatsapp/webhooks)** - Receive real-time updates
+- 🛠️ **[API Reference](/docs/whatsapp/v1)** - Complete endpoint documentation

@@ -1,0 +1,668 @@
+---
+title: SMPP API v1 Reference
+description: Complete SMPP protocol reference with PDU specifications, command status codes, and TLV parameters.
+date: 2025-03-12
+---
+
+# SMPP API v1 Reference
+
+Complete reference documentation for the SMPP (Short Message Peer-to-Peer) protocol implementation at Sendexa.
+
+---
+
+## Protocol Version
+
+**Supported Versions:**
+
+- SMPP v3.4 (Recommended)
+- SMPP v5.0
+
+**Interface Version:**
+
+- v3.4: `0x34`
+- v5.0: `0x50`
+
+---
+
+## Connection Details
+
+### Server Endpoints
+
+| Server          | Host                   | Port | TLS Port |
+| --------------- | ---------------------- | ---- | -------- |
+| Primary         | smpp.sendexa.co        | 2775 | 2776     |
+| Backup          | smpp-backup.sendexa.co | 2775 | 2776     |
+| West Africa     | smpp-wa.sendexa.co     | 2775 | 2776     |
+| East Africa     | smpp-ea.sendexa.co     | 2775 | 2776     |
+| Southern Africa | smpp-sa.sendexa.co     | 2775 | 2776     |
+
+### Authentication
+
+| Parameter   | Value         | Description    |
+| ----------- | ------------- | -------------- |
+| system_id   | Your username | From dashboard |
+| password    | Your password | From dashboard |
+| system_type | "" (empty)    | Leave blank    |
+
+---
+
+## PDU Structure
+
+### PDU Header (16 bytes)
+
+```
++------------+------------+------------+------------+
+| command_length (4 bytes)             | 4-byte int |
++--------------------------------------+------------+
+| command_id (4 bytes)                 | 4-byte int |
++--------------------------------------+------------+
+| command_status (4 bytes)             | 4-byte int |
++--------------------------------------+------------+
+| sequence_number (4 bytes)            | 4-byte int |
++--------------------------------------+------------+
+| body (variable length)                            |
++---------------------------------------------------+
+```
+
+### PDU Fields
+
+| Field           | Bytes    | Type    | Description           |
+| --------------- | -------- | ------- | --------------------- |
+| command_length  | 4        | Integer | Total PDU length      |
+| command_id      | 4        | Integer | Command identifier    |
+| command_status  | 4        | Integer | Status/Error code     |
+| sequence_number | 4        | Integer | Sequence number       |
+| body            | Variable | -       | Command-specific data |
+
+---
+
+## Bind Operations
+
+### bind_transmitter (0x00000002)
+
+Bind as transmitter (send only).
+
+**Request:**
+
+```
++---------------+--------+--------------------------------+
+| Field         | Type   | Description                    |
++---------------+--------+--------------------------------+
+| system_id     | C-Octet| System identifier              |
+| password      | C-Octet| Password                       |
+| system_type   | C-Octet| System type (empty)            |
+| interface_version | Int | Interface version (0x34)       |
+| addr_ton      | Int    | Type of number (0x01)          |
+| addr_npi      | Int    | Numbering plan (0x01)          |
+| address_range | C-Octet| Address range (empty)          |
++---------------+--------+--------------------------------+
+```
+
+**Response (0x80000002):**
+
+```
++---------------+--------+--------------------------------+
+| Field         | Type   | Description                    |
++---------------+--------+--------------------------------+
+| system_id     | C-Octet| SMSC system ID                 |
++---------------+--------+--------------------------------+
+```
+
+### bind_receiver (0x00000001)
+
+Bind as receiver (receive only).
+
+Same parameters as bind_transmitter.
+
+### bind_transceiver (0x00000009)
+
+Bind as transceiver (send and receive).
+
+**Recommended for most use cases.**
+
+Same parameters as bind_transmitter.
+
+---
+
+## Submit Operations
+
+### submit_sm (0x00000004)
+
+Submit a single SMS message.
+
+**Request:**
+
+```
++----------------------+--------+---------------------------+
+| Field                | Type   | Description               |
++----------------------+--------+---------------------------+
+| service_type         | C-Octet| Service type (empty)      |
+| source_addr_ton      | Int    | Source TON                |
+| source_addr_npi      | Int    | Source NPI                |
+| source_addr          | C-Octet| Source address            |
+| dest_addr_ton        | Int    | Destination TON           |
+| dest_addr_npi        | Int    | Destination NPI           |
+| destination_addr     | C-Octet| Destination address       |
+| esm_class            | Int    | ESM class                 |
+| protocol_id          | Int    | Protocol ID               |
+| priority_flag        | Int    | Priority (0-3)            |
+| schedule_delivery_time| C-Octet| Scheduled time           |
+| validity_period      | C-Octet| Validity period           |
+| registered_delivery  | Int    | DLR request flag          |
+| replace_if_present_flag| Int  | Replace flag              |
+| data_coding          | Int    | Character encoding        |
+| sm_default_msg_id    | Int    | Default message ID        |
+| sm_length            | Int    | Message length            |
+| short_message        | Octet  | Message content           |
++----------------------+--------+---------------------------+
+```
+
+**Response (0x80000004):**
+
+```
++---------------+--------+--------------------------------+
+| Field         | Type   | Description                    |
++---------------+--------+--------------------------------+
+| message_id    | C-Octet| Unique message identifier      |
++---------------+--------+--------------------------------+
+```
+
+### submit_multi (0x00000021)
+
+Submit message to multiple destinations.
+
+**Request:**
+
+```
++----------------------+--------+---------------------------+
+| Field                | Type   | Description               |
++----------------------+--------+---------------------------+
+| service_type         | C-Octet| Service type              |
+| source_addr_ton      | Int    | Source TON                |
+| source_addr_npi      | Int    | Source NPI                |
+| source_addr          | C-Octet| Source address            |
+| number_of_dests      | Int    | Number of destinations    |
+| dest_addresses       | List   | Destination list          |
+| esm_class            | Int    | ESM class                 |
+| protocol_id          | Int    | Protocol ID               |
+| priority_flag        | Int    | Priority                  |
+| schedule_delivery_time| C-Octet| Scheduled time           |
+| validity_period      | C-Octet| Validity period           |
+| registered_delivery  | Int    | DLR request               |
+| replace_if_present_flag| Int  | Replace flag              |
+| data_coding          | Int    | Character encoding        |
+| sm_default_msg_id    | Int    | Default message ID        |
+| sm_length            | Int    | Message length            |
+| short_message        | Octet  | Message content           |
++----------------------+--------+---------------------------+
+```
+
+---
+
+## Receive Operations
+
+### deliver_sm (0x00000005)
+
+Receive DLR or incoming SMS.
+
+**Request:**
+
+```
++----------------------+--------+---------------------------+
+| Field                | Type   | Description               |
++----------------------+--------+---------------------------+
+| service_type         | C-Octet| Service type              |
+| source_addr_ton      | Int    | Source TON                |
+| source_addr_npi      | Int    | Source NPI                |
+| source_addr          | C-Octet| Source address            |
+| dest_addr_ton        | Int    | Destination TON           |
+| dest_addr_npi        | Int    | Destination NPI           |
+| destination_addr     | C-Octet| Destination address       |
+| esm_class            | Int    | ESM class (0x04 = DLR)    |
+| protocol_id          | Int    | Protocol ID               |
+| priority_flag        | Int    | Priority                  |
+| schedule_delivery_time| C-Octet| Scheduled time           |
+| validity_period      | C-Octet| Validity period           |
+| registered_delivery  | Int    | DLR request               |
+| replace_if_present_flag| Int  | Replace flag              |
+| data_coding          | Int    | Character encoding        |
+| sm_default_msg_id    | Int    | Default message ID        |
+| sm_length            | Int    | Message length            |
+| short_message        | Octet  | Message content/DLR       |
++----------------------+--------+---------------------------+
+```
+
+**Response (0x80000005):**
+
+```
++---------------+--------+--------------------------------+
+| Field         | Type   | Description                    |
++---------------+--------+--------------------------------+
+| message_id    | C-Octet| Message ID (usually null)      |
++---------------+--------+--------------------------------+
+```
+
+---
+
+## Session Management
+
+### enquire_link (0x00000015)
+
+Keep connection alive / check connectivity.
+
+**Request:** Header only (no body)
+
+**Response (0x80000015):** Header only
+
+**Recommended Interval:** 30-60 seconds
+
+### unbind (0x00000006)
+
+Close SMPP session gracefully.
+
+**Request:** Header only (no body)
+
+**Response (0x80000006):** Header only
+
+---
+
+## Command IDs
+
+| Command          | ID (Hex)   | Request | Response   |
+| ---------------- | ---------- | ------- | ---------- |
+| bind_receiver    | 0x00000001 | Yes     | 0x80000001 |
+| bind_transmitter | 0x00000002 | Yes     | 0x80000002 |
+| submit_sm        | 0x00000004 | Yes     | 0x80000004 |
+| deliver_sm       | 0x00000005 | Yes     | 0x80000005 |
+| unbind           | 0x00000006 | Yes     | 0x80000006 |
+| bind_transceiver | 0x00000009 | Yes     | 0x80000009 |
+| enquire_link     | 0x00000015 | Yes     | 0x80000015 |
+| submit_multi     | 0x00000021 | Yes     | 0x80000021 |
+| data_sm          | 0x00000103 | Yes     | 0x80000103 |
+
+---
+
+## Command Status Codes
+
+### Success
+
+| Code       | Name     | Description |
+| ---------- | -------- | ----------- |
+| 0x00000000 | ESME_ROK | Success     |
+
+### Error Codes
+
+| Code       | Name                  | Description                        |
+| ---------- | --------------------- | ---------------------------------- |
+| 0x00000001 | ESME_RINVMSGLEN       | Invalid message length             |
+| 0x00000002 | ESME_RINVCMDLEN       | Invalid command length             |
+| 0x00000003 | ESME_RINVCMDID        | Invalid command ID                 |
+| 0x00000004 | ESME_RINVBNDSTS       | Invalid bind status                |
+| 0x00000005 | ESME_RALYBND          | Already bound                      |
+| 0x00000006 | ESME_RINVPRTFLG       | Invalid priority flag              |
+| 0x00000007 | ESME_RINVREGDLVFLG    | Invalid registered delivery flag   |
+| 0x00000008 | ESME_RSYSERR          | System error                       |
+| 0x0000000A | ESME_RINVSRCADR       | Invalid source address             |
+| 0x0000000B | ESME_RINVDSTADR       | Invalid destination address        |
+| 0x0000000C | ESME_RINVMSGID        | Invalid message ID                 |
+| 0x0000000D | ESME_RBINDFAIL        | Bind failed                        |
+| 0x0000000E | ESME_RINVPASWD        | Invalid password                   |
+| 0x0000000F | ESME_RINVSYSID        | Invalid system ID                  |
+| 0x00000011 | ESME_RCANCELFAIL      | Cancel failed                      |
+| 0x00000013 | ESME_RREPLACEFAIL     | Replace failed                     |
+| 0x00000014 | ESME_RMSGQFUL         | Message queue full                 |
+| 0x00000015 | ESME_RINVSERTYP       | Invalid service type               |
+| 0x00000033 | ESME_RINVNUMDESTS     | Invalid number of destinations     |
+| 0x00000034 | ESME_RINVDLNAME       | Invalid distribution list name     |
+| 0x00000040 | ESME_RINVDESTFLAG     | Invalid dest_flag                  |
+| 0x00000042 | ESME_RINVSUBREP       | Invalid submit_replace             |
+| 0x00000043 | ESME_RINVESMCLASS     | Invalid esm_class                  |
+| 0x00000044 | ESME_RCNTSUBDL        | Cannot submit to distribution list |
+| 0x00000045 | ESME_RSUBMITFAIL      | Submit failed                      |
+| 0x00000048 | ESME_RINVSRCTON       | Invalid source TON                 |
+| 0x00000049 | ESME_RINVSRCNPI       | Invalid source NPI                 |
+| 0x00000050 | ESME_RINVDSTTON       | Invalid destination TON            |
+| 0x00000051 | ESME_RINVDSTNPI       | Invalid destination NPI            |
+| 0x00000053 | ESME_RINVSYSTYP       | Invalid system type                |
+| 0x00000054 | ESME_RINVREPFLAG      | Invalid replace_if_present flag    |
+| 0x00000055 | ESME_RINVNUMMSGS      | Invalid number of messages         |
+| 0x00000058 | ESME_RTHROTTLED       | Throttling error                   |
+| 0x00000061 | ESME_RINVSCHED        | Invalid scheduled delivery time    |
+| 0x00000062 | ESME_RINVEXPIRY       | Invalid validity period            |
+| 0x00000063 | ESME_RINVDFTMSGID     | Invalid default message ID         |
+| 0x00000064 | ESME_RX_T_APPN        | Receiver temporary error           |
+| 0x00000065 | ESME_RX_P_APPN        | Receiver permanent error           |
+| 0x00000066 | ESME_RX_R_APPN        | Receiver reject error              |
+| 0x00000067 | ESME_RQUERYFAIL       | Query failed                       |
+| 0x000000C0 | ESME_RINVTLVSTREAM    | Invalid TLV stream                 |
+| 0x000000C1 | ESME_RTLVNOTALLWD     | TLV not allowed                    |
+| 0x000000C2 | ESME_RINVTLVLEN       | Invalid TLV length                 |
+| 0x000000C3 | ESME_RMISSINGTLV      | Missing TLV                        |
+| 0x000000C4 | ESME_RINVTLVVAL       | Invalid TLV value                  |
+| 0x000000FE | ESME_RDELIVERYFAILURE | Delivery failure                   |
+| 0x000000FF | ESME_RUNKNOWNERR      | Unknown error                      |
+
+---
+
+## Type of Number (TON)
+
+| Value | Type              | Description                    |
+| ----- | ----------------- | ------------------------------ |
+| 0x00  | Unknown           | Unknown                        |
+| 0x01  | International     | International format (+233...) |
+| 0x02  | National          | National format                |
+| 0x03  | Network Specific  | Network specific               |
+| 0x04  | Subscriber Number | Subscriber number              |
+| 0x05  | Alphanumeric      | Alphanumeric sender ID         |
+| 0x06  | Abbreviated       | Abbreviated                    |
+
+**Common Usage:**
+
+- Source (Sender ID): `0x05` (Alphanumeric)
+- Destination (Phone): `0x01` (International)
+
+---
+
+## Numbering Plan Indicator (NPI)
+
+| Value | Type          | Description             |
+| ----- | ------------- | ----------------------- |
+| 0x00  | Unknown       | Unknown                 |
+| 0x01  | ISDN (E.164)  | International numbering |
+| 0x03  | Data (X.121)  | Data numbering          |
+| 0x04  | Telex         | Telex numbering         |
+| 0x06  | Land Mobile   | Land mobile             |
+| 0x08  | National      | National numbering      |
+| 0x09  | Private       | Private numbering       |
+| 0x0A  | ERMES         | ERMES numbering         |
+| 0x0E  | Internet      | IP address              |
+| 0x12  | WAP Client Id | WAP                     |
+
+**Common Usage:**
+
+- Phone numbers: `0x01` (E.164)
+- Alphanumeric: `0x00` (Unknown)
+
+---
+
+## ESM Class
+
+Encoding Scheme and Message type.
+
+### Message Mode (bits 1-0)
+
+| Value | Mode              | Description       |
+| ----- | ----------------- | ----------------- |
+| 0x00  | Default           | Default SMSC mode |
+| 0x01  | Datagram          | Datagram mode     |
+| 0x02  | Forward           | Forward mode      |
+| 0x03  | Store and Forward | Store and forward |
+
+### Message Type (bits 5-2)
+
+| Value | Type       | Description         |
+| ----- | ---------- | ------------------- |
+| 0x00  | Default    | Default message     |
+| 0x04  | DLR        | Delivery receipt    |
+| 0x08  | Manual ACK | User acknowledgment |
+
+### UDH Indicator (bit 6)
+
+| Value | Description |
+| ----- | ----------- |
+| 0x00  | No UDH      |
+| 0x40  | UDH present |
+
+**Common Values:**
+
+- Standard SMS: `0x00`
+- SMS with UDH: `0x40`
+- Delivery Receipt: `0x04`
+
+---
+
+## Data Coding
+
+Character encoding scheme.
+
+| Value | Encoding        | Max Length |
+| ----- | --------------- | ---------- |
+| 0x00  | GSM 7-bit       | 160 chars  |
+| 0x01  | ASCII           | 160 chars  |
+| 0x03  | Latin-1         | 140 chars  |
+| 0x04  | Binary          | 140 bytes  |
+| 0x08  | UCS-2 (Unicode) | 70 chars   |
+
+**Flash SMS:**
+| Value | Description |
+|-------|-------------|
+| 0xF0 | Flash (Class 0) |
+| 0xF1 | Phone memory (Class 1) |
+| 0xF2 | SIM memory (Class 2) |
+| 0xF3 | SIM toolkit (Class 3) |
+
+---
+
+## registered_delivery
+
+Request delivery receipt.
+
+### Bits 1-0: SMSC Delivery Receipt
+
+| Value | Description             |
+| ----- | ----------------------- |
+| 0x00  | No receipt              |
+| 0x01  | Receipt requested       |
+| 0x02  | Receipt on failure only |
+
+### Bits 3-2: SME Acknowledgment
+
+| Value | Description                |
+| ----- | -------------------------- |
+| 0x00  | No acknowledgment          |
+| 0x04  | Delivery acknowledgment    |
+| 0x08  | Manual/User acknowledgment |
+| 0x0C  | Both delivery and manual   |
+
+**Common Values:**
+
+- No DLR: `0x00`
+- Request DLR: `0x01`
+- DLR on failure: `0x02`
+
+---
+
+## TLV Parameters
+
+Optional Tag-Length-Value parameters.
+
+### TLV Structure
+
+```
++------+--------+----------+
+| Tag  | Length | Value    |
+| (2)  | (2)    | (var)    |
++------+--------+----------+
+```
+
+### Common TLVs
+
+| Tag    | Name                   | Type    | Description              |
+| ------ | ---------------------- | ------- | ------------------------ |
+| 0x001D | receipted_message_id   | C-Octet | Message ID in DLR        |
+| 0x001E | network_error_code     | Octets  | Network error details    |
+| 0x0204 | user_message_reference | Int     | User reference           |
+| 0x0424 | message_payload        | Octets  | Extended message content |
+| 0x0426 | message_state          | Int     | Message state            |
+| 0x0427 | sar_msg_ref_num        | Int     | SAR reference number     |
+| 0x0428 | sar_total_segments     | Int     | Total segments           |
+| 0x0429 | sar_segment_seqnum     | Int     | Segment sequence         |
+
+---
+
+## Message Concatenation
+
+For messages longer than 160 characters.
+
+### UDH Header Format
+
+```
++-------+-----+------+--------+-------+--------+
+| UDHL  | IEI | IEDL | RefNum | Total | SeqNum |
+| (1)   | (1) | (1)  | (1-2)  | (1)   | (1)    |
++-------+-----+------+--------+-------+--------+
+```
+
+### UDH Fields
+
+| Field  | Bytes | Description                   |
+| ------ | ----- | ----------------------------- |
+| UDHL   | 1     | UDH Length (0x05 or 0x06)     |
+| IEI    | 1     | IE Identifier (0x00 or 0x08)  |
+| IEDL   | 1     | IE Data Length (0x03 or 0x04) |
+| RefNum | 1-2   | Reference number              |
+| Total  | 1     | Total segments                |
+| SeqNum | 1     | Current segment               |
+
+### Example
+
+```javascript
+// 8-bit reference
+const udh = Buffer.from([
+  0x05, // UDH Length
+  0x00, // IEI (8-bit ref)
+  0x03, // IEDL
+  0xff, // Reference number
+  0x03, // Total parts
+  0x01, // Current part
+]);
+
+// 16-bit reference
+const udh = Buffer.from([
+  0x06, // UDH Length
+  0x08, // IEI (16-bit ref)
+  0x04, // IEDL
+  0xff,
+  0xff, // Reference number
+  0x03, // Total parts
+  0x01, // Current part
+]);
+```
+
+---
+
+## Time Formats
+
+### Absolute Time Format
+
+Format: `YYMMDDhhmmsstnnp`
+
+Example: `250312142030000+`
+
+| Field | Description                  |
+| ----- | ---------------------------- |
+| YY    | Year (00-99)                 |
+| MM    | Month (01-12)                |
+| DD    | Day (01-31)                  |
+| hh    | Hour (00-23)                 |
+| mm    | Minute (00-59)               |
+| ss    | Second (00-59)               |
+| t     | Tenths of second             |
+| nn    | Time zone (quarters of hour) |
+| p     | + or - (timezone direction)  |
+
+### Relative Time Format
+
+Format: `YYMMDDhhmmsstnnR`
+
+Last character is `R` for relative.
+
+---
+
+## Rate Limits
+
+| Tier       | Binds  | Messages/Sec | Messages/Day |
+| ---------- | ------ | ------------ | ------------ |
+| Basic      | 2      | 10           | 100,000      |
+| Standard   | 5      | 50           | 500,000      |
+| Premium    | 10     | 100          | 1,000,000    |
+| Enterprise | Custom | Custom       | Unlimited    |
+
+---
+
+## Best Practices
+
+### 1. Connection Management
+
+- Maintain persistent connections
+- Implement auto-reconnect
+- Use connection pooling for high volume
+- Send enquire_link every 30-60 seconds
+
+### 2. Error Handling
+
+- Check command_status in all responses
+- Implement exponential backoff for throttling
+- Log all errors with message IDs
+- Handle network disconnections gracefully
+
+### 3. DLR Management
+
+- Always request DLRs (registered_delivery = 0x01)
+- Implement deliver_sm handler
+- Parse DLR messages correctly
+- Store message IDs for tracking
+
+### 4. Message Encoding
+
+- Detect Unicode requirements
+- Use appropriate data_coding
+- Handle long messages with UDH
+- Validate message length
+
+### 5. Performance
+
+- Use bind_transceiver for bidirectional
+- Pool connections for high volume
+- Batch messages when possible
+- Monitor throughput and latency
+
+---
+
+## Testing
+
+### Test Credentials
+
+**Sandbox:**
+
+```
+Host: smpp-sandbox.sendexa.co
+Port: 2775
+System ID: test_user
+Password: test_pass
+```
+
+### Test Numbers
+
+| Number        | Behavior                 |
+| ------------- | ------------------------ |
+| +233500000001 | Always delivers          |
+| +233500000002 | Always fails             |
+| +233500000003 | Delivers after 30s delay |
+
+---
+
+## Support
+
+- **Email:** smpp-support@sendexa.co
+- **Documentation:** [docs.sendexa.co/smpp](https://docs.sendexa.co/smpp)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+- **Discord:** [Join Community](https://discord.gg/sendexa)
+
+---
+
+## SMPP Resources
+
+- **SMPP v3.4 Specification:** [smpp.org](http://smpp.org)
+- **Client Libraries:** [/docs/smpp/connect#install-smpp-client](/docs/smpp/connect#install-smpp-client)
+- **Code Examples:** [github.com/sendexa/examples](https://github.com/sendexa/examples)

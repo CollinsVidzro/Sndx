@@ -1,0 +1,523 @@
+---
+title: Rate Limits
+description: Comprehensive guide to API rate limits, headers, and best practices for managing request throttling.
+date: 2025-03-12
+---
+
+# Rate Limits
+
+To ensure stability, reliability, and fairness for all clients, Sendexa enforces rate limits across different API endpoints. This guide helps you understand these limits and how to work within them effectively.
+
+---
+
+## Overview
+
+Rate limits prevent API abuse and ensure consistent performance for all users. They are applied per API token and reset at regular intervals.
+
+### Key Concepts
+
+- **Rate Limit:** Maximum number of requests allowed in a time window
+- **Time Window:** Duration for which the limit applies (usually 1 minute or 1 hour)
+- **Token-Based:** Limits are per API token, not per account
+- **Rolling Window:** Limits use a sliding window, not fixed intervals
+
+---
+
+## Global Rate Limits
+
+Different endpoints have different rate limits based on their resource intensity:
+
+| Endpoint Group    | Requests per Minute | Requests per Hour | Burst Allowed |
+| ----------------- | ------------------- | ----------------- | ------------- |
+| **SMS API**       | 60                  | 3,000             | 100           |
+| **OTP API**       | 30                  | 1,500             | 50            |
+| **Email API**     | 50                  | 2,500             | 80            |
+| **Billing API**   | 20                  | 500               | 30            |
+| **Analytics API** | 100                 | 5,000             | 150           |
+
+### Burst Limits
+
+Burst limits allow short spikes in traffic. For example, you can send 100 SMS requests instantly, but subsequent requests will be throttled to 60/minute.
+
+---
+
+## Endpoint-Specific Limits
+
+### SMS Endpoints
+
+| Endpoint              | Rate Limit | Notes                                   |
+| --------------------- | ---------- | --------------------------------------- |
+| `POST /v1/sms/send`   | 60/min     | Single message                          |
+| `POST /v1/sms/bulk`   | 10/min     | Bulk operations (up to 1000 recipients) |
+| `GET /v1/sms/status`  | 100/min    | Status checks                           |
+| `GET /v1/sms/history` | 30/min     | Message history                         |
+
+### OTP Endpoints
+
+| Endpoint              | Rate Limit | Notes                         |
+| --------------------- | ---------- | ----------------------------- |
+| `POST /v1/otp/send`   | 30/min     | OTP generation                |
+| `POST /v1/otp/verify` | 100/min    | OTP verification              |
+| `POST /v1/otp/resend` | 10/min     | OTP resend (per phone number) |
+
+### Billing Endpoints
+
+| Endpoint                  | Rate Limit | Notes               |
+| ------------------------- | ---------- | ------------------- |
+| `GET /v1/billing/balance` | 20/min     | Balance checks      |
+| `POST /v1/billing/topup`  | 5/min      | Top-up requests     |
+| `GET /v1/billing/history` | 30/min     | Transaction history |
+
+---
+
+## Rate Limit Headers
+
+Every API response includes rate limit information in the headers:
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1678627800
+X-RateLimit-Window: 60
+```
+
+### Header Descriptions
+
+| Header                  | Type    | Description                          | Example      |
+| ----------------------- | ------- | ------------------------------------ | ------------ |
+| `X-RateLimit-Limit`     | integer | Maximum requests allowed in window   | `60`         |
+| `X-RateLimit-Remaining` | integer | Requests remaining in current window | `45`         |
+| `X-RateLimit-Reset`     | integer | Unix timestamp when limit resets     | `1678627800` |
+| `X-RateLimit-Window`    | integer | Window duration in seconds           | `60`         |
+
+### Reading Headers in Code
+
+**JavaScript:**
+
+```js
+const response = await axios.post(url, data, { headers });
+
+console.log('Limit:', response.headers['x-ratelimit-limit']);
+console.log('Remaining:', response.headers['x-ratelimit-remaining']);
+console.log(
+  'Resets at:',
+  new Date(response.headers['x-ratelimit-reset'] * 1000)
+);
+```
+
+**Python:**
+
+```python
+response = requests.post(url, headers=headers, json=data)
+
+print(f"Limit: {response.headers.get('X-RateLimit-Limit')}")
+print(f"Remaining: {response.headers.get('X-RateLimit-Remaining')}")
+print(f"Reset: {response.headers.get('X-RateLimit-Reset')}")
+```
+
+---
+
+## Rate Limit Exceeded Response
+
+When you exceed the rate limit, you'll receive a `429 Too Many Requests` response:
+
+```json
+{
+  "status": "error",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests. Please slow down your request rate.",
+  "details": {
+    "limit": 60,
+    "window": "1 minute",
+    "retry_after": 30,
+    "reset_at": "2025-03-12T15:30:00Z"
+  },
+  "timestamp": "2025-03-12T15:00:00Z",
+  "request_id": "req_a8f92bc3f2c44755"
+}
+```
+
+### Response Fields
+
+| Field         | Description                          |
+| ------------- | ------------------------------------ |
+| `limit`       | The rate limit that was exceeded     |
+| `window`      | Time window for the limit            |
+| `retry_after` | Seconds to wait before retrying      |
+| `reset_at`    | ISO 8601 timestamp when limit resets |
+
+### Response Headers
+
+```http
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1678627800
+Retry-After: 30
+Content-Type: application/json
+```
+
+---
+
+## Best Practices
+
+### 1. Monitor Rate Limit Headers
+
+Always check rate limit headers and adjust your request rate accordingly:
+
+```js
+async function smartSend(data) {
+  const response = await sendSMS(data);
+
+  const remaining = parseInt(response.headers['x-ratelimit-remaining']);
+  const limit = parseInt(response.headers['x-ratelimit-limit']);
+
+  // Slow down when 80% of limit is used
+  if (remaining < limit * 0.2) {
+    console.warn('Approaching rate limit. Slowing down...');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  return response.data;
+}
+```
+
+### 2. Implement Exponential Backoff
+
+Retry failed requests with increasing delays:
+
+```js
+async function sendWithBackoff(data, maxRetries = 5) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await sendSMS(data);
+    } catch (error) {
+      if (error.response?.status !== 429) throw error;
+
+      const retryAfter =
+        error.response.data.details?.retry_after || Math.pow(2, attempt);
+
+      console.log(`Rate limited. Retrying in ${retryAfter}s...`);
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+}
+```
+
+### 3. Use Request Queuing
+
+Queue requests to stay within rate limits:
+
+```js
+class RateLimitedQueue {
+  constructor(requestsPerMinute = 60) {
+    this.queue = [];
+    this.processing = false;
+    this.interval = 60000 / requestsPerMinute; // ms between requests
+  }
+
+  async add(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const { fn, resolve, reject } = this.queue.shift();
+
+    try {
+      const result = await fn();
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    }
+
+    setTimeout(() => {
+      this.processing = false;
+      this.process();
+    }, this.interval);
+  }
+}
+
+// Usage
+const queue = new RateLimitedQueue(60); // 60 requests per minute
+
+for (const message of messages) {
+  queue.add(() => sendSMS(message));
+}
+```
+
+### 4. Cache Responses
+
+Cache non-critical data to reduce API calls:
+
+```js
+const cache = new Map();
+
+async function getBalanceWithCache() {
+  const cacheKey = 'balance';
+  const cached = cache.get(cacheKey);
+
+  // Use cache if less than 5 minutes old
+  if (cached && Date.now() - cached.timestamp < 300000) {
+    return cached.data;
+  }
+
+  const balance = await getBalance();
+  cache.set(cacheKey, {
+    data: balance,
+    timestamp: Date.now(),
+  });
+
+  return balance;
+}
+```
+
+### 5. Use Bulk Endpoints
+
+For multiple recipients, use bulk endpoints instead of individual requests:
+
+**❌ Bad Practice:**
+
+```js
+// 100 API calls
+for (const recipient of recipients) {
+  await sendSMS({ to: recipient, message: 'Hello' });
+}
+```
+
+**✅ Good Practice:**
+
+```js
+// 1 API call
+await sendBulkSMS({
+  recipients: recipients,
+  message: 'Hello',
+  from: 'Sendexa',
+});
+```
+
+### 6. Respect Retry-After Header
+
+Always honor the `Retry-After` header:
+
+```js
+async function sendWithRetry(data) {
+  try {
+    return await sendSMS(data);
+  } catch (error) {
+    if (error.response?.status === 429) {
+      const retryAfter = parseInt(error.response.headers['retry-after']) || 60;
+
+      console.log(`Waiting ${retryAfter}s before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+
+      return await sendSMS(data);
+    }
+    throw error;
+  }
+}
+```
+
+---
+
+## Advanced Strategies
+
+### 1. Token Rotation
+
+Use multiple API tokens to distribute load:
+
+```js
+class TokenRotator {
+  constructor(tokens) {
+    this.tokens = tokens;
+    this.current = 0;
+  }
+
+  getToken() {
+    const token = this.tokens[this.current];
+    this.current = (this.current + 1) % this.tokens.length;
+    return token;
+  }
+}
+
+const rotator = new TokenRotator(['token1', 'token2', 'token3']);
+
+async function sendWithRotation(data) {
+  return axios.post(url, data, {
+    headers: {
+      Authorization: `Bearer ${rotator.getToken()}`,
+    },
+  });
+}
+```
+
+### 2. Adaptive Rate Limiting
+
+Dynamically adjust request rate based on responses:
+
+```js
+class AdaptiveRateLimiter {
+  constructor(initialRate = 60) {
+    this.rate = initialRate;
+    this.minRate = 10;
+    this.maxRate = 100;
+  }
+
+  onSuccess(headers) {
+    const remaining = parseInt(headers['x-ratelimit-remaining']);
+    const limit = parseInt(headers['x-ratelimit-limit']);
+
+    // Increase rate if we have headroom
+    if (remaining > limit * 0.5 && this.rate < this.maxRate) {
+      this.rate = Math.min(this.rate + 5, this.maxRate);
+    }
+  }
+
+  onRateLimit() {
+    // Decrease rate by 50%
+    this.rate = Math.max(this.rate * 0.5, this.minRate);
+    console.log(`Rate limit hit. Reducing to ${this.rate}/min`);
+  }
+
+  getDelay() {
+    return 60000 / this.rate; // milliseconds
+  }
+}
+```
+
+### 3. Priority Queue
+
+Prioritize critical requests:
+
+```js
+class PriorityQueue {
+  constructor() {
+    this.high = [];
+    this.normal = [];
+    this.low = [];
+  }
+
+  add(fn, priority = 'normal') {
+    const queues = { high: this.high, normal: this.normal, low: this.low };
+    queues[priority].push(fn);
+  }
+
+  async next() {
+    if (this.high.length > 0) return this.high.shift();
+    if (this.normal.length > 0) return this.normal.shift();
+    if (this.low.length > 0) return this.low.shift();
+    return null;
+  }
+}
+```
+
+---
+
+## Plan-Based Limits
+
+Rate limits vary by subscription plan:
+
+| Plan             | SMS/min | SMS/hour | OTP/min | Burst  |
+| ---------------- | ------- | -------- | ------- | ------ |
+| **Free**         | 10      | 100      | 5       | 20     |
+| **Starter**      | 30      | 1,000    | 15      | 50     |
+| **Professional** | 60      | 3,000    | 30      | 100    |
+| **Business**     | 120     | 10,000   | 60      | 200    |
+| **Enterprise**   | Custom  | Custom   | Custom  | Custom |
+
+To upgrade your plan, visit your [dashboard](https://auth.sendexa.co/billing).
+
+---
+
+## Monitoring & Alerts
+
+### Set Up Alerts
+
+Monitor your rate limit usage and set up alerts:
+
+1. Go to **Settings → Alerts**
+2. Enable **Rate Limit Alerts**
+3. Set threshold (e.g., 80% of limit)
+4. Choose notification method (Email/Webhook)
+
+### Dashboard Metrics
+
+View rate limit metrics in your dashboard:
+
+- Current usage percentage
+- Historical rate limit hits
+- Recommendations for optimization
+
+---
+
+## Testing Rate Limits
+
+### Simulate Rate Limiting
+
+Test your rate limit handling in development:
+
+```js
+// Send requests rapidly to trigger rate limit
+const promises = [];
+for (let i = 0; i < 100; i++) {
+  promises.push(
+    sendSMS({ to: '+233500000000', message: `Test ${i}` }).catch((error) =>
+      console.log('Request', i, 'failed:', error.message)
+    )
+  );
+}
+
+await Promise.allSettled(promises);
+```
+
+### Test Environment
+
+Use sandbox mode with lower limits for testing:
+
+- Sandbox limits: 10 requests/minute
+- No credits consumed
+- Same error responses as production
+
+---
+
+## Frequently Asked Questions
+
+### Can I request higher rate limits?
+
+Yes! Enterprise plans offer custom rate limits. Contact **sales@sendexa.co** to discuss your needs.
+
+### Do rate limits apply per account or per token?
+
+Rate limits apply **per API token**. You can use multiple tokens to distribute load.
+
+### What happens to queued requests when limit resets?
+
+Queued requests are not automatically retried. Your application must handle retries.
+
+### Are webhook callbacks counted against rate limits?
+
+No. Incoming webhooks don't count toward your rate limits.
+
+### Can I see my current rate limit usage?
+
+Yes, check the `X-RateLimit-Remaining` header in any API response, or view real-time usage in your dashboard.
+
+---
+
+## Need Help?
+
+If you're experiencing rate limit issues:
+
+1. **Review your code** for unnecessary API calls
+2. **Implement caching** for frequently accessed data
+3. **Use bulk endpoints** for batch operations
+4. **Contact support** for plan upgrades: **support@sendexa.co**
+
+For critical applications requiring higher limits, consider our **Enterprise plan** with dedicated infrastructure and custom rate limits.

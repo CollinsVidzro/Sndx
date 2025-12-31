@@ -1,0 +1,909 @@
+---
+title: WhatsApp Contacts
+description: Organize and manage your WhatsApp contacts. Create contacts, add tags, update information, and build targeted audience segments.
+date: 2025-03-12
+---
+
+# WhatsApp Contacts
+
+Organize your WhatsApp contacts with tags, custom fields, and segmentation. Build targeted audiences for personalized messaging campaigns.
+
+---
+
+## Overview
+
+### Contact Management Features
+
+- **Contact Storage** - Save contact details permanently
+- **Custom Fields** - Add custom data (email, company, etc.)
+- **Tags & Segmentation** - Organize contacts into groups
+- **Opt-in/Opt-out** - Manage consent preferences
+- **Import/Export** - Bulk contact operations
+- **Search & Filter** - Find contacts quickly
+
+---
+
+## Quick Start
+
+### Create Contact
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "233501234567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "tags": ["customer", "vip"]
+  }'
+```
+
+---
+
+## Endpoints
+
+### Create Contact
+
+**POST /v1/whatsapp/contacts**
+
+Create a new contact or update existing one.
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter       | Type    | Required | Description                            |
+| --------------- | ------- | -------- | -------------------------------------- |
+| `phone`         | string  | Yes      | WhatsApp number (international format) |
+| `name`          | string  | No       | Contact full name                      |
+| `email`         | string  | No       | Email address                          |
+| `custom_fields` | object  | No       | Custom key-value pairs                 |
+| `tags`          | array   | No       | Array of tag strings                   |
+| `opted_in`      | boolean | No       | Marketing consent (default: true)      |
+| `metadata`      | object  | No       | Additional metadata                    |
+
+### Request Example
+
+```json
+{
+  "phone": "233501234567",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "custom_fields": {
+    "company": "Acme Corp",
+    "position": "CEO",
+    "customer_id": "CUST-12345",
+    "subscription": "premium"
+  },
+  "tags": ["customer", "vip", "active"],
+  "opted_in": true,
+  "metadata": {
+    "source": "website_signup",
+    "signup_date": "2025-03-12"
+  }
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "cont_abc123def456",
+    "phone": "233501234567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "custom_fields": {
+      "company": "Acme Corp",
+      "position": "CEO",
+      "customer_id": "CUST-12345",
+      "subscription": "premium"
+    },
+    "tags": ["customer", "vip", "active"],
+    "opted_in": true,
+    "metadata": {
+      "source": "website_signup",
+      "signup_date": "2025-03-12"
+    },
+    "created_at": "2025-03-12T14:20:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Get Contact
+
+### GET /v1/whatsapp/contacts/:id
+
+Retrieve contact details by ID or phone number.
+
+#### By Contact ID
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/contacts/cont_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### By Phone Number
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/contacts?phone=233501234567' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "cont_abc123def456",
+    "phone": "233501234567",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "custom_fields": {
+      "company": "Acme Corp"
+    },
+    "tags": ["customer", "vip"],
+    "opted_in": true,
+    "message_count": 45,
+    "last_message_at": "2025-03-11T10:30:00Z",
+    "created_at": "2025-01-15T09:00:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## Update Contact
+
+### PUT /v1/whatsapp/contacts/:id
+
+Update contact information.
+
+#### Request Example
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/whatsapp/contacts/cont_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "custom_fields": {
+      "subscription": "enterprise"
+    },
+    "tags": ["customer", "vip", "enterprise"]
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "cont_abc123def456",
+    "phone": "233501234567",
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "custom_fields": {
+      "company": "Acme Corp",
+      "subscription": "enterprise"
+    },
+    "tags": ["customer", "vip", "enterprise"],
+    "updated_at": "2025-03-12T15:30:00Z"
+  }
+}
+```
+
+---
+
+## Delete Contact
+
+### DELETE /v1/whatsapp/contacts/:id
+
+Permanently delete a contact.
+
+#### Request Example
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/whatsapp/contacts/cont_abc123def456' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Contact deleted successfully",
+  "deleted_id": "cont_abc123def456"
+}
+```
+
+---
+
+## List Contacts
+
+### GET /v1/whatsapp/contacts
+
+Retrieve all contacts with filtering and pagination.
+
+#### Query Parameters
+
+| Parameter  | Type    | Description                               |
+| ---------- | ------- | ----------------------------------------- |
+| `limit`    | integer | Results per page (max 100, default 50)    |
+| `offset`   | integer | Pagination offset                         |
+| `tags`     | string  | Filter by tags (comma-separated)          |
+| `opted_in` | boolean | Filter by opt-in status                   |
+| `search`   | string  | Search by name, email, or phone           |
+| `sort`     | string  | Sort field (name, created_at, updated_at) |
+| `order`    | string  | Sort order (asc, desc)                    |
+
+#### Request Example
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/whatsapp/contacts?tags=vip,active&limit=20&sort=created_at&order=desc' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "cont_abc123",
+      "phone": "233501234567",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "tags": ["customer", "vip", "active"],
+      "opted_in": true,
+      "created_at": "2025-03-12T14:20:00Z"
+    },
+    {
+      "id": "cont_def456",
+      "phone": "233509876543",
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "tags": ["customer", "active"],
+      "opted_in": true,
+      "created_at": "2025-03-11T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 350,
+    "limit": 20,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Bulk Operations
+
+### Bulk Import
+
+**POST /v1/whatsapp/contacts/import**
+
+Import multiple contacts at once.
+
+#### Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/contacts/import' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "contacts": [
+      {
+        "phone": "233501234567",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "tags": ["customer"]
+      },
+      {
+        "phone": "233509876543",
+        "name": "Jane Smith",
+        "email": "jane@example.com",
+        "tags": ["customer", "vip"]
+      }
+    ]
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "imported": 2,
+  "failed": 0,
+  "contacts": [
+    {
+      "id": "cont_abc123",
+      "phone": "233501234567",
+      "status": "created"
+    },
+    {
+      "id": "cont_def456",
+      "phone": "233509876543",
+      "status": "created"
+    }
+  ]
+}
+```
+
+### Bulk Update Tags
+
+**POST /v1/whatsapp/contacts/bulk/tags**
+
+Add or remove tags from multiple contacts.
+
+#### Request Example
+
+```json
+{
+  "contact_ids": ["cont_abc123", "cont_def456"],
+  "action": "add",
+  "tags": ["summer_campaign", "2025"]
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "updated": 2,
+  "message": "Tags added to 2 contacts"
+}
+```
+
+---
+
+## Tag Management
+
+### List All Tags
+
+**GET /v1/whatsapp/contacts/tags**
+
+Get all available tags with contact counts.
+
+#### Response
+
+```json
+{
+  "success": true,
+  "tags": [
+    {
+      "name": "customer",
+      "count": 1250
+    },
+    {
+      "name": "vip",
+      "count": 145
+    },
+    {
+      "name": "active",
+      "count": 890
+    },
+    {
+      "name": "summer_campaign",
+      "count": 320
+    }
+  ]
+}
+```
+
+### Delete Tag
+
+**DELETE /v1/whatsapp/contacts/tags/:tagName**
+
+Remove a tag from all contacts.
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/whatsapp/contacts/tags/old_campaign' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+class ContactManager {
+  constructor(apiToken) {
+    this.apiToken = apiToken;
+    this.baseUrl = 'https://api.sendexa.co/v1/whatsapp/contacts';
+  }
+
+  async createContact(data) {
+    try {
+      const response = await axios.post(this.baseUrl, data, {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log(`Contact created: ${response.data.contact.id}`);
+      return response.data.contact;
+    } catch (error) {
+      console.error(
+        'Error creating contact:',
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  async getContact(identifier) {
+    // Can be contact ID or phone number
+    const url = identifier.startsWith('cont_')
+      ? `${this.baseUrl}/${identifier}`
+      : `${this.baseUrl}?phone=${identifier}`;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${this.apiToken}` },
+    });
+
+    return response.data.contact;
+  }
+
+  async updateContact(contactId, updates) {
+    const response = await axios.put(`${this.baseUrl}/${contactId}`, updates, {
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.data.contact;
+  }
+
+  async getContactsByTag(tag, limit = 100) {
+    const response = await axios.get(
+      `${this.baseUrl}?tags=${tag}&limit=${limit}`,
+      {
+        headers: { Authorization: `Bearer ${this.apiToken}` },
+      }
+    );
+
+    return response.data.data;
+  }
+
+  async importContacts(contacts) {
+    const response = await axios.post(
+      `${this.baseUrl}/import`,
+      { contacts },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log(`Imported ${response.data.imported} contacts`);
+    return response.data;
+  }
+}
+
+// Usage
+const manager = new ContactManager('your_token');
+
+// Create contact
+const contact = await manager.createContact({
+  phone: '233501234567',
+  name: 'John Doe',
+  email: 'john@example.com',
+  tags: ['customer', 'vip'],
+});
+
+// Get contact
+const retrieved = await manager.getContact('cont_abc123');
+console.log(retrieved.name);
+
+// Update contact
+await manager.updateContact('cont_abc123', {
+  tags: ['customer', 'vip', 'enterprise'],
+});
+
+// Get contacts by tag
+const vipContacts = await manager.getContactsByTag('vip');
+console.log(`Found ${vipContacts.length} VIP contacts`);
+
+// Import bulk contacts
+await manager.importContacts([
+  { phone: '233501111111', name: 'Alice', tags: ['new'] },
+  { phone: '233502222222', name: 'Bob', tags: ['new'] },
+]);
+```
+
+### Python
+
+```python
+import requests
+
+class ContactManager:
+    def __init__(self, api_token):
+        self.api_token = api_token
+        self.base_url = 'https://api.sendexa.co/v1/whatsapp/contacts'
+        self.headers = {
+            'Authorization': f'Bearer {api_token}',
+            'Content-Type': 'application/json'
+        }
+
+    def create_contact(self, data):
+        """Create a new contact"""
+        response = requests.post(
+            self.base_url,
+            json=data,
+            headers=self.headers
+        )
+        response.raise_for_status()
+
+        contact = response.json()['contact']
+        print(f"Contact created: {contact['id']}")
+        return contact
+
+    def get_contact(self, identifier):
+        """Get contact by ID or phone"""
+        if identifier.startswith('cont_'):
+            url = f'{self.base_url}/{identifier}'
+        else:
+            url = f'{self.base_url}?phone={identifier}'
+
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()['contact']
+
+    def update_contact(self, contact_id, updates):
+        """Update contact information"""
+        url = f'{self.base_url}/{contact_id}'
+        response = requests.put(url, json=updates, headers=self.headers)
+        response.raise_for_status()
+        return response.json()['contact']
+
+    def get_contacts_by_tag(self, tag, limit=100):
+        """Get contacts with specific tag"""
+        url = f'{self.base_url}?tags={tag}&limit={limit}'
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()['data']
+
+    def import_contacts(self, contacts):
+        """Import multiple contacts"""
+        url = f'{self.base_url}/import'
+        response = requests.post(
+            url,
+            json={'contacts': contacts},
+            headers=self.headers
+        )
+        response.raise_for_status()
+
+        result = response.json()
+        print(f"Imported {result['imported']} contacts")
+        return result
+
+# Usage
+manager = ContactManager('your_token')
+
+# Create contact
+contact = manager.create_contact({
+    'phone': '233501234567',
+    'name': 'John Doe',
+    'email': 'john@example.com',
+    'tags': ['customer', 'vip']
+})
+
+# Get VIP contacts
+vip_contacts = manager.get_contacts_by_tag('vip')
+print(f"Found {len(vip_contacts)} VIP contacts")
+```
+
+### PHP
+
+```php
+<?php
+
+class ContactManager {
+    private $apiToken;
+    private $baseUrl = 'https://api.sendexa.co/v1/whatsapp/contacts';
+
+    public function __construct($apiToken) {
+        $this->apiToken = $apiToken;
+    }
+
+    public function createContact($data) {
+        $ch = curl_init($this->baseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiToken,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            $result = json_decode($response, true);
+            echo "Contact created: " . $result['contact']['id'] . "\n";
+            return $result['contact'];
+        } else {
+            throw new Exception("Contact creation failed: " . $response);
+        }
+    }
+
+    public function getContact($identifier) {
+        if (strpos($identifier, 'cont_') === 0) {
+            $url = $this->baseUrl . '/' . $identifier;
+        } else {
+            $url = $this->baseUrl . '?phone=' . $identifier;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiToken
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+        return $data['contact'];
+    }
+
+    public function getContactsByTag($tag, $limit = 100) {
+        $url = $this->baseUrl . '?tags=' . $tag . '&limit=' . $limit;
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $this->apiToken
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+        return $data['data'];
+    }
+}
+
+// Usage
+$manager = new ContactManager('your_token');
+
+$contact = $manager->createContact([
+    'phone' => '233501234567',
+    'name' => 'John Doe',
+    'email' => 'john@example.com',
+    'tags' => ['customer', 'vip']
+]);
+
+$vipContacts = $manager->getContactsByTag('vip');
+echo "Found " . count($vipContacts) . " VIP contacts\n";
+?>
+```
+
+---
+
+## Best Practices
+
+### 1. Always Validate Before Creating
+
+```javascript
+function validateContact(contact) {
+  const errors = [];
+
+  // Validate phone
+  if (
+    !contact.phone ||
+    !/^\+?\d{10,15}$/.test(contact.phone.replace(/\s/g, ''))
+  ) {
+    errors.push('Invalid phone number');
+  }
+
+  // Validate email (if provided)
+  if (contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) {
+    errors.push('Invalid email address');
+  }
+
+  // Validate tags
+  if (contact.tags && !Array.isArray(contact.tags)) {
+    errors.push('Tags must be an array');
+  }
+
+  return errors;
+}
+
+// Usage
+const errors = validateContact(contactData);
+if (errors.length > 0) {
+  console.error('Validation errors:', errors);
+} else {
+  await createContact(contactData);
+}
+```
+
+### 2. Use Tags Strategically
+
+```javascript
+// Organize contacts with meaningful tags
+const tagStrategy = {
+  lifecycle: ['new', 'active', 'inactive', 'churned'],
+  value: ['vip', 'regular', 'trial'],
+  campaign: ['summer_2025', 'black_friday', 'newsletter'],
+  behavior: ['engaged', 'at_risk', 'converted'],
+};
+
+// Apply tags based on behavior
+async function updateContactLifecycle(contactId, status) {
+  // Remove old lifecycle tags
+  const contact = await getContact(contactId);
+  const newTags = contact.tags.filter(
+    (tag) => !tagStrategy.lifecycle.includes(tag)
+  );
+
+  // Add new lifecycle tag
+  newTags.push(status);
+
+  await updateContact(contactId, { tags: newTags });
+}
+```
+
+### 3. Implement Opt-in/Opt-out
+
+```javascript
+async function handleOptOut(phone) {
+  const contact = await getContact(phone);
+
+  await updateContact(contact.id, {
+    opted_in: false,
+    tags: [...contact.tags, 'opted_out'],
+  });
+
+  console.log(`Contact ${phone} opted out`);
+}
+
+async function handleOptIn(phone) {
+  const contact = await getContact(phone);
+
+  await updateContact(contact.id, {
+    opted_in: true,
+    tags: contact.tags.filter((tag) => tag !== 'opted_out'),
+  });
+
+  console.log(`Contact ${phone} opted in`);
+}
+```
+
+### 4. Sync with Your Database
+
+```javascript
+// Keep contacts in sync with your user database
+async function syncContactFromUser(user) {
+  try {
+    // Try to get existing contact
+    let contact = await getContact(user.phone);
+
+    // Update existing
+    await updateContact(contact.id, {
+      name: user.name,
+      email: user.email,
+      custom_fields: {
+        user_id: user.id,
+        subscription: user.subscription,
+        last_purchase: user.last_purchase_date,
+      },
+    });
+  } catch (error) {
+    if (error.response?.status === 404) {
+      // Create new contact
+      await createContact({
+        phone: user.phone,
+        name: user.name,
+        email: user.email,
+        custom_fields: {
+          user_id: user.id,
+        },
+      });
+    }
+  }
+}
+```
+
+### 5. Regular Cleanup
+
+```javascript
+// Remove inactive contacts periodically
+async function cleanupInactiveContacts() {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const contacts = await listContacts({ limit: 100 });
+
+  for (const contact of contacts.data) {
+    const lastMessage = new Date(contact.last_message_at);
+
+    if (lastMessage < sixMonthsAgo && !contact.opted_in) {
+      // Tag as inactive
+      await updateContact(contact.id, {
+        tags: [...contact.tags, 'inactive'],
+      });
+    }
+  }
+}
+```
+
+---
+
+## Contact Segmentation Examples
+
+### 1. High-Value Customers
+
+```javascript
+async function getHighValueCustomers() {
+  return await getContactsByTag('vip');
+}
+```
+
+### 2. Recent Signups
+
+```javascript
+async function getRecentSignups(days = 7) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const contacts = await listContacts({ limit: 100 });
+
+  return contacts.data.filter((contact) => {
+    return new Date(contact.created_at) > cutoff;
+  });
+}
+```
+
+### 3. Inactive Contacts
+
+```javascript
+async function getInactiveContacts(months = 3) {
+  const contacts = await listContacts({ limit: 100 });
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+
+  return contacts.data.filter((contact) => {
+    if (!contact.last_message_at) return true;
+    return new Date(contact.last_message_at) < cutoff;
+  });
+}
+```
+
+---
+
+## Next Steps
+
+- 📢 **[Create Broadcasts](/docs/whatsapp/broadcasts)** - Message multiple contacts
+- 📝 **[Message Templates](/docs/whatsapp/templates)** - Build reusable templates
+- 🔔 **[Set Up Webhooks](/docs/whatsapp/webhooks)** - Real-time notifications
+- 🛠️ **[API Reference](/docs/whatsapp/v1)** - Complete documentation

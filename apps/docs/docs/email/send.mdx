@@ -1,0 +1,756 @@
+---
+title: Send Email
+description: Learn how to send single and bulk emails with HTML content, attachments, and personalization.
+date: 2025-03-12
+---
+
+# Send Email
+
+Send professional transactional and marketing emails through the Sendexa Email API. Supports HTML content, attachments, multiple recipients, and advanced personalization.
+
+---
+
+## Quick Start
+
+### Single Email
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/email/send' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "user@example.com",
+    "from": "hello@yourdomain.com",
+    "fromName": "YourApp",
+    "subject": "Welcome to YourApp",
+    "html": "<h1>Welcome!</h1><p>Thanks for signing up.</p>"
+  }'
+```
+
+### Multiple Recipients
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/email/send' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": ["user1@example.com", "user2@example.com"],
+    "from": "updates@yourdomain.com",
+    "subject": "Product Update",
+    "html": "<h2>New Features Available</h2>"
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/email/send
+
+Send a single email to one or more recipients.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 100 requests per minute
+
+---
+
+## Authentication
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+---
+
+## Request Parameters
+
+| Parameter     | Type         | Required    | Description                       |
+| ------------- | ------------ | ----------- | --------------------------------- |
+| `to`          | string/array | Yes         | Recipient email(s)                |
+| `from`        | string       | Yes         | Sender email (verified domain)    |
+| `fromName`    | string       | No          | Sender display name               |
+| `subject`     | string       | Yes         | Email subject line                |
+| `html`        | string       | Conditional | HTML email content                |
+| `text`        | string       | Conditional | Plain text content                |
+| `replyTo`     | string       | No          | Reply-to email address            |
+| `cc`          | string/array | No          | CC recipients                     |
+| `bcc`         | string/array | No          | BCC recipients                    |
+| `attachments` | array        | No          | File attachments                  |
+| `headers`     | object       | No          | Custom email headers              |
+| `tags`        | array        | No          | Tags for categorization           |
+| `metadata`    | object       | No          | Custom metadata                   |
+| `trackOpens`  | boolean      | No          | Track email opens (default: true) |
+| `trackClicks` | boolean      | No          | Track link clicks (default: true) |
+
+**Note:** Either `html` or `text` is required (or both).
+
+---
+
+## Parameter Details
+
+### to (Recipient Email)
+
+**Single Recipient:**
+
+```json
+{
+  "to": "user@example.com"
+}
+```
+
+**Multiple Recipients:**
+
+```json
+{
+  "to": ["user1@example.com", "user2@example.com", "user3@example.com"]
+}
+```
+
+**With Display Name:**
+
+```json
+{
+  "to": "John Doe <john@example.com>"
+}
+```
+
+### from (Sender Email)
+
+Must be from a verified domain:
+
+```json
+{
+  "from": "noreply@yourdomain.com",
+  "fromName": "YourApp Team"
+}
+```
+
+### subject (Email Subject)
+
+```json
+{
+  "subject": "Welcome to YourApp - Get Started Today"
+}
+```
+
+**Best Practices:**
+
+- Keep under 50 characters
+- Avoid spam trigger words
+- Be clear and descriptive
+- Personalize when possible
+
+### html (HTML Content)
+
+```json
+{
+  "html": "<html><body><h1>Welcome!</h1><p>Thanks for signing up.</p></body></html>"
+}
+```
+
+**Tips:**
+
+- Use inline CSS for styling
+- Include responsive design
+- Test across email clients
+- Optimize images
+
+### text (Plain Text Alternative)
+
+```json
+{
+  "text": "Welcome! Thanks for signing up. Visit https://yourapp.com to get started."
+}
+```
+
+**Always provide** plain text for:
+
+- Accessibility
+- Email clients that don't support HTML
+- Spam filter compliance
+
+### replyTo (Reply-To Address)
+
+```json
+{
+  "replyTo": "support@yourdomain.com"
+}
+```
+
+### cc & bcc (Carbon Copy Recipients)
+
+```json
+{
+  "cc": ["manager@company.com"],
+  "bcc": ["archive@company.com", "compliance@company.com"]
+}
+```
+
+---
+
+## Response
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "messageId": "msg_a8f92bc3f2c44755",
+  "to": ["user@example.com"],
+  "from": "hello@yourdomain.com",
+  "subject": "Welcome to YourApp",
+  "status": "queued",
+  "queuedAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### Response Fields
+
+| Field       | Type    | Description                              |
+| ----------- | ------- | ---------------------------------------- |
+| `success`   | boolean | Whether request succeeded                |
+| `messageId` | string  | Unique message identifier                |
+| `to`        | array   | Recipient email addresses                |
+| `from`      | string  | Sender email address                     |
+| `subject`   | string  | Email subject                            |
+| `status`    | string  | Current status (queued, sent, delivered) |
+| `queuedAt`  | string  | ISO timestamp when queued                |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function sendEmail(options) {
+  try {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/email/send',
+      {
+        to: options.to,
+        from: options.from,
+        fromName: options.fromName,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.SENDEXA_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Email sent:', response.data.messageId);
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Error sending email:',
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+// Usage Examples
+
+// Welcome Email
+await sendEmail({
+  to: 'newuser@example.com',
+  from: 'welcome@yourapp.com',
+  fromName: 'YourApp Team',
+  subject: 'Welcome to YourApp!',
+  html: `
+    <h1>Welcome!</h1>
+    <p>We're excited to have you on board.</p>
+    <a href="https://yourapp.com/get-started">Get Started</a>
+  `,
+  text: 'Welcome! Visit https://yourapp.com/get-started to begin.',
+});
+
+// Order Confirmation
+await sendEmail({
+  to: 'customer@example.com',
+  from: 'orders@yourstore.com',
+  fromName: 'YourStore',
+  subject: 'Order #12345 Confirmed',
+  html: `
+    <h2>Order Confirmed</h2>
+    <p>Your order #12345 has been confirmed.</p>
+    <p>Total: $99.99</p>
+  `,
+  text: 'Your order #12345 has been confirmed. Total: $99.99',
+});
+
+// Password Reset
+await sendEmail({
+  to: 'user@example.com',
+  from: 'security@yourapp.com',
+  subject: 'Reset Your Password',
+  html: `
+    <h2>Password Reset Request</h2>
+    <p>Click below to reset your password:</p>
+    <a href="${resetLink}">Reset Password</a>
+    <p>This link expires in 1 hour.</p>
+  `,
+  text: `Reset your password: ${resetLink} (expires in 1 hour)`,
+});
+```
+
+### Python
+
+```python
+import requests
+import os
+
+def send_email(**kwargs):
+    """Send email via Sendexa API"""
+    url = 'https://api.sendexa.co/v1/email/send'
+    headers = {
+        'Authorization': f"Bearer {os.getenv('SENDEXA_API_TOKEN')}",
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'to': kwargs.get('to'),
+        'from': kwargs.get('from_email'),
+        'fromName': kwargs.get('from_name'),
+        'subject': kwargs.get('subject'),
+        'html': kwargs.get('html'),
+        'text': kwargs.get('text')
+    }
+
+    # Remove None values
+    payload = {k: v for k, v in payload.items() if v is not None}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"Email sent: {data['messageId']}")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending email: {e}")
+        raise
+
+# Usage Examples
+
+# Welcome Email
+send_email(
+    to='newuser@example.com',
+    from_email='welcome@yourapp.com',
+    from_name='YourApp Team',
+    subject='Welcome to YourApp!',
+    html='<h1>Welcome!</h1><p>Thanks for signing up.</p>',
+    text='Welcome! Thanks for signing up.'
+)
+
+# Multiple Recipients
+send_email(
+    to=['user1@example.com', 'user2@example.com'],
+    from_email='updates@yourapp.com',
+    subject='Product Update',
+    html='<h2>New Features Available</h2>'
+)
+```
+
+### PHP
+
+```php
+<?php
+
+function sendEmail($options) {
+    $url = 'https://api.sendexa.co/v1/email/send';
+    $token = getenv('SENDEXA_API_TOKEN');
+
+    $data = [
+        'to' => $options['to'],
+        'from' => $options['from'],
+        'fromName' => $options['fromName'] ?? null,
+        'subject' => $options['subject'],
+        'html' => $options['html'] ?? null,
+        'text' => $options['text'] ?? null
+    ];
+
+    // Remove null values
+    $data = array_filter($data, function($value) {
+        return $value !== null;
+    });
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Authorization: Bearer $token",
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+        echo "Email sent: {$result['messageId']}\n";
+        return $result;
+    } else {
+        throw new Exception("Failed to send email: $response");
+    }
+}
+
+// Usage Examples
+
+// Welcome Email
+sendEmail([
+    'to' => 'newuser@example.com',
+    'from' => 'welcome@yourapp.com',
+    'fromName' => 'YourApp Team',
+    'subject' => 'Welcome to YourApp!',
+    'html' => '<h1>Welcome!</h1><p>Thanks for signing up.</p>',
+    'text' => 'Welcome! Thanks for signing up.'
+]);
+
+// With CC and BCC
+sendEmail([
+    'to' => 'client@example.com',
+    'from' => 'billing@yourcompany.com',
+    'subject' => 'Invoice #12345',
+    'html' => '<h2>Your Invoice</h2>',
+    'cc' => ['manager@yourcompany.com'],
+    'bcc' => ['archive@yourcompany.com']
+]);
+
+?>
+```
+
+---
+
+## Advanced Features
+
+### Multiple Recipients with Personalization
+
+```javascript
+async function sendPersonalizedEmails(recipients) {
+  const promises = recipients.map((recipient) =>
+    sendEmail({
+      to: recipient.email,
+      from: 'hello@yourapp.com',
+      subject: `Hi ${recipient.name}, check this out!`,
+      html: `
+        <h1>Hello ${recipient.name}!</h1>
+        <p>Your account balance: $${recipient.balance}</p>
+      `,
+    })
+  );
+
+  return Promise.all(promises);
+}
+
+// Usage
+await sendPersonalizedEmails([
+  { email: 'john@example.com', name: 'John', balance: 100 },
+  { email: 'jane@example.com', name: 'Jane', balance: 250 },
+]);
+```
+
+### Custom Headers
+
+```javascript
+await sendEmail({
+  to: 'user@example.com',
+  from: 'app@yourdomain.com',
+  subject: 'Custom Headers Example',
+  html: '<p>Email with custom headers</p>',
+  headers: {
+    'X-Priority': '1',
+    'X-Mailer': 'YourApp Mailer',
+    'X-Campaign': 'summer-2024',
+  },
+});
+```
+
+### Tags and Metadata
+
+```javascript
+await sendEmail({
+  to: 'user@example.com',
+  from: 'app@yourdomain.com',
+  subject: 'Tagged Email',
+  html: '<p>Email with tags and metadata</p>',
+  tags: ['transactional', 'order-confirmation'],
+  metadata: {
+    userId: '12345',
+    orderId: 'ORD-789',
+    environment: 'production',
+  },
+});
+```
+
+### Tracking Configuration
+
+```javascript
+// Disable tracking for sensitive emails
+await sendEmail({
+  to: 'user@example.com',
+  from: 'security@yourapp.com',
+  subject: 'Security Alert',
+  html: '<p>Your account security notification</p>',
+  trackOpens: false,
+  trackClicks: false,
+});
+```
+
+---
+
+## Batch Sending
+
+### POST /v1/email/send/batch
+
+Send emails to multiple recipients with individual personalization.
+
+```javascript
+await axios.post(
+  'https://api.sendexa.co/v1/email/send/batch',
+  {
+    from: 'newsletter@yourapp.com',
+    fromName: 'YourApp Newsletter',
+    subject: 'Weekly Update',
+    messages: [
+      {
+        to: 'user1@example.com',
+        html: '<h1>Hi John!</h1><p>Your personalized content here.</p>',
+      },
+      {
+        to: 'user2@example.com',
+        html: '<h1>Hi Jane!</h1><p>Your personalized content here.</p>',
+      },
+    ],
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.SENDEXA_API_TOKEN}`,
+    },
+  }
+);
+```
+
+---
+
+## Error Responses
+
+### 400 Bad Request
+
+```json
+{
+  "success": false,
+  "error": "INVALID_RECIPIENT",
+  "message": "Invalid recipient email address",
+  "details": {
+    "field": "to",
+    "value": "invalid-email"
+  }
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "success": false,
+  "error": "UNAUTHORIZED",
+  "message": "Invalid or missing API token"
+}
+```
+
+### 403 Forbidden - Unverified Domain
+
+```json
+{
+  "success": false,
+  "error": "DOMAIN_NOT_VERIFIED",
+  "message": "Sender domain 'yourdomain.com' is not verified",
+  "details": {
+    "domain": "yourdomain.com",
+    "status": "pending"
+  }
+}
+```
+
+### 402 Payment Required
+
+```json
+{
+  "success": false,
+  "error": "INSUFFICIENT_BALANCE",
+  "message": "Insufficient email credits",
+  "details": {
+    "required": 10,
+    "available": 5
+  }
+}
+```
+
+### 429 Too Many Requests
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Rate limit exceeded",
+  "retryAfter": 60
+}
+```
+
+---
+
+## Best Practices
+
+### Email Content
+
+1. **Always provide plain text** - For accessibility and spam filters
+2. **Use inline CSS** - Email clients don't support external stylesheets
+3. **Optimize images** - Use CDN and compress images
+4. **Responsive design** - Test on mobile devices
+5. **Clear call-to-action** - Make buttons obvious
+
+### Subject Lines
+
+1. **Keep it under 50 characters** - Avoid truncation
+2. **Personalize** - Use recipient's name when appropriate
+3. **Avoid spam words** - FREE, URGENT, ACT NOW, etc.
+4. **Be specific** - Tell recipients what to expect
+5. **Test variations** - A/B test subject lines
+
+### Deliverability
+
+1. **Verify your domain** - Essential for good deliverability
+2. **Warm up your domain** - Start with low volumes
+3. **Clean your list** - Remove invalid addresses
+4. **Monitor bounces** - Handle hard bounces immediately
+5. **Provide unsubscribe** - Required for marketing emails
+
+### Performance
+
+1. **Use batch endpoint** - For multiple recipients
+2. **Async processing** - Don't block user flows
+3. **Queue emails** - For large volumes
+4. **Cache templates** - Reuse email templates
+5. **Monitor failures** - Set up error tracking
+
+---
+
+## HTML Email Template Example
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome Email</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: #4f46e5;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px 20px;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background: #4f46e5;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 12px;
+        color: #666;
+        border-top: 1px solid #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Welcome to YourApp!</h1>
+    </div>
+
+    <div class="content">
+      <h2>Hi {{name}},</h2>
+      <p>Thanks for signing up! We're excited to have you on board.</p>
+      <p>To get started, click the button below:</p>
+
+      <a href="{{verificationLink}}" class="button">Verify Your Email</a>
+
+      <p>If you have any questions, feel free to reply to this email.</p>
+
+      <p>Best regards,<br />The YourApp Team</p>
+    </div>
+
+    <div class="footer">
+      <p>&copy; 2024 YourApp. All rights reserved.</p>
+      <p>
+        <a href="{{unsubscribeLink}}">Unsubscribe</a> |
+        <a href="{{preferencesLink}}">Email Preferences</a>
+      </p>
+    </div>
+  </body>
+</html>
+```
+
+---
+
+## Testing
+
+### Test Recipient Addresses
+
+In sandbox environment:
+
+| Email                  | Behavior                     |
+| ---------------------- | ---------------------------- |
+| `success@sendexa.test` | Always delivers successfully |
+| `bounce@sendexa.test`  | Simulates hard bounce        |
+| `spam@sendexa.test`    | Simulates spam complaint     |
+| `delay@sendexa.test`   | Simulates delayed delivery   |
+
+### Testing Checklist
+
+- [ ] Test in multiple email clients
+- [ ] Check mobile responsiveness
+- [ ] Verify all links work
+- [ ] Test with images disabled
+- [ ] Check spam score
+- [ ] Verify unsubscribe link
+- [ ] Test personalization variables
+- [ ] Check plain text version
+
+---
+
+## Next Steps
+
+- 📝 **[Templates](/docs/email/templates)** - Create reusable templates
+- 📎 **[Attachments](/docs/email/attachments)** - Send files
+- 🔔 **[Webhooks](/docs/email/webhooks)** - Real-time notifications
+- 📊 **[API Reference](/docs/email/v1)** - Complete documentation

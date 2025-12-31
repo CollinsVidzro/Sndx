@@ -1,0 +1,391 @@
+---
+title: Contact Management
+description: Create, update, and manage contacts in your phonebook using the Sendexa Contact API.
+date: 2025-03-12
+---
+
+# Contact Management
+
+Manage individual contacts in your phonebook. Create, update, delete, and query contacts with custom fields and tags.
+
+---
+
+## Quick Start
+
+### Create Contact
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/phonebook/contacts' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "233501234567",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
+```
+
+### Get Contact
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/phonebook/contacts/contact_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+### Update Contact
+
+```bash
+curl -X PUT 'https://api.sendexa.co/v1/phonebook/contacts/contact_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "first_name": "Jonathan",
+    "custom_fields": {
+      "customer_tier": "gold"
+    }
+  }'
+```
+
+---
+
+## Create Contact
+
+### POST /v1/phonebook/contacts
+
+Create a new contact.
+
+#### Request Parameters
+
+| Parameter       | Type    | Required | Description                         |
+| --------------- | ------- | -------- | ----------------------------------- |
+| `phone`         | string  | Yes\*    | Phone number (international format) |
+| `email`         | string  | Yes\*    | Email address                       |
+| `first_name`    | string  | No       | First name                          |
+| `last_name`     | string  | No       | Last name                           |
+| `custom_fields` | object  | No       | Custom attributes                   |
+| `tags`          | array   | No       | Contact tags                        |
+| `subscribed`    | boolean | No       | Subscription status (default: true) |
+
+\*At least one of `phone` or `email` required
+
+#### Example Request
+
+```javascript
+const contact = await axios.post(
+  'https://api.sendexa.co/v1/phonebook/contacts',
+  {
+    phone: '233501234567',
+    email: 'john@example.com',
+    first_name: 'John',
+    last_name: 'Doe',
+    custom_fields: {
+      birthday: '1990-01-15',
+      city: 'Accra',
+      customer_tier: 'premium',
+    },
+    tags: ['customer', 'newsletter'],
+    subscribed: true,
+  },
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+      'Content-Type': 'application/json',
+    },
+  }
+);
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "contact": {
+    "id": "contact_abc123def456",
+    "phone": "233501234567",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "status": "active",
+    "subscribed": true,
+    "custom_fields": {
+      "birthday": "1990-01-15",
+      "city": "Accra",
+      "customer_tier": "premium"
+    },
+    "tags": ["customer", "newsletter"],
+    "groups": [],
+    "created_at": "2025-03-12T14:20:00Z",
+    "updated_at": "2025-03-12T14:20:00Z"
+  }
+}
+```
+
+---
+
+## List Contacts
+
+### GET /v1/phonebook/contacts
+
+Retrieve list of contacts with filtering.
+
+#### Query Parameters
+
+| Parameter    | Type    | Description                            |
+| ------------ | ------- | -------------------------------------- |
+| `limit`      | integer | Results per page (max 100, default 50) |
+| `offset`     | integer | Pagination offset                      |
+| `search`     | string  | Search by name, phone, or email        |
+| `tags`       | string  | Comma-separated tags                   |
+| `subscribed` | boolean | Filter by subscription status          |
+| `group_id`   | string  | Filter by group                        |
+
+#### Example Request
+
+```javascript
+const contacts = await axios.get(
+  'https://api.sendexa.co/v1/phonebook/contacts',
+  {
+    params: {
+      limit: 20,
+      tags: 'premium,active',
+      subscribed: true,
+    },
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "contacts": [
+    {
+      "id": "contact_abc123",
+      "phone": "233501234567",
+      "first_name": "John",
+      "last_name": "Doe",
+      "subscribed": true
+    }
+  ],
+  "pagination": {
+    "total": 1250,
+    "limit": 20,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+## Get Contact
+
+### GET /v1/phonebook/contacts/:id
+
+Get details of a specific contact.
+
+```bash
+curl -X GET 'https://api.sendexa.co/v1/phonebook/contacts/contact_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## Update Contact
+
+### PUT /v1/phonebook/contacts/:id
+
+Update contact information.
+
+```javascript
+await axios.put(
+  'https://api.sendexa.co/v1/phonebook/contacts/contact_abc123',
+  {
+    first_name: 'Jonathan',
+    custom_fields: {
+      customer_tier: 'gold',
+      last_purchase: '2025-03-12',
+    },
+    tags: ['vip', 'premium'],
+  },
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+---
+
+## Delete Contact
+
+### DELETE /v1/phonebook/contacts/:id
+
+Delete a contact permanently.
+
+```bash
+curl -X DELETE 'https://api.sendexa.co/v1/phonebook/contacts/contact_abc123' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+---
+
+## Bulk Import
+
+### POST /v1/phonebook/contacts/bulk
+
+Import multiple contacts at once.
+
+```javascript
+const result = await axios.post(
+  'https://api.sendexa.co/v1/phonebook/contacts/bulk',
+  {
+    contacts: [
+      {
+        phone: '233501234567',
+        first_name: 'John',
+        email: 'john@example.com',
+      },
+      {
+        phone: '233509876543',
+        first_name: 'Jane',
+        email: 'jane@example.com',
+      },
+    ],
+    skip_duplicates: true,
+  },
+  {
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "summary": {
+    "total": 2,
+    "created": 2,
+    "updated": 0,
+    "failed": 0
+  }
+}
+```
+
+---
+
+## Search Contacts
+
+### GET /v1/phonebook/contacts/search
+
+Search contacts by various criteria.
+
+```javascript
+const results = await axios.get(
+  'https://api.sendexa.co/v1/phonebook/contacts/search',
+  {
+    params: {
+      q: 'john',
+      fields: 'first_name,email,phone',
+    },
+    headers: {
+      Authorization: 'Bearer YOUR_TOKEN',
+    },
+  }
+);
+```
+
+---
+
+## Common Use Cases
+
+### 1. User Registration
+
+```javascript
+async function registerUser(userData) {
+  const contact = await axios.post(
+    'https://api.sendexa.co/v1/phonebook/contacts',
+    {
+      phone: userData.phone,
+      email: userData.email,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      custom_fields: {
+        registration_date: new Date().toISOString(),
+        source: 'website',
+        verified: false,
+      },
+      tags: ['new-user'],
+      subscribed: userData.optIn,
+    }
+  );
+
+  return contact.data.contact;
+}
+```
+
+### 2. Update Customer Profile
+
+```javascript
+async function updateCustomerProfile(contactId, updates) {
+  await axios.put(`https://api.sendexa.co/v1/phonebook/contacts/${contactId}`, {
+    custom_fields: {
+      ...updates,
+      last_updated: new Date().toISOString(),
+    },
+  });
+}
+```
+
+### 3. CSV Import
+
+```javascript
+const csv = require('csv-parser');
+const fs = require('fs');
+
+async function importCSV(filePath) {
+  const contacts = [];
+
+  await new Promise((resolve) => {
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => {
+        contacts.push({
+          phone: row.phone,
+          email: row.email,
+          first_name: row.first_name,
+          last_name: row.last_name,
+        });
+      })
+      .on('end', resolve);
+  });
+
+  // Import in batches
+  const batchSize = 100;
+  for (let i = 0; i < contacts.length; i += batchSize) {
+    const batch = contacts.slice(i, i + batchSize);
+    await axios.post('https://api.sendexa.co/v1/phonebook/contacts/bulk', {
+      contacts: batch,
+    });
+  }
+}
+```
+
+---
+
+## Next Steps
+
+- 👥 **[Group Management](/docs/phonebook/group)** - Organize contacts
+- 🔔 **[Webhooks](/docs/phonebook/webhooks)** - Real-time updates
+- 🛠️ **[API Reference](/docs/phonebook/v1)** - Complete docs

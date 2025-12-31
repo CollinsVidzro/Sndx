@@ -1,0 +1,628 @@
+---
+title: WhatsApp API Overview
+description: A powerful WhatsApp Business messaging platform built for African developers. Send messages, manage contacts, and automate conversations.
+date: 2025-03-12
+---
+
+# WhatsApp API Overview
+
+Welcome to the **Sendexa WhatsApp API**. Send rich media messages, manage contacts, create broadcasts, and build powerful WhatsApp experiences for your African business.
+
+---
+
+## Why Choose Sendexa WhatsApp?
+
+### Built for Africa
+
+- **Local Infrastructure** - Low latency across African regions
+- **WhatsApp Business API** - Official integration with Meta
+- **Competitive Pricing** - Affordable conversation-based pricing
+- **Multi-Currency** - Support for GHS, NGN, KES, ZAR, and more
+
+### Feature-Rich
+
+- **Rich Media** - Send images, videos, documents, audio
+- **Interactive Messages** - Buttons, lists, location sharing
+- **Message Templates** - Pre-approved templates for notifications
+- **Contact Management** - Organize and segment contacts
+- **Broadcasts** - Send to thousands with one request
+
+### Enterprise-Ready
+
+- **99.9% Uptime SLA** - Reliable messaging infrastructure
+- **High Throughput** - Thousands of messages per minute
+- **Real-time Webhooks** - Instant delivery & reply notifications
+- **24/7 Support** - Dedicated technical support team
+
+---
+
+## Key Features
+
+### Send Messages
+
+Send text, media, and interactive messages instantly.
+
+```json
+{
+  "to": "233501234567",
+  "type": "text",
+  "text": {
+    "body": "Hello from Sendexa!"
+  }
+}
+```
+
+### Broadcasts
+
+Send messages to multiple contacts at once.
+
+```json
+{
+  "name": "March Promotion",
+  "contacts": ["233501234567", "233509876543"],
+  "message": {
+    "type": "template",
+    "template": {
+      "name": "promotion_alert",
+      "language": "en"
+    }
+  }
+}
+```
+
+### Contact Management
+
+Organize contacts with tags and custom fields.
+
+```json
+{
+  "phone": "233501234567",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "tags": ["customer", "vip"]
+}
+```
+
+### Message Templates
+
+Create and manage WhatsApp approved templates.
+
+```json
+{
+  "name": "order_confirmation",
+  "category": "TRANSACTIONAL",
+  "language": "en",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Your order {{1}} has been confirmed!"
+    }
+  ]
+}
+```
+
+---
+
+## Getting Started
+
+### 1. Create an Account
+
+Sign up at [auth.sendexa.co](https://auth.sendexa.co) and verify your email.
+
+### 2. Connect WhatsApp Business
+
+1. Navigate to **WhatsApp → Settings**
+2. Click **Connect WhatsApp Business**
+3. Follow Meta verification process
+4. Complete business profile
+
+### 3. Generate API Token
+
+1. Go to **Settings → API Tokens**
+2. Click **Create New Token**
+3. Select **WhatsApp** scope
+4. Copy your token securely
+
+```http
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+### 4. Create Your First Template
+
+Before sending messages, create an approved template:
+
+1. Go to **WhatsApp → Templates**
+2. Click **Create Template**
+3. Fill template details
+4. Submit for Meta approval (24-48 hours)
+
+### 5. Send Your First Message
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/whatsapp/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "type": "template",
+    "template": {
+      "name": "hello_world",
+      "language": "en"
+    }
+  }'
+```
+
+---
+
+## Base URL
+
+All WhatsApp API requests use:
+
+```
+https://api.sendexa.co
+```
+
+**Environment URLs:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+Use **Bearer Token authentication** in the `Authorization` header:
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+**Security Best Practices:**
+
+- Never expose API tokens in client-side code
+- Use environment variables
+- Rotate tokens regularly
+- Use different tokens for different environments
+- Revoke unused tokens immediately
+
+---
+
+## API Endpoints Summary
+
+| Endpoint                      | Method | Purpose               | Rate Limit |
+| ----------------------------- | ------ | --------------------- | ---------- |
+| `/v1/whatsapp/send`           | POST   | Send messages         | 50/min     |
+| `/v1/whatsapp/broadcasts`     | POST   | Create broadcast      | 20/min     |
+| `/v1/whatsapp/broadcasts/:id` | GET    | Get broadcast status  | 60/min     |
+| `/v1/whatsapp/contacts`       | POST   | Create/update contact | 100/min    |
+| `/v1/whatsapp/contacts/:id`   | GET    | Get contact details   | 100/min    |
+| `/v1/whatsapp/templates`      | POST   | Create template       | 10/min     |
+| `/v1/whatsapp/templates/:id`  | GET    | Get template          | 60/min     |
+| `/v1/whatsapp/media`          | POST   | Upload media          | 30/min     |
+
+---
+
+## Message Pricing
+
+WhatsApp uses conversation-based pricing. A 24-hour conversation window opens when:
+
+- You send a template message
+- User sends you a message
+
+### Ghana (GHS)
+
+| Conversation Type                   | Price    |
+| ----------------------------------- | -------- |
+| User-initiated                      | 0.25 GHS |
+| Business-initiated (Marketing)      | 0.45 GHS |
+| Business-initiated (Utility)        | 0.35 GHS |
+| Business-initiated (Authentication) | 0.30 GHS |
+
+### Nigeria (NGN)
+
+| Conversation Type                   | Price  |
+| ----------------------------------- | ------ |
+| User-initiated                      | 15 NGN |
+| Business-initiated (Marketing)      | 30 NGN |
+| Business-initiated (Utility)        | 20 NGN |
+| Business-initiated (Authentication) | 18 NGN |
+
+### Kenya (KES)
+
+| Conversation Type                   | Price    |
+| ----------------------------------- | -------- |
+| User-initiated                      | 3.50 KES |
+| Business-initiated (Marketing)      | 6.00 KES |
+| Business-initiated (Utility)        | 4.50 KES |
+| Business-initiated (Authentication) | 4.00 KES |
+
+**Notes:**
+
+- Prices are per 24-hour conversation window
+- Unlimited messages within the window
+- Free session messages (replies within 24h of user message)
+
+---
+
+## Message Types
+
+### Text Messages
+
+Simple text with optional preview URL.
+
+```json
+{
+  "type": "text",
+  "text": {
+    "body": "Hello! Check our website: https://example.com",
+    "preview_url": true
+  }
+}
+```
+
+### Media Messages
+
+Send images, videos, documents, or audio.
+
+```json
+{
+  "type": "image",
+  "image": {
+    "url": "https://example.com/image.jpg",
+    "caption": "Check out our new product!"
+  }
+}
+```
+
+### Interactive Messages
+
+Buttons and list selections.
+
+```json
+{
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "body": {
+      "text": "Choose an option:"
+    },
+    "action": {
+      "buttons": [
+        {
+          "type": "reply",
+          "reply": {
+            "id": "yes",
+            "title": "Yes"
+          }
+        },
+        {
+          "type": "reply",
+          "reply": {
+            "id": "no",
+            "title": "No"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Template Messages
+
+Pre-approved templates for notifications.
+
+```json
+{
+  "type": "template",
+  "template": {
+    "name": "order_update",
+    "language": "en",
+    "components": [
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "ORD-12345"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Conversation Windows
+
+### 24-Hour Window
+
+Once a conversation starts, you can send:
+
+- Unlimited free session messages (replies to user)
+- Template messages (opens new conversation if window expired)
+
+### Window States
+
+```
+User sends message
+        ↓
+  [24-hour window opens]
+        ↓
+  Free session messages
+        ↓
+  Window closes after 24h
+        ↓
+  Template required to re-engage
+```
+
+---
+
+## Supported Countries
+
+WhatsApp messaging available in:
+
+### West Africa
+
+- 🇬🇭 Ghana
+- 🇳🇬 Nigeria
+- 🇨🇮 Ivory Coast
+- 🇸🇳 Senegal
+- 🇧🇯 Benin
+- 🇹🇬 Togo
+
+### East Africa
+
+- 🇰🇪 Kenya
+- 🇺🇬 Uganda
+- 🇹🇿 Tanzania
+- 🇷🇼 Rwanda
+
+### Southern Africa
+
+- 🇿🇦 South Africa
+- 🇿🇲 Zambia
+- 🇿🇼 Zimbabwe
+
+**Need coverage elsewhere?** Contact **sales@sendexa.co**
+
+---
+
+## Common Use Cases
+
+### 1. Order Notifications
+
+```javascript
+await sendWhatsApp({
+  to: '+233501234567',
+  type: 'template',
+  template: {
+    name: 'order_confirmation',
+    language: 'en',
+    components: [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: 'ORD-12345' },
+          { type: 'text', text: 'GHS 150.00' },
+        ],
+      },
+    ],
+  },
+});
+```
+
+### 2. Customer Support
+
+```javascript
+// Receive user message via webhook
+// Reply with session message (free within 24h)
+await sendWhatsApp({
+  to: '+233501234567',
+  type: 'text',
+  text: {
+    body: 'Thanks for reaching out! How can I help you today?',
+  },
+});
+```
+
+### 3. Marketing Campaigns
+
+```javascript
+// Send to segmented audience
+await createBroadcast({
+  name: 'Flash Sale Alert',
+  contacts: vipCustomers,
+  message: {
+    type: 'template',
+    template: {
+      name: 'flash_sale',
+      language: 'en',
+    },
+  },
+});
+```
+
+### 4. Appointment Reminders
+
+```javascript
+await sendWhatsApp({
+  to: '+233501234567',
+  type: 'template',
+  template: {
+    name: 'appointment_reminder',
+    language: 'en',
+    components: [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: 'Dr. Smith' },
+          { type: 'text', text: 'March 15, 2025 at 2:00 PM' },
+        ],
+      },
+    ],
+  },
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Message Templates
+
+- Get templates approved before campaigns
+- Use appropriate template categories
+- Keep templates simple and clear
+- Test templates before bulk sending
+
+### 2. Conversation Management
+
+- Reply within 24-hour windows when possible
+- Use session messages for free replies
+- Track conversation costs
+- Optimize template usage
+
+### 3. Contact Management
+
+- Keep contact lists organized
+- Use tags for segmentation
+- Update contact info regularly
+- Handle opt-outs properly
+
+### 4. Media Handling
+
+- Optimize image/video sizes
+- Use supported formats
+- Host media on reliable CDN
+- Include captions for context
+
+### 5. Compliance
+
+- Get user opt-in before messaging
+- Provide opt-out mechanism
+- Follow WhatsApp Business Policy
+- Respect user preferences
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+Test without consuming credits:
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Features:**
+
+- No conversation charges
+- Simulated delivery reports
+- Test all message types
+- Same API structure
+
+### Test Phone Numbers
+
+| Phone Number    | Behavior                       |
+| --------------- | ------------------------------ |
+| `+233500000001` | Always delivers successfully   |
+| `+233500000002` | Always fails (invalid number)  |
+| `+233500000003` | Delivers after 30 second delay |
+| `+233500000004` | User replies automatically     |
+
+---
+
+## WhatsApp Business Requirements
+
+### Verification Required
+
+- **Business Name** - Official registered name
+- **Business Website** - Active website URL
+- **Business Description** - What your business does
+- **Business Category** - Industry category
+- **Profile Photo** - Business logo
+
+### Display Name
+
+Your business name appears as the sender. Must be:
+
+- Actual business name
+- Approved by Meta
+- Not misleading
+- Not impersonating others
+
+---
+
+## Rate Limits
+
+| Tier   | Messages/Second | Daily Limit |
+| ------ | --------------- | ----------- |
+| Tier 1 | 50              | 1,000       |
+| Tier 2 | 100             | 10,000      |
+| Tier 3 | 200             | 100,000     |
+| Tier 4 | 1,000           | Unlimited   |
+
+**Tier Upgrades:**
+
+- Automatic based on quality rating
+- Maintain high quality score
+- Low block rates required
+- 7-day evaluation period
+
+---
+
+## SDKs & Libraries
+
+### Official SDKs
+
+**Node.js / JavaScript**
+
+```bash
+npm install @sendexa/node-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa
+```
+
+**PHP**
+
+```bash
+composer require sendexa/php-sdk
+```
+
+---
+
+## Support
+
+### Documentation
+
+- [API Reference](/docs/whatsapp/v1)
+- [Code Examples](https://github.com/sendexa/examples)
+- [FAQ](/docs/faq)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join community](https://discord.gg/sendexa)
+- **Twitter:** [@sendexaHQ](https://twitter.com/sendexaHQ)
+
+### Report Issues
+
+- **GitHub:** [github.com/sendexa/api-issues](https://github.com/sendexa/api-issues)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+
+---
+
+## Next Steps
+
+1. 📱 **[Send Your First Message](/docs/whatsapp/send)** - Complete tutorial
+2. 📢 **[Create Broadcasts](/docs/whatsapp/broadcasts)** - Reach multiple contacts
+3. 👥 **[Manage Contacts](/docs/whatsapp/contacts)** - Organize your audience
+4. 📝 **[Message Templates](/docs/whatsapp/templates)** - Create reusable templates
+5. 🔔 **[Set Up Webhooks](/docs/whatsapp/webhooks)** - Real-time notifications
+6. 🛠️ **[API Reference](/docs/whatsapp/v1)** - Complete documentation

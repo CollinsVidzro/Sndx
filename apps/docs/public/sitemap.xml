@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset 
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Main Pages -->
+  <url>
+    <loc>https://docs.sendexa.co/</loc>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Getting Started -->
+  <url><loc>https://docs.sendexa.co/docs/getting-started/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/getting-started/quickstart</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/getting-started/authentication</loc></url>
+
+  <!-- Core -->
+  <url><loc>https://docs.sendexa.co/docs/core/rate-limits</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/core/errors</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/core/webhooks</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/core/idempotency</loc></url>
+
+  <!-- Tools -->
+  <url><loc>https://docs.sendexa.co/docs/tools/exa-ui</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/tools/playground</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/tools/cli</loc></url>
+
+  <!-- Billing -->
+  <url><loc>https://docs.sendexa.co/docs/billing/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/billing/balance</loc></url>
+  <url><loc>https://docs/sendexa.co/docs/billing/topup</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/billing/transactions</loc></url>
+
+  <!-- Phonebook -->
+  <url><loc>https://docs.sendexa.co/docs/phonebook/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/phonebook/contact</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/phonebook/group</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/phonebook/webhooks</loc></url>
+
+  <!-- SMS -->
+  <url><loc>https://docs.sendexa.co/docs/sms/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/sms/send</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/sms/dlr</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/sms/webhooks</loc></url>
+
+  <!-- Verify -->
+  <url><loc>https://docs.sendexa.co/docs/verify/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/verify/request</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/verify/verify</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/verify/resend</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/verify/webhooks</loc></url>
+
+  <!-- Push -->
+  <url><loc>https://docs.sendexa.co/docs/push/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/push/send</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/push/devices</loc></url>
+
+  <!-- Voice -->
+  <url><loc>https://docs.sendexa.co/docs/voice/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/voice/make-call</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/voice/tts</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/voice/ivr</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/voice/webhooks</loc></url>
+
+  <!-- Email -->
+  <url><loc>https://docs.sendexa.co/docs/email/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/email/send</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/email/templates</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/email/attachments</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/email/webhooks</loc></url>
+
+  <!-- WhatsApp -->
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/overview</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/send</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/broadcasts</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/contacts</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/templates</loc></url>
+  <url><loc>https://docs.sendexa.co/docs/whatsapp/webhooks</loc></url>
+
+  <!-- Changelog -->
+  <url><loc>https://docs.sendexa.co/docs/changelog</loc></url>
+
+</urlset>

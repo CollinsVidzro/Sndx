@@ -1,0 +1,257 @@
+---
+title: Top-Up Credits
+description: Learn how to add credits to your Sendexa account via API and dashboard.
+date: 2025-03-12
+---
+
+# Top-Up Credits
+
+Add credits to your Sendexa account to continue sending SMS messages.
+
+---
+
+## Top-Up Methods
+
+You can top up your account in two ways:
+
+1. **Dashboard** - Manual top-up via web interface
+2. **API** - Programmatic top-up for automated workflows
+
+---
+
+## Dashboard Top-Up
+
+### Steps:
+
+1. Log in to your dashboard
+2. Navigate to **Billing → Top-Up**
+3. Enter desired amount
+4. Select payment method:
+   - Mobile Money (MTN, Vodafone, AirtelTigo)
+   - Credit/Debit Card
+   - Bank Transfer
+5. Complete payment
+6. Credits added instantly (or within minutes for bank transfers)
+
+---
+
+## API Top-Up
+
+### POST /v1/billing/topup
+
+Initiate a credit top-up programmatically.
+
+**Base URL:**
+
+```
+https://api.sendexa.co
+```
+
+---
+
+## Request Example
+
+### JavaScript (Node.js)
+
+```js
+import axios from 'axios';
+
+async function topUpCredits() {
+  const res = await axios.post(
+    'https://api.sendexa.co/v1/billing/topup',
+    {
+      amount: 100.0,
+      currency: 'GHS',
+      payment_method: 'mobile_money',
+      mobile_number: '+233500000000',
+      network: 'MTN',
+    },
+    {
+      headers: {
+        Authorization: `Bearer YOUR_TOKEN_HERE`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  console.log(res.data);
+}
+
+topUpCredits();
+```
+
+### cURL
+
+```bash
+curl -X POST https://api.sendexa.co/v1/billing/topup \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100.00,
+    "currency": "GHS",
+    "payment_method": "mobile_money",
+    "mobile_number": "+233500000000",
+    "network": "MTN"
+  }'
+```
+
+### Python
+
+```python
+import requests
+
+url = "https://api.sendexa.co/v1/billing/topup"
+headers = {
+    "Authorization": "Bearer YOUR_TOKEN_HERE",
+    "Content-Type": "application/json"
+}
+data = {
+    "amount": 100.00,
+    "currency": "GHS",
+    "payment_method": "mobile_money",
+    "mobile_number": "+233500000000",
+    "network": "MTN"
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(response.json())
+```
+
+---
+
+## Request Parameters
+
+| Parameter        | Type   | Required    | Description                                                |
+| ---------------- | ------ | ----------- | ---------------------------------------------------------- |
+| `amount`         | float  | Yes         | Top-up amount                                              |
+| `currency`       | string | Yes         | Currency code (GHS, USD, etc.)                             |
+| `payment_method` | string | Yes         | Payment method: `mobile_money`, `card`, `bank_transfer`    |
+| `mobile_number`  | string | Conditional | Required for mobile money                                  |
+| `network`        | string | Conditional | Required for mobile money: `MTN`, `Vodafone`, `AirtelTigo` |
+| `card_token`     | string | Conditional | Required for card payments                                 |
+
+---
+
+## Response Structure
+
+### Success Response
+
+```json
+{
+  "status": "success",
+  "transaction_id": "txn_a8f92bc3f2c44755",
+  "amount": 100.0,
+  "currency": "GHS",
+  "payment_status": "pending",
+  "payment_url": "https://pay.sendexa.co/complete/txn_a8f92bc3f2c44755",
+  "message": "Please complete payment using the provided URL"
+}
+```
+
+### Response Fields
+
+| Field            | Type   | Description                                |
+| ---------------- | ------ | ------------------------------------------ |
+| `status`         | string | Request status                             |
+| `transaction_id` | string | Unique transaction identifier              |
+| `amount`         | float  | Top-up amount                              |
+| `currency`       | string | Currency code                              |
+| `payment_status` | string | Status: `pending`, `completed`, `failed`   |
+| `payment_url`    | string | URL to complete payment (for some methods) |
+| `message`        | string | Additional instructions                    |
+
+---
+
+## Payment Flow
+
+### Mobile Money Flow:
+
+1. API request initiated
+2. User receives payment prompt on phone
+3. User enters PIN to approve
+4. Credits added to account
+5. Confirmation sent via email/SMS
+
+### Card Payment Flow:
+
+1. API request initiated
+2. User redirected to secure payment page
+3. User enters card details
+4. Payment processed
+5. Credits added instantly
+6. Confirmation sent
+
+---
+
+## Webhook Notification
+
+Receive payment confirmations via webhook:
+
+```json
+{
+  "event": "topup.completed",
+  "transaction_id": "txn_a8f92bc3f2c44755",
+  "amount": 100.0,
+  "currency": "GHS",
+  "new_balance": 250.5,
+  "timestamp": "2025-03-12T11:45:00Z"
+}
+```
+
+Configure webhook URL in **Settings → Webhooks**.
+
+---
+
+## Error Responses
+
+### 400 Bad Request
+
+```json
+{
+  "status": "error",
+  "message": "Invalid amount. Minimum top-up is 10.00 GHS"
+}
+```
+
+### 402 Payment Required
+
+```json
+{
+  "status": "error",
+  "message": "Payment failed. Please try again or contact support."
+}
+```
+
+---
+
+## Minimum Top-Up Amounts
+
+| Currency | Minimum Amount |
+| -------- | -------------- |
+| GHS      | 10.00          |
+| USD      | 2.00           |
+| EUR      | 2.00           |
+
+---
+
+## Auto Top-Up
+
+Enable automatic top-ups:
+
+1. Go to **Billing → Auto Top-Up**
+2. Set minimum balance threshold
+3. Set auto top-up amount
+4. Save payment method
+5. Enable feature
+
+System automatically tops up when balance falls below threshold.
+
+---
+
+## Support
+
+Questions about top-ups?
+
+- Email: **billing@sendexa.co**
+- Phone: **+233 55 553 9152**
+- Live Chat: Available in dashboard

@@ -1,0 +1,855 @@
+---
+title: Enhanced OTP API v1 Reference
+description: Complete API reference for the Sendexa Enhanced OTP API v1 with all endpoints, parameters, and response formats.
+date: 2025-03-12
+---
+
+# Enhanced OTP API v1 Reference
+
+Complete reference documentation for all Sendexa Enhanced OTP API v1 endpoints. This guide provides detailed information about every endpoint, parameter, response format, and error code.
+
+---
+
+## Base URL
+
+```
+https://api.sendexa.co
+```
+
+**Environments:**
+
+- **Production:** `https://api.sendexa.co`
+- **Sandbox:** `https://sandbox-api.sendexa.co`
+
+---
+
+## Authentication
+
+All API requests require **Basic Authentication** with Base64-encoded credentials:
+
+```http
+Authorization: Basic base64(api_key:api_secret)
+```
+
+**Example:**
+
+```javascript
+const credentials = btoa('sk_live_abc123:sk_secret_xyz789');
+// Authorization: Basic c2tfbGl2ZV9hYmMxMjM6c2tfc2VjcmV0X3h5ejc4OQ==
+```
+
+**Generate credentials:** [Dashboard → Settings → API Keys](https://auth.sendexa.co/settings/api)
+
+---
+
+## Endpoints Overview
+
+| Endpoint          | Method | Purpose               | Rate Limit              |
+| ----------------- | ------ | --------------------- | ----------------------- |
+| `/v1/otp/request` | POST   | Generate and send OTP | 60/hour per phone/email |
+| `/v1/otp/verify`  | POST   | Verify OTP code       | 10 attempts per OTP     |
+| `/v1/otp/resend`  | POST   | Resend OTP            | 30s cooldown            |
+
+---
+
+## Request OTP
+
+### POST /v1/otp/request
+
+Generate and send a customizable OTP to a phone number or email address.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body
+
+| Parameter                      | Type    | Required    | Default          | Description                                 |
+| ------------------------------ | ------- | ----------- | ---------------- | ------------------------------------------- |
+| `phone`                        | string  | Conditional | -                | Phone number in Ghana format (for SMS)      |
+| `email`                        | string  | Conditional | -                | Email address (for Email)                   |
+| `from`                         | string  | Yes         | -                | Registered Sender ID name                   |
+| `message`                      | string  | No          | Default template | Custom message with placeholders            |
+| `pinLength`                    | integer | No          | 6                | PIN length: 4-10 characters                 |
+| `pinType`                      | string  | No          | NUMERIC          | PIN type: NUMERIC, ALPHANUMERIC, ALPHABETIC |
+| `expiry`                       | object  | No          | -                | Expiration configuration                    |
+| `expiry.amount`                | integer | No          | 10               | Expiry amount: 1-1440                       |
+| `expiry.duration`              | string  | No          | minutes          | Duration: minutes or hours                  |
+| `maxAmountOfValidationRetries` | integer | No          | 3                | Max verification attempts: 1-10             |
+| `metadata`                     | object  | No          | -                | Custom data (any JSON object)               |
+
+**Note:** Either `phone` or `email` is required, not both.
+
+#### SMS Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "from": "YourBrand",
+    "message": "Your code is {code}, expires in {amount} {duration}",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes"
+    },
+    "maxAmountOfValidationRetries": 3,
+    "metadata": {
+      "userId": "12345",
+      "transactionId": "txn_789",
+      "amount": 500
+    }
+  }'
+```
+
+#### Email Request Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/request' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com",
+    "from": "YourApp",
+    "message": "Your verification code is {code}",
+    "pinLength": 6,
+    "pinType": "ALPHANUMERIC",
+    "expiry": {
+      "amount": 15,
+      "duration": "minutes"
+    }
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "data": {
+    "id": "clxyz123abc",
+    "phone": "233555539152",
+    "email": null,
+    "channel": "SMS",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes",
+      "expiresAt": "2024-01-15T10:35:00.000Z"
+    },
+    "maxValidationAttempts": 3,
+    "metadata": {
+      "userId": "12345",
+      "transactionId": "txn_789",
+      "amount": 500
+    }
+  }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request - Missing Channel:**
+
+```json
+{
+  "success": false,
+  "message": "Either phone or email is required"
+}
+```
+
+**400 Bad Request - Invalid Phone:**
+
+```json
+{
+  "success": false,
+  "message": "Invalid phone number format"
+}
+```
+
+**400 Bad Request - Sender ID Not Approved:**
+
+```json
+{
+  "success": false,
+  "message": "Sender ID 'YourBrand' is pending approval",
+  "errorType": "SENDER_ID_NOT_APPROVED",
+  "data": {
+    "name": "YourBrand",
+    "status": "pending"
+  }
+}
+```
+
+**429 Too Many Requests - Active OTP Exists:**
+
+```json
+{
+  "success": false,
+  "message": "An active OTP already exists for this phone number",
+  "data": {
+    "retryAfter": 583,
+    "expiresAt": "2024-01-15T10:15:00.000Z"
+  }
+}
+```
+
+---
+
+## Verify OTP
+
+### POST /v1/otp/verify
+
+Verify an OTP code with enhanced security features.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body
+
+| Parameter | Type   | Required    | Description                   |
+| --------- | ------ | ----------- | ----------------------------- |
+| `phone`   | string | Conditional | Phone number (for SMS OTP)    |
+| `email`   | string | Conditional | Email address (for Email OTP) |
+| `code`    | string | Yes         | The OTP code to verify        |
+| `id`      | string | No          | Specific OTP record ID        |
+
+**Note:** Either `phone` or `email` is required (whichever was used in request).
+
+#### SMS Verification Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/verify' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152",
+    "code": "1234"
+  }'
+```
+
+#### Email Verification Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/verify' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com",
+    "code": "123456"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "data": {
+    "verified": true,
+    "phone": "233555539152",
+    "email": null,
+    "verifiedAt": "2024-01-15T10:30:45.000Z",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "id": "clxyz123abc",
+    "metadata": {
+      "userId": "12345",
+      "transactionId": "txn_789",
+      "amount": 500,
+      "currency": "GHS"
+    }
+  }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request - Invalid OTP:**
+
+```json
+{
+  "success": false,
+  "message": "Invalid OTP code",
+  "errorType": "INVALID_OTP",
+  "data": {
+    "attemptsRemaining": 2,
+    "maxAttempts": 3
+  }
+}
+```
+
+**400 Bad Request - Expired:**
+
+```json
+{
+  "success": false,
+  "message": "OTP code has expired",
+  "errorType": "EXPIRED_OTP",
+  "data": {
+    "expiredAt": "2024-01-15T10:25:00.000Z",
+    "expiryDuration": "5 minutes"
+  }
+}
+```
+
+**400 Bad Request - Max Attempts Exceeded:**
+
+```json
+{
+  "success": false,
+  "message": "Maximum validation attempts exceeded",
+  "errorType": "MAX_ATTEMPTS_EXCEEDED",
+  "data": {
+    "maxAttempts": 3,
+    "attemptsMade": 3,
+    "blockedUntil": "2024-01-15T10:40:00.000Z"
+  }
+}
+```
+
+**404 Not Found - No OTP:**
+
+```json
+{
+  "success": false,
+  "message": "No OTP found for this destination",
+  "errorType": "OTP_NOT_FOUND"
+}
+```
+
+**400 Bad Request - Already Used:**
+
+```json
+{
+  "success": false,
+  "message": "OTP has already been used",
+  "errorType": "OTP_ALREADY_USED",
+  "data": {
+    "usedAt": "2024-01-15T10:28:00.000Z"
+  }
+}
+```
+
+---
+
+## Resend OTP
+
+### POST /v1/otp/resend
+
+Resend an OTP with the same configuration.
+
+#### Request Headers
+
+```http
+Authorization: Bearer YOUR_API_TOKEN
+Content-Type: application/json
+```
+
+#### Request Body
+
+| Parameter | Type   | Required    | Description            |
+| --------- | ------ | ----------- | ---------------------- |
+| `phone`   | string | Conditional | Original phone number  |
+| `email`   | string | Conditional | Original email address |
+| `id`      | string | No          | Specific OTP record ID |
+
+#### SMS Resend Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/resend' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "phone": "0555539152"
+  }'
+```
+
+#### Email Resend Example
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/otp/resend' \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "OTP resent successfully",
+  "data": {
+    "id": "clxyz124def",
+    "phone": "233555539152",
+    "email": null,
+    "channel": "SMS",
+    "pinLength": 4,
+    "pinType": "NUMERIC",
+    "expiry": {
+      "amount": 5,
+      "duration": "minutes",
+      "expiresAt": "2024-01-15T10:50:00.000Z"
+    },
+    "maxValidationAttempts": 3,
+    "resendCount": 1
+  }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request - No Previous OTP:**
+
+```json
+{
+  "success": false,
+  "message": "No previous OTP found to resend",
+  "errorType": "NO_PREVIOUS_OTP"
+}
+```
+
+**429 Too Many Requests - Cooldown:**
+
+```json
+{
+  "success": false,
+  "message": "Please wait before requesting a new OTP",
+  "errorType": "RESEND_COOLDOWN",
+  "data": {
+    "retryAfter": 25,
+    "cooldownEndsAt": "2024-01-15T10:46:25.000Z"
+  }
+}
+```
+
+**400 Bad Request - Max Resends:**
+
+```json
+{
+  "success": false,
+  "message": "Maximum resend attempts exceeded",
+  "errorType": "MAX_RESENDS_EXCEEDED",
+  "data": {
+    "maxResends": 3,
+    "resendCount": 3
+  }
+}
+```
+
+---
+
+## HTTP Status Codes
+
+### Success Codes
+
+| Code | Meaning | Description              |
+| ---- | ------- | ------------------------ |
+| 200  | OK      | Request successful       |
+| 201  | Created | OTP created successfully |
+
+### Client Error Codes
+
+| Code | Meaning           | Description                            |
+| ---- | ----------------- | -------------------------------------- |
+| 400  | Bad Request       | Invalid request parameters             |
+| 401  | Unauthorized      | Invalid or missing credentials         |
+| 402  | Payment Required  | Insufficient account balance           |
+| 403  | Forbidden         | Access denied (sender ID not approved) |
+| 404  | Not Found         | OTP not found                          |
+| 429  | Too Many Requests | Rate limit exceeded                    |
+
+### Server Error Codes
+
+| Code | Meaning               | Description                  |
+| ---- | --------------------- | ---------------------------- |
+| 500  | Internal Server Error | Server error                 |
+| 502  | Bad Gateway           | Upstream provider error      |
+| 503  | Service Unavailable   | Temporary service disruption |
+
+---
+
+## Error Code Reference
+
+### Complete Error Codes
+
+| Error Code               | HTTP Status | Description                    | Solution                             |
+| ------------------------ | ----------- | ------------------------------ | ------------------------------------ |
+| `INVALID_PHONE`          | 400         | Phone format invalid           | Use international format             |
+| `INVALID_EMAIL`          | 400         | Email format invalid           | Check email format                   |
+| `SENDER_ID_NOT_APPROVED` | 403         | Sender ID pending approval     | Wait for approval or use approved ID |
+| `ACTIVE_OTP_EXISTS`      | 429         | Active OTP already exists      | Wait for expiry or use existing      |
+| `INVALID_OTP`            | 400         | Wrong OTP code                 | Re-enter correct code                |
+| `EXPIRED_OTP`            | 400         | OTP has expired                | Request new OTP                      |
+| `MAX_ATTEMPTS_EXCEEDED`  | 400         | Too many verification attempts | Request new OTP                      |
+| `OTP_NOT_FOUND`          | 404         | No OTP found                   | Request OTP first                    |
+| `OTP_ALREADY_USED`       | 400         | OTP already verified           | Cannot reuse OTP                     |
+| `NO_PREVIOUS_OTP`        | 400         | No OTP to resend               | Request new OTP                      |
+| `RESEND_COOLDOWN`        | 429         | Cooldown active                | Wait 30 seconds                      |
+| `MAX_RESENDS_EXCEEDED`   | 400         | Too many resends               | Request new OTP                      |
+| `INSUFFICIENT_BALANCE`   | 402         | Not enough credits             | Top up account                       |
+| `INVALID_CREDENTIALS`    | 401         | Auth credentials invalid       | Check API key and secret             |
+
+---
+
+## Rate Limits
+
+### Request Limits
+
+| Endpoint          | Limit             | Window     | Notes           |
+| ----------------- | ----------------- | ---------- | --------------- |
+| `/v1/otp/request` | 60 requests       | 1 hour     | Per phone/email |
+| `/v1/otp/request` | 1000 requests     | 1 hour     | Per API key     |
+| `/v1/otp/verify`  | 10 attempts       | Per OTP    | Configurable    |
+| `/v1/otp/verify`  | 100 verifications | 1 hour     | Per phone/email |
+| `/v1/otp/resend`  | 1 resend          | 30 seconds | Cooldown period |
+| `/v1/otp/resend`  | 3 resends         | Per OTP    | Maximum allowed |
+| `/v1/otp/resend`  | 10 resends        | 1 hour     | Per phone/email |
+
+### Rate Limit Headers
+
+Every response includes rate limit information:
+
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1678627800
+```
+
+### Rate Limit Response
+
+```json
+{
+  "success": false,
+  "message": "Rate limit exceeded",
+  "errorType": "RATE_LIMIT_EXCEEDED",
+  "data": {
+    "retryAfter": 30,
+    "limit": 60,
+    "window": "1 hour"
+  }
+}
+```
+
+---
+
+## PIN Configuration
+
+### PIN Types
+
+| Type           | Characters | Example | Use Case            |
+| -------------- | ---------- | ------- | ------------------- |
+| `NUMERIC`      | 0-9        | 123456  | Standard OTP        |
+| `ALPHANUMERIC` | A-Z, 0-9   | A3B7K9  | High security       |
+| `ALPHABETIC`   | A-Z        | ABCDEF  | Non-numeric systems |
+
+### PIN Length Options
+
+| Length | Security Level | Recommended For               |
+| ------ | -------------- | ----------------------------- |
+| 4      | Standard       | Quick verification, low-risk  |
+| 5      | Medium         | Standard operations           |
+| 6      | High           | Default, most use cases       |
+| 7-8    | Very High      | Sensitive operations          |
+| 9-10   | Maximum        | Critical financial operations |
+
+---
+
+## Message Templates
+
+### Available Placeholders
+
+| Placeholder  | Description     | Example Output |
+| ------------ | --------------- | -------------- |
+| `{code}`     | The OTP code    | 123456         |
+| `{amount}`   | Expiry amount   | 10             |
+| `{duration}` | Expiry duration | minutes        |
+
+### Template Examples
+
+**Standard:**
+
+```
+Your {from} verification code is {code}. Valid for {amount} {duration}.
+```
+
+**Transaction:**
+
+```
+Approve GHS 500 transfer with code {code}. Expires in {amount} {duration}.
+```
+
+**Security:**
+
+```
+Security code: {code}. If you didn't request this, contact support.
+```
+
+---
+
+## Expiry Configuration
+
+### Duration Options
+
+| Duration  | Min | Max  | Common Values |
+| --------- | --- | ---- | ------------- |
+| `minutes` | 1   | 1440 | 5, 10, 15     |
+| `hours`   | 1   | 24   | 1, 2, 24      |
+
+### Recommended Expiry Times
+
+| Use Case           | Configuration |
+| ------------------ | ------------- |
+| Quick Login        | 3 minutes     |
+| Standard Auth      | 5-10 minutes  |
+| Transaction        | 3-5 minutes   |
+| Password Reset     | 15-30 minutes |
+| Email Verification | 30-60 minutes |
+
+---
+
+## Webhook Events
+
+Sendexa can send real-time webhook notifications for OTP events.
+
+### Event Types
+
+| Event           | Trigger                   |
+| --------------- | ------------------------- |
+| `otp.requested` | OTP sent successfully     |
+| `otp.verified`  | OTP verified successfully |
+| `otp.failed`    | Verification failed       |
+| `otp.expired`   | OTP expired               |
+| `otp.blocked`   | Max attempts exceeded     |
+| `otp.resent`    | OTP resent                |
+
+### Example Webhook Payload
+
+```json
+{
+  "event": "otp.verified",
+  "id": "clxyz123abc",
+  "phone": "233555539152",
+  "email": null,
+  "channel": "SMS",
+  "verifiedAt": "2024-01-15T10:32:45.000Z",
+  "attempts": 1,
+  "metadata": {
+    "userId": "12345",
+    "transactionId": "txn_789"
+  },
+  "timestamp": "2024-01-15T10:32:45.000Z"
+}
+```
+
+See [Webhooks Documentation](/docs/verify/webhooks) for complete guide.
+
+---
+
+## SDKs & Code Examples
+
+### Official SDKs
+
+**Node.js**
+
+```bash
+npm install @sendexa/otp-sdk
+```
+
+**Python**
+
+```bash
+pip install sendexa-otp
+```
+
+**PHP**
+
+```bash
+composer require sendexa/otp-sdk
+```
+
+### Quick Examples
+
+**JavaScript:**
+
+```javascript
+const { OTPClient } = require('@sendexa/otp-sdk');
+const client = new OTPClient('api_key', 'api_secret');
+
+await client.request({
+  phone: '0555539152',
+  from: 'YourApp',
+  pinLength: 6,
+});
+```
+
+**Python:**
+
+```python
+from sendexa import OTPClient
+
+client = OTPClient('api_key', 'api_secret')
+
+client.request(
+    phone='0555539152',
+    from_name='YourApp',
+    pin_length=6
+)
+```
+
+**PHP:**
+
+```php
+<?php
+use Sendexa\OTP\Client;
+
+$client = new Client('api_key', 'api_secret');
+
+$client->request([
+    'phone' => '0555539152',
+    'from' => 'YourApp',
+    'pinLength' => 6
+]);
+?>
+```
+
+---
+
+## Testing
+
+### Sandbox Environment
+
+**Sandbox URL:** `https://sandbox-api.sendexa.co`
+
+**Features:**
+
+- No credits consumed
+- Simulated delivery
+- Test all endpoints
+- Same API structure
+
+### Test Destinations
+
+**SMS Test Numbers:**
+| Number | Behavior |
+|--------|----------|
+| `0555539152` | Always succeeds |
+| `0555539153` | Always fails (invalid) |
+| `0555539154` | Delayed delivery (30s) |
+
+**Email Test Addresses:**
+| Email | Behavior |
+|-------|----------|
+| `test-success@sendexa.co` | Always succeeds |
+| `test-fail@sendexa.co` | Always fails |
+| `test-delay@sendexa.co` | Delayed delivery |
+
+### Test OTP Codes
+
+| Code     | Behavior              |
+| -------- | --------------------- |
+| `123456` | Always valid          |
+| `000000` | Always invalid        |
+| `999999` | Triggers max attempts |
+| `111111` | Simulates expired     |
+
+---
+
+## Best Practices
+
+### Security
+
+1. **Use appropriate PIN length** - 6+ for financial transactions
+2. **Set short expiry for sensitive ops** - 3-5 minutes
+3. **Limit validation attempts** - Default 3 attempts
+4. **Store metadata** - Track transaction context
+5. **Implement webhooks** - Real-time monitoring
+
+### Performance
+
+1. **Cache verification status** - Reduce API calls
+2. **Implement timeouts** - Don't wait indefinitely
+3. **Handle errors gracefully** - Provide fallbacks
+4. **Use async processing** - Don't block user flows
+5. **Monitor success rates** - Track and optimize
+
+### User Experience
+
+1. **Clear messages** - Tell users what OTP is for
+2. **Show countdown** - Display remaining time
+3. **Enable resend** - Allow new code request
+4. **Provide feedback** - Clear error messages
+5. **Auto-detect** - Use SMS auto-fill APIs
+
+---
+
+## Pricing
+
+### Ghana (GHS)
+
+| Service   | Price     |
+| --------- | --------- |
+| SMS OTP   | 0.035 GHS |
+| Email OTP | 0.01 GHS  |
+
+**Volume Discounts:**
+
+- 10,000+ OTPs/month: 5% discount
+- 50,000+ OTPs/month: 10% discount
+- 100,000+ OTPs/month: Custom pricing
+
+Contact **sales@sendexa.co** for enterprise pricing.
+
+---
+
+## Support
+
+### Documentation
+
+- [Overview](/docs/verify/overview)
+- [Request OTP](/docs/verify/request)
+- [Verify OTP](/docs/verify/verify)
+- [Resend OTP](/docs/verify/resend)
+- [Webhooks](/docs/verify/webhooks)
+
+### Get Help
+
+- **Email:** support@sendexa.co
+- **Discord:** [Join community](https://discord.gg/sendexa)
+- **Phone:** +233 55 553 9152
+
+### Report Issues
+
+- **GitHub:** [github.com/sendexa/otp-issues](https://github.com/sendexa/otp-issues)
+- **Status:** [status.sendexa.co](https://status.sendexa.co)
+
+---
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- Initial release
+- SMS and Email channels
+- PIN lengths 4-10
+- NUMERIC, ALPHANUMERIC, ALPHABETIC types
+- Custom message templates
+- Metadata support
+- Webhook notifications
+- Enhanced security features

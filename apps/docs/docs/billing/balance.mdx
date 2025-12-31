@@ -1,0 +1,158 @@
+---
+title: Check Balance
+description: Learn how to check your credit balance via API and dashboard.
+date: 2025-03-12
+---
+
+# Check Balance
+
+Monitor your Sendexa credit balance programmatically or through the dashboard.
+
+---
+
+## API Endpoint
+
+### GET /v1/billing/balance
+
+Retrieve your current credit balance and account information.
+
+**Base URL:**
+
+```
+https://api.sendexa.co
+```
+
+---
+
+## Request Example
+
+### JavaScript (Node.js)
+
+```js
+import axios from 'axios';
+
+async function checkBalance() {
+  const res = await axios.get('https://api.sendexa.co/v1/billing/balance', {
+    headers: {
+      Authorization: `Bearer YOUR_TOKEN_HERE`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  console.log(res.data);
+}
+
+checkBalance();
+```
+
+### cURL
+
+```bash
+curl -X GET https://api.sendexa.co/v1/billing/balance \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json"
+```
+
+### Python
+
+```python
+import requests
+
+url = "https://api.sendexa.co/v1/billing/balance"
+headers = {
+    "Authorization": "Bearer YOUR_TOKEN_HERE",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+print(response.json())
+```
+
+---
+
+## Response Structure
+
+### Success Response
+
+```json
+{
+  "status": "success",
+  "balance": 150.5,
+  "currency": "GHS",
+  "account_status": "active",
+  "last_updated": "2025-03-12T10:30:00Z"
+}
+```
+
+### Response Fields
+
+| Field            | Type   | Description                                  |
+| ---------------- | ------ | -------------------------------------------- |
+| `status`         | string | Request status (`success` or `error`)        |
+| `balance`        | float  | Current credit balance                       |
+| `currency`       | string | Currency code (GHS, USD, etc.)               |
+| `account_status` | string | Account status (`active`, `suspended`, etc.) |
+| `last_updated`   | string | Last balance update timestamp (ISO 8601)     |
+
+---
+
+## Error Responses
+
+### 401 Unauthorized
+
+```json
+{
+  "status": "error",
+  "message": "Invalid or missing authorization token"
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "status": "error",
+  "message": "Account suspended. Please contact support."
+}
+```
+
+---
+
+## Check Balance in Dashboard
+
+**Manual Check:**
+
+1. Log in to your dashboard
+2. View balance in top navigation bar
+3. Click **Billing** for detailed breakdown
+
+---
+
+## Low Balance Alerts
+
+Set up automatic notifications:
+
+1. Go to **Settings → Notifications**
+2. Enable **Low Balance Alerts**
+3. Set threshold amount
+4. Choose notification method (Email/SMS)
+
+You'll receive alerts when balance drops below your threshold.
+
+---
+
+## Best Practices
+
+- Check balance before bulk SMS campaigns
+- Monitor balance regularly via API
+- Enable low balance alerts
+- Set up auto top-up for critical services
+
+---
+
+## Support
+
+Need help?
+
+- Email: **support@sendexa.co**
+- Documentation: [https://docs.sendexa.co](https://docs.sendexa.co)

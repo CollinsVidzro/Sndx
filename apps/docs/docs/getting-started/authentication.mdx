@@ -1,0 +1,115 @@
+---
+title: Authentication
+description: Learn how to authenticate securely with Sendexa v1 using Token-based Authorization.
+date: 2025-03-12
+---
+
+# Authentication
+
+Sendexa v1 uses **Token-based Authorization** for all API requests. This ensures a more secure, modern, and scalable system compared to legacy API key methods.
+
+Every request you make must include a valid **Bearer Token**.
+
+---
+
+## How Authentication Works
+
+Sendexa issues secure access tokens that uniquely identify your application. These tokens must be included in the `Authorization` header:
+
+```http
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+Tokens allow you to authenticate without exposing your account credentials.
+
+---
+
+## Creating an API Token
+
+To generate a new token:
+
+1. Log in to the **Sendexa Dashboard**.
+2. Go to **Settings → API Tokens**.
+3. Click **Create Token**.
+4. Copy and store the token securely.
+
+You can create multiple tokens for different environments:
+
+- **Production**
+- **Development**
+- **Staging**
+
+---
+
+## Using Tokens in API Requests
+
+Here’s an example of adding your token in a standard request:
+
+```http
+POST /v1/sms/send HTTP/1.1
+Host: api.sendexa.co
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+```
+
+---
+
+## Token Scopes (Coming Soon)
+
+Future versions of Sendexa will support scoped tokens such as:
+
+- **sms.send**
+- **otp.verify**
+- **email.send**
+
+This gives you finer control over token permissions.
+
+---
+
+## Securing Your Tokens
+
+To keep your integration safe:
+
+- Never expose tokens in frontend code.
+- Regenerate a token immediately if exposed.
+- Do not share your token with anyone.
+- Use environment variables for storing tokens.
+
+Example `.env` usage:
+
+```
+SENDEXA_TOKEN=YOUR_TOKEN_HERE
+```
+
+---
+
+## Rotating or Revoking Tokens
+
+If a token becomes compromised:
+
+1. Open **Settings → API Tokens**.
+2. Select the token.
+3. Click **Revoke**.
+4. Generate a new token and update your applications.
+
+---
+
+## Testing Authentication
+
+You can test token validity using `/v1/auth/check`:
+
+```bash
+curl -X GET https://api.sendexa.co/v1/auth/check \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+If successful, you’ll receive:
+
+```json
+{
+  "status": "valid",
+  "message": "Token is active."
+}
+```
+
+---

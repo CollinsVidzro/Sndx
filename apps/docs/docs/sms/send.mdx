@@ -1,0 +1,690 @@
+---
+title: Send SMS
+description: Learn how to send single and bulk SMS messages using the Sendexa API with detailed examples and best practices.
+date: 2025-03-12
+---
+
+# Send SMS
+
+Learn how to send SMS messages using the Sendexa API. This guide covers both single and bulk SMS sending with complete examples.
+
+---
+
+## Quick Start
+
+### Single SMS
+
+Send an SMS to one recipient:
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "from": "YourBrand",
+    "content": "Hello from Sendexa!"
+  }'
+```
+
+### Bulk SMS
+
+Send the same message to multiple recipients:
+
+```bash
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": ["233501234567", "233509876543"],
+    "from": "YourBrand",
+    "content": "Flash Sale! 20% off today only"
+  }'
+```
+
+---
+
+## Endpoint
+
+### POST /v1/sms/send
+
+Send single or bulk SMS messages.
+
+**Base URL:** `https://api.sendexa.co`
+
+**Rate Limit:** 60 requests per minute
+
+---
+
+## Request Parameters
+
+| Parameter      | Type            | Required | Description                                       |
+| -------------- | --------------- | -------- | ------------------------------------------------- |
+| `to`           | string or array | Yes      | Recipient phone number(s) in international format |
+| `from`         | string          | Yes      | Approved Sender ID (3-11 characters)              |
+| `content`      | string          | Yes      | Message text (max 1600 characters)                |
+| `reference`    | string          | No       | Your custom reference ID for tracking             |
+| `callback_url` | string          | No       | Webhook URL for delivery reports                  |
+| `scheduled_at` | string          | No       | ISO 8601 timestamp for scheduled sending          |
+
+### Parameter Details
+
+#### to (Phone Number)
+
+**Single Recipient:**
+
+```json
+{
+  "to": "233501234567"
+}
+```
+
+**Multiple Recipients (Bulk):**
+
+```json
+{
+  "to": ["233501234567", "233509876543", "233543219876"]
+}
+```
+
+**Format Requirements:**
+
+- Must include country code
+- No spaces, dashes, or special characters
+- Start with country code (no + required, but accepted)
+- Valid examples: `233501234567`, `+233501234567`
+- Invalid examples: `0501234567`, `+233 50 123 4567`
+
+#### from (Sender ID)
+
+Your registered Sender ID that appears on the recipient's phone.
+
+**Requirements:**
+
+- 3-11 characters
+- Alphanumeric only (letters and numbers)
+- No spaces or special characters
+- Must be pre-registered and approved
+
+**Examples:**
+
+- ✅ `YourBrand`
+- ✅ `MyShop247`
+- ✅ `ALERT`
+- ❌ `AB` (too short)
+- ❌ `MyBrand-Shop` (contains dash)
+- ❌ `VeryLongBrandName` (too long)
+
+#### content (Message Text)
+
+The SMS message content.
+
+**Character Limits:**
+
+- **160 characters** = 1 SMS part
+- **306 characters** = 2 SMS parts
+- **459 characters** = 3 SMS parts
+- Up to **1600 characters** = 10 SMS parts
+
+**Encoding:**
+
+- GSM-7 encoding (standard): 160 chars per part
+- Unicode (emoji/special chars): 70 chars per part
+
+**Tips:**
+
+- Keep messages concise for cost efficiency
+- Test message length before bulk sending
+- Unicode characters count as more than one character
+
+#### reference (Optional)
+
+Your custom reference ID for tracking:
+
+```json
+{
+  "reference": "order-12345-otp"
+}
+```
+
+**Use Cases:**
+
+- Link SMS to order IDs
+- Track campaign performance
+- Correlate with internal systems
+- Debug delivery issues
+
+#### callback_url (Optional)
+
+Override default webhook URL for this message:
+
+```json
+{
+  "callback_url": "https://your-domain.com/webhooks/sms"
+}
+```
+
+#### scheduled_at (Optional)
+
+Schedule SMS for future delivery:
+
+```json
+{
+  "scheduled_at": "2025-03-15T10:00:00Z"
+}
+```
+
+**Requirements:**
+
+- ISO 8601 format
+- Must be in the future
+- Maximum 30 days ahead
+- Timezone: UTC
+
+---
+
+## Response Format
+
+### Success Response (Single SMS)
+
+```json
+{
+  "success": true,
+  "message": "SMS queued for delivery",
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    }
+  ]
+}
+```
+
+### Success Response (Bulk SMS)
+
+```json
+{
+  "success": true,
+  "message": "Bulk SMS queued for delivery",
+  "messages": [
+    {
+      "messageId": "debd64cc-e2dd-4db7-94ee-0a3bfa6d912f",
+      "to": "233501234567",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    },
+    {
+      "messageId": "5a61dce3-5c1b-4b8b-b7df-3a68448f7f91",
+      "to": "233509876543",
+      "status": "queued",
+      "parts": 1,
+      "cost": 0.035,
+      "currency": "GHS"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "queued": 2,
+    "failed": 0,
+    "totalCost": 0.07,
+    "currency": "GHS"
+  }
+}
+```
+
+### Response Fields
+
+| Field       | Type    | Description                           |
+| ----------- | ------- | ------------------------------------- |
+| `success`   | boolean | Whether request succeeded             |
+| `message`   | string  | Human-readable status message         |
+| `messages`  | array   | Array of message objects              |
+| `messageId` | string  | Unique identifier for the message     |
+| `to`        | string  | Recipient phone number                |
+| `status`    | string  | Current status (queued, sent, failed) |
+| `parts`     | integer | Number of SMS parts                   |
+| `cost`      | float   | Cost for this message                 |
+| `currency`  | string  | Currency code (GHS, NGN, etc.)        |
+| `summary`   | object  | Bulk send summary (bulk only)         |
+
+---
+
+## Code Examples
+
+### JavaScript / Node.js
+
+```javascript
+const axios = require('axios');
+
+async function sendSMS(to, content, from = 'YourBrand') {
+  try {
+    const response = await axios.post(
+      'https://api.sendexa.co/v1/sms/send',
+      {
+        to,
+        from,
+        content,
+      },
+      {
+        headers: {
+          Authorization: 'Bearer YOUR_TOKEN',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Message ID:', response.data.messages[0].messageId);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Send single SMS
+await sendSMS('233501234567', 'Your OTP is 123456');
+
+// Send bulk SMS
+await sendSMS(['233501234567', '233509876543'], 'Flash Sale! 50% off today');
+```
+
+### Python
+
+```python
+import requests
+
+def send_sms(to, content, from='YourBrand'):
+    """Send SMS via Sendexa API"""
+    url = 'https://api.sendexa.co/v1/sms/send'
+    headers = {
+        'Authorization': 'Bearer YOUR_TOKEN',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'to': to,
+        'from': from,
+        'content': content
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        print(f"Message ID: {data['messages'][0]['messageId']}")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        raise
+
+# Send single SMS
+send_sms('233501234567', 'Your OTP is 123456')
+
+# Send bulk SMS
+send_sms(
+    ['233501234567', '233509876543'],
+    'Flash Sale! 50% off today'
+)
+```
+
+### PHP
+
+```php
+<?php
+
+function sendSMS($to, $content, $from = 'YourBrand') {
+    $url = 'https://api.sendexa.co/v1/sms/send';
+    $token = 'your_token';
+
+    $data = [
+        'to' => $to,
+        'from' => $from,
+        'content' => $content
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+        echo "Message ID: " . $result['messages'][0]['messageId'] . "\n";
+        return $result;
+    } else {
+        throw new Exception("SMS send failed: " . $response);
+    }
+}
+
+// Send single SMS
+sendSMS('233501234567', 'Your OTP is 123456');
+
+// Send bulk SMS
+sendSMS(
+    ['233501234567', '233509876543'],
+    'Flash Sale! 50% off today'
+);
+?>
+```
+
+### cURL
+
+```bash
+# Single SMS
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": "233501234567",
+    "from": "YourBrand",
+    "content": "Your OTP is 123456"
+  }'
+
+# Bulk SMS
+curl -X POST 'https://api.sendexa.co/v1/sms/send' \
+  -H 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to": ["233501234567", "233509876543"],
+    "from": "YourBrand",
+    "content": "Flash Sale! 50% off today"
+  }'
+```
+
+---
+
+## Advanced Features
+
+### Scheduled SMS
+
+Send SMS at a specific future time:
+
+```javascript
+await axios.post(url, {
+  to: '233501234567',
+  from: 'YourBrand',
+  content: 'Reminder: Your appointment is tomorrow at 2PM',
+  scheduled_at: '2025-03-15T10:00:00Z',
+});
+```
+
+**Use Cases:**
+
+- Appointment reminders
+- Birthday wishes
+- Campaign launches
+- Time-zone specific delivery
+
+### Custom Reference Tracking
+
+```javascript
+await axios.post(url, {
+  to: '233501234567',
+  from: 'YourBrand',
+  content: 'Order #12345 has shipped',
+  reference: 'order-12345-shipment',
+});
+```
+
+**Benefits:**
+
+- Link SMS to orders/users
+- Track delivery by reference
+- Debug specific campaigns
+- Generate custom reports
+
+### Message Templates
+
+Create reusable message templates:
+
+```javascript
+const templates = {
+  otp: (code) => `Your verification code is ${code}. Valid for 10 minutes.`,
+  welcome: (name) => `Welcome ${name}! Thank you for joining us.`,
+  order: (orderId) =>
+    `Order #${orderId} confirmed. Track: https://shop.com/t/${orderId}`,
+};
+
+// Use template
+await sendSMS('233501234567', templates.otp('123456'));
+```
+
+---
+
+## Best Practices
+
+### 1. Message Content
+
+**Do:**
+
+- Keep messages clear and concise
+- Include brand identification
+- Provide clear call-to-action
+- Use proper grammar
+
+**Don't:**
+
+- Use ALL CAPS (appears as spam)
+- Include excessive punctuation!!!
+- Send irrelevant content
+- Forget opt-out instructions for marketing
+
+### 2. Bulk Sending
+
+**Batch Size:**
+
+- Optimal: 100 recipients per request
+- Maximum: 1000 recipients per request
+- For larger lists, split into batches
+
+```javascript
+function chunkArray(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const recipients = [...]; // 5000 recipients
+const batches = chunkArray(recipients, 100);
+
+for (const batch of batches) {
+  await sendSMS(batch, 'Your message here');
+  await new Promise(r => setTimeout(r, 1000)); // Rate limit respect
+}
+```
+
+### 3. Error Handling
+
+Always implement proper error handling:
+
+```javascript
+async function sendSMSWithRetry(to, content, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await sendSMS(to, content);
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+
+      // Exponential backoff
+      const delay = Math.pow(2, attempt) * 1000;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+}
+```
+
+### 4. Cost Optimization
+
+**Calculate message cost before sending:**
+
+```javascript
+function calculateSMSParts(message) {
+  const hasUnicode = /[^\x00-\x7F]/.test(message);
+  const maxLength = hasUnicode ? 70 : 160;
+  const concatLength = hasUnicode ? 67 : 153;
+
+  if (message.length <= maxLength) {
+    return 1;
+  }
+
+  return Math.ceil(message.length / concatLength);
+}
+
+function estimateCost(message, recipients = 1, pricePerSMS = 0.035) {
+  const parts = calculateSMSParts(message);
+  return parts * recipients * pricePerSMS;
+}
+
+// Example
+const message = 'Your message here';
+const cost = estimateCost(message, 1000);
+console.log(`Estimated cost: GHS ${cost.toFixed(2)}`);
+```
+
+### 5. Phone Number Validation
+
+Validate numbers before sending:
+
+```javascript
+function isValidPhoneNumber(phone) {
+  // Remove spaces, dashes, plus
+  const cleaned = phone.replace(/[\s\-+]/g, '');
+
+  // Check length (typically 10-15 digits)
+  if (cleaned.length < 10 || cleaned.length > 15) {
+    return false;
+  }
+
+  // Check if numeric
+  if (!/^\d+$/.test(cleaned)) {
+    return false;
+  }
+
+  return true;
+}
+
+// Usage
+const numbers = ['233501234567', 'invalid', '233509876543'];
+const validNumbers = numbers.filter(isValidPhoneNumber);
+```
+
+---
+
+## Common Errors
+
+### Error: Invalid Phone Number
+
+```json
+{
+  "success": false,
+  "error": "INVALID_PHONE_NUMBER",
+  "message": "Phone number format is invalid",
+  "details": {
+    "field": "to",
+    "value": "0501234567"
+  }
+}
+```
+
+**Solution:** Use international format: `233501234567`
+
+### Error: Invalid Sender ID
+
+```json
+{
+  "success": false,
+  "error": "INVALID_SENDER_ID",
+  "message": "Sender ID not registered",
+  "details": {
+    "from": "MyBrand"
+  }
+}
+```
+
+**Solution:** Register Sender ID in dashboard first
+
+### Error: Insufficient Balance
+
+```json
+{
+  "success": false,
+  "error": "INSUFFICIENT_BALANCE",
+  "message": "Not enough credits",
+  "details": {
+    "required": 3.5,
+    "available": 1.0,
+    "currency": "GHS"
+  }
+}
+```
+
+**Solution:** Top up your account
+
+### Error: Rate Limit Exceeded
+
+```json
+{
+  "success": false,
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Too many requests",
+  "retry_after": 30
+}
+```
+
+**Solution:** Implement rate limiting and retry logic
+
+---
+
+## Testing
+
+### Test Numbers
+
+Use these in sandbox for testing:
+
+| Number         | Behavior               |
+| -------------- | ---------------------- |
+| `233500000001` | Always succeeds        |
+| `233500000002` | Always fails (invalid) |
+| `233500000003` | Delivers after 30s     |
+| `233500000004` | Fails after retry      |
+
+### Example Test
+
+```javascript
+// Test in sandbox
+const testNumbers = [
+  '233500000001', // Success
+  '233500000002', // Fail
+  '233500000003', // Delayed
+];
+
+for (const number of testNumbers) {
+  const result = await sendSMS(number, 'Test message');
+  console.log(`${number}: ${result.messages[0].status}`);
+}
+```
+
+---
+
+## Next Steps
+
+- 📊 **[Track Delivery Reports](/docs/sms/dlr)** - Monitor message status
+- 🔔 **[Set Up Webhooks](/docs/sms/webhooks)** - Receive real-time updates
+- 🛠️ **[API Reference](/docs/sms/v1)** - Complete endpoint documentation
+- 💡 **[View Examples](https://github.com/sendexa/examples)** - Code samples
