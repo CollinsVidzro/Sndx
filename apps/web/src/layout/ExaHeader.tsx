@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +26,7 @@ export default function ExaHeader() {
   const [prevDropdown, setPrevDropdown] = useState<string | null>(null);
   const [isHovering, setIsHovering] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Handle hover with delay for better UX
@@ -66,9 +68,9 @@ export default function ExaHeader() {
   };
 
   // Add this to see if the state is changing
-useEffect(() => {
-  console.log("Mobile menu is:", mobileMenuOpen);
-}, [mobileMenuOpen]);
+  useEffect(() => {
+    console.log("Mobile menu is:", mobileMenuOpen);
+  }, [mobileMenuOpen]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -81,6 +83,7 @@ useEffect(() => {
 
   const renderDropdown = () => {
     const direction = getSlideDirection(prevDropdown, activeDropdown);
+    const isCompanyDropdown = activeDropdown === "company";
 
     const dropdownComponents = {
       product: <ProductDropdown />,
@@ -89,6 +92,30 @@ useEffect(() => {
       company: <CompanyDropdown />,
     };
 
+    if (isCompanyDropdown) {
+      // For Company dropdown, position it below the menu item
+      const menuItemRect = menuItemRefs.current.company?.getBoundingClientRect();
+      const leftPosition = menuItemRect ? menuItemRect.left : 0;
+
+      return (
+        <motion.div
+          key={activeDropdown}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
+          className="absolute top-full mt-2  -translate-x-1/2"
+          style={{ left: `${leftPosition}px` }}
+          onMouseEnter={handleDropdownMouseEnter}
+          onMouseLeave={handleDropdownMouseLeave}
+          ref={dropdownRef}
+        >
+          {dropdownComponents[activeDropdown as keyof typeof dropdownComponents]}
+        </motion.div>
+      );
+    }
+
+    // For other dropdowns, keep centered
     return (
       <motion.div
         key={activeDropdown}
@@ -99,6 +126,7 @@ useEffect(() => {
         className="absolute left-1/2 top-full mt-2 -translate-x-1/2"
         onMouseEnter={handleDropdownMouseEnter}
         onMouseLeave={handleDropdownMouseLeave}
+        ref={dropdownRef}
       >
         {dropdownComponents[activeDropdown as keyof typeof dropdownComponents]}
       </motion.div>
@@ -117,33 +145,35 @@ useEffect(() => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          {/* using sendexa logo from https://cdn.sendexa.co/logos/exaweb.png */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <Image
                 src="https://cdn.sendexa.co/logos/exaweb.png"
                 alt="Sendexa Logo"
-                width={150}
-                height={40}
+                width={120}
+                height={30}
                 className="object-contain"
               />
-
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div 
-            className="hidden items-center space-x-1 lg:flex" 
-            ref={dropdownRef}
+            className="hidden items-center space-x-1 lg:flex relative"
             onMouseLeave={handleMouseLeave}
           >
             {navigation.map((item) => (
               <div 
                 key={item.name} 
                 className="relative"
+                ref={(el) => {
+                  if (item.id) {
+                    menuItemRefs.current[item.id] = el;
+                  }
+                }}
                 onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.id!)}
               >
                 {item.hasDropdown ? (
@@ -163,11 +193,6 @@ useEffect(() => {
                     {item.name}
                   </Link>
                 )}
-
-                {/* Active indicator */}
-                {/* {activeDropdown === item.id && (
-                  <div className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" />
-                )} */}
               </div>
             ))}
           </div>
@@ -223,8 +248,6 @@ useEffect(() => {
         isOpen={mobileMenuOpen} 
         onClose={() => setMobileMenuOpen(false)} 
       />
-
-     
     </header>
   );
 }

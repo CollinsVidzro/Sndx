@@ -177,43 +177,6 @@ export default function SolutionsDropdown() {
               ))}
             </div>
           </div>
-
-          {/* Resources Section */}
-          {/* <div className="space-y-4"> */}
-            {/* Quick Start Guide */}
-            {/* <div className="rounded-xl bg-gradient-to-br from-cyan-50 to-blue-50 p-5 border border-cyan-100">
-              <div className="mb-3">
-                <Zap className="h-5 w-5 text-cyan-600" />
-              </div>
-              <h4 className="font-semibold text-gray-900">Quick Start Guide</h4>
-              <p className="mt-1 text-sm text-gray-600">
-                Start sending messages in 5 minutes
-              </p>
-              <Link
-                href="/docs/quickstart"
-                className="mt-3 inline-flex items-center text-sm font-medium text-cyan-600 hover:text-cyan-700"
-              >
-                Get started →
-              </Link>
-            </div> */}
-
-            {/* Documentation */}
-            {/* <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 p-5 border border-emerald-100">
-              <div className="mb-3">
-                <FileText className="h-5 w-5 text-emerald-600" />
-              </div>
-              <h4 className="font-semibold text-gray-900">API Documentation</h4>
-              <p className="mt-1 text-sm text-gray-600">
-                Complete reference for developers
-              </p>
-              <Link
-                href="/docs/api"
-                className="mt-3 inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700"
-              >
-                View docs →
-              </Link>
-            </div> */}
-          {/* </div> */}
         </div>
       </div>
     </div>

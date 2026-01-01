@@ -64,8 +64,8 @@ export default function ExaFooter() {
                 <Image
                   src="https://cdn.sendexa.co/logos/exaweb.png"
                   alt="Sendexa Logo"
-                  width={150}
-                  height={40}
+                  width={120}
+                  height={30}
                   className="object-contain"
                 />
               </Link>

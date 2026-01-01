@@ -80,7 +80,7 @@ const newYearAnnouncement: Announcement = {
   id: 'new-year-2026',
   title: '🎉 Happy New Year from Sendexa!',
   description: 'Kickstart your year with our latest updates',
-  href: '/blog/new-year-updates',
+  href: '/blog/new-year-2026-updates',
   cta: 'Discover more',
   badge: 'Announcement',
   color: 'green',
