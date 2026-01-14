@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { X, ExternalLink, Gift, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { announcements } from '@/data/announcements';
+import { announcements } from '@/data/info';
 import { Announcement } from '@/types/announcement';
 
 const colorConfig = {

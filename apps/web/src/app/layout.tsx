@@ -9,7 +9,7 @@ import ExaBanner from "@/layout/ExaBanner";
 
 export const metadata: Metadata = {
   title: {
-    default: "Sendexa - Reliable Messaging and Payment Infrastructure",
+    default: "Sendexa | Reliable Messaging and Payment Infrastructure",
     template: "%s | Sendexa",
   },
   description:

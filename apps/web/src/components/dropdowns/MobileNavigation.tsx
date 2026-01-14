@@ -9,7 +9,6 @@ import {
   Code,
   CreditCard,
   Building,
-  Globe,
   MessageSquare,
   Mail,
   Shield,
@@ -17,17 +16,17 @@ import {
   ShoppingCart,
   Heart,
   TrendingUp,
-  Book,
-  Terminal,
-  GitBranch,
   Users,
   Briefcase,
-  Award,
   X,
-  Webhook,
   Clock,
   Key,
   UsersIcon,
+  Building2,
+  Newspaper,
+  MessageCircleMore,
+  Hash,
+  PhoneCall,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -39,105 +38,103 @@ const navigation = [
     icon: Home,
   },
   {
-    name: "Product",
-    href: "/product",
+    name: "Products",
+    href: "/products",
     icon: Package,
     subItems: [
       {
         name: "Messaging API",
-        href: "/product/messaging",
-        icon: MessageSquare,
+        href: "/products/messaging",
+        icon: MessageCircleMore,
         badge: "Popular",
       },
       {
-        name: "Email Service",
-        href: "/product/email",
-        icon: Mail,
-        badge: "Beta",
-      },
-      {
-        name: "2FA & OTP Service",
-        href: "/product/otp",
+        name: "OTP API",
+        href: "/products/otp",
         icon: Shield,
         badge: "New",
       },
       {
+        name: "Email API",
+        href: "/products/email",
+        icon: Mail,
+        badge: "Beta",
+      },
+      
+      {
+        name: "Voice API",
+        href: "/products/voice",
+        icon: PhoneCall,
+        badge: "Coming Soon",
+      },
+      {
+        name: "USSD API",
+        href: "/products/ussd",
+        icon: Hash,
+        badge: "Coming Soon",
+      },
+      {
         name: "Payment Service",
-        href: "/product/payment",
+        href: "/products/payment",
         icon: CreditCard,
-        badge: "Soon",
+        badge: "Coming Soon",
       },
     ],
   },
- {
-  name: "Solutions",
-  href: "/solutions",
-  icon: Puzzle,
-  subItems: [
-    // Industry Solutions (Desktop cards)
-    { name: "E-commerce", href: "/solutions/ecommerce", icon: ShoppingCart },
-    { name: "SaaS", href: "/solutions/saas", icon: Building },
-    { name: "Finance", href: "/solutions/finance", icon: CreditCard },
-    { name: "Healthcare", href: "/solutions/healthcare", icon: Heart },
-    { name: "Customer Support", href: "/solutions/support", icon: MessageSquare },
-    { name: "Reseller", href: "/solutions/reseller", icon: UsersIcon },
+  {
+    name: "Solutions",
+    href: "/solutions",
+    icon: Puzzle,
+    subItems: [
+      // Industry Solutions (Desktop cards)
+      { name: "E-commerce", href: "/solutions/ecommerce", icon: ShoppingCart },
+      { name: "SaaS", href: "/solutions/saas", icon: Building },
+      { name: "Finance", href: "/solutions/finance", icon: CreditCard },
+      { name: "Healthcare", href: "/solutions/healthcare", icon: Heart },
+      {
+        name: "Customer Support",
+        href: "/solutions/support",
+        icon: MessageSquare,
+      },
+      { name: "Reseller", href: "/solutions/reseller", icon: UsersIcon },
 
-    // Use Cases (Desktop list)
-    {
-      name: "Customer Engagement",
-      href: "/use-cases/engagement",
-      icon: Users,
-    },
-    {
-      name: "Transactional Alerts",
-      href: "/use-cases/alerts",
-      icon: Bell,
-    },
-    {
-      name: "Marketing Campaigns",
-      href: "/use-cases/marketing",
-      icon: TrendingUp,
-    },
-    {
-      name: "System Notifications",
-      href: "/use-cases/notifications",
-      icon: Shield,
-    },
-    {
-      name: "Authentication & OTP",
-      href: "/use-cases/authentication",
-      icon: Key,
-    },
-    {
-      name: "Reminders & Scheduling",
-      href: "/use-cases/reminders",
-      icon: Clock,
-    },
-  ],
-}
-,
+      // Use Cases (Desktop list)
+      {
+        name: "Customer Engagement",
+        href: "/use-cases/engagement",
+        icon: Users,
+      },
+      {
+        name: "Transactional Alerts",
+        href: "/use-cases/alerts",
+        icon: Bell,
+      },
+      {
+        name: "Marketing Campaigns",
+        href: "/use-cases/marketing",
+        icon: TrendingUp,
+      },
+      {
+        name: "System Notifications",
+        href: "/use-cases/notifications",
+        icon: Shield,
+      },
+      {
+        name: "Authentication & OTP",
+        href: "/use-cases/authentication",
+        icon: Key,
+      },
+      {
+        name: "Reminders & Scheduling",
+        href: "/use-cases/reminders",
+        icon: Clock,
+      },
+    ],
+  },
   {
     name: "Developers",
     href: "/developers",
     icon: Code,
-    subItems: [
-      {
-        name: "API Reference",
-        href: "/docs/api",
-        icon: Book,
-        badge: "Updated",
-      },
-      { name: "SDKs & Libraries", href: "/sdks", icon: Code },
-      { name: "CLI Tool", href: "/tools/cli", icon: Terminal },
-      {
-        name: "GitHub",
-        href: "https://github.com/sendexa",
-        icon: GitBranch,
-        external: true,
-      },
-      { name: "Webhooks", href: "/docs/webhooks", icon: Webhook },
-      { name: "Playground", href: "/playground", icon: Terminal },
-    ],
   },
   {
     name: "Pricing",
@@ -149,12 +146,10 @@ const navigation = [
     href: "/company",
     icon: Building,
     subItems: [
-      { name: "Our Story", href: "/about", icon: Users },
-      { name: "Leadership", href: "/about/team", icon: Users },
-      { name: "Careers", href: "/careers", icon: Briefcase, badge: "15 Roles" },
-      { name: "Press & Media", href: "/press", icon: Award },
-      { name: "Contact Sales", href: "/contact/sales", icon: MessageSquare },
-      { name: "Support", href: "/support", icon: Shield },
+      { name: "Why Sendexa?", href: "/about", icon: Building2 },
+      { name: "Leadership & Team", href: "/about/team", icon: Users },
+      { name: "Join the Team", href: "/careers", icon: Briefcase },
+      { name: "Blog", href: "/blog", icon: Newspaper },
     ],
   },
 ];
@@ -270,9 +265,9 @@ export default function MobileNavigation({
                                   <li key={subItem.name}>
                                     <Link
                                       href={subItem.href}
-                                      target={
-                                        subItem.external ? "_blank" : undefined
-                                      }
+                                      // target={
+                                      //   subItem.external ? "_blank" : undefined
+                                      // }
                                       onClick={handleSubItemClick}
                                       className="flex items-center justify-between rounded-lg p-2.5 hover:bg-gray-50"
                                     >
@@ -284,11 +279,11 @@ export default function MobileNavigation({
                                           {subItem.name}
                                         </span>
                                       </div>
-                                      {subItem.badge && (
+                                      {/* {subItem.badge && (
                                         <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-medium text-cyan-700">
                                           {subItem.badge}
                                         </span>
-                                      )}
+                                      )} */}
                                     </Link>
                                   </li>
                                 ))}
@@ -301,39 +296,6 @@ export default function MobileNavigation({
                   })}
                 </ul>
               </nav>
-
-              {/* Quick Links */}
-              <div className="border-t border-gray-100 p-6">
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-                  Quick Links
-                </h3>
-                <div className="space-y-2">
-                  {[
-                    { name: "API Status", href: "/status", icon: Globe },
-                    { name: "Documentation", href: "/docs", icon: Book },
-                    {
-                      name: "Customer Stories",
-                      href: "/customers",
-                      icon: Users,
-                    },
-                    { name: "Help Center", href: "/support", icon: Shield },
-                  ].map((link) => (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      onClick={onClose}
-                      className="flex items-center space-x-3 rounded-lg p-3 hover:bg-gray-50"
-                    >
-                      <div className="rounded-lg bg-gray-100 p-1.5">
-                        <link.icon className="h-4 w-4 text-gray-500" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">
-                        {link.name}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
 
               {/* User Actions */}
               <div className="border-b border-gray-100 p-6">

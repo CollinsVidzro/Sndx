@@ -1,19 +1,27 @@
-import React from 'react';
-import Head from 'next/head';
+// app/careers/page.tsx
+"use client";
+import { useState } from "react";
+import CareersHero from "@/components/careers/CareersHero";
+import BenefitsGrid from "@/components/careers/BenefitsGrid";
+import OpenPositions from "@/components/careers/OpenPositions";
+import CultureSection from "@/components/careers/CultureSection";
+import HiringProcess from "@/components/careers/HiringProcess";
+import CareersCTA from "@/components/careers/CareersCTA";
 
-const PageName: React.FC = () => {
+export default function CareersPage() {
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+
   return (
-    <>
-      <Head>
-        <title>PageName - Your Website</title>
-        <meta name='description' content='Page description goes here.' />
-      </Head>
-      <div className='container mx-auto px-4 py-8'>
-        <h1 className='text-4xl font-bold text-center mb-4'>PageName</h1>
-        <p className='text-center text-gray-600'>Your content goes here.</p>
-      </div>
-    </>
+    <main className="min-h-screen bg-white">
+      <CareersHero />
+      <BenefitsGrid />
+      <OpenPositions 
+        selectedDepartment={selectedDepartment}
+        onDepartmentChange={setSelectedDepartment}
+      />
+      <CultureSection />
+      <HiringProcess />
+      <CareersCTA />
+    </main>
   );
-};
-
-export default PageName;
+}

@@ -8,9 +8,9 @@ import Image from "next/image";
 const testimonials = [
   {
     content:
-      "sendexa is amazing, with a very good user dashboard experience and very fast sms delivery rate. i truly recommend sendexa to businesses who wants to use SMS has means to reach out to their customers.",
-    author: "David",
-    role: "CTO at Bulksms Provider",
+      "sendexa is amazing, with a very good user dashboard experience and very fast sms delivery rate. i truly recommend sendexa to businesses who wants to use SMS as means to reach out to their customers.",
+    author: "David Tommy",
+    role: "CTO at Bizzsms.ng",
     image: "https://user-images.trustpilot.com/69452a8d6148ea59f9101e91/73x73.png",
   },
   {

@@ -1,20 +1,20 @@
-// components/about/AboutCTAGrid.tsx
+// components/about/AboutCTAGrid.tsx - Based on FinanceCTA Style
 "use client";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Briefcase, MessageSquare, Globe, Shield } from "lucide-react";
+import { ArrowRight, CheckCircle } from "lucide-react";
 
 export default function AboutCTAGrid() {
   return (
-    <section className="py-13 relative">
-      {/* Grid Background */}
-      <div className="absolute inset-0 -z-10">
-        <div 
-          className="absolute inset-0 opacity-10"
+    <section className="py-16 relative">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-50 to-blue-50">
+        <div
+          className="absolute inset-0 opacity-20"
           style={{
             backgroundImage: `
-              linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-              linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+              linear-gradient(to right, #06b6d4 1px, transparent 1px),
+              linear-gradient(to bottom, #06b6d4 1px, transparent 1px)
             `,
             backgroundSize: "80px 80px",
           }}
@@ -23,115 +23,81 @@ export default function AboutCTAGrid() {
 
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-              Join Us on Our Mission
-            </h2>
-            <p className="text-gray-600">
-              Whether you&apos;re building with our APIs or building our platform with us
-            </p>
-          </motion.div>
-
-          {/* Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="text-center">
+            {/* Header */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Ready to Build with Us?
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Join thousands of developers and businesses using Sendexa for their communication and payment infrastructure.
+              </p>
+            </motion.div>
+
+            {/* Features */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              viewport={{ once: true }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+            >
+              {[
+                "Start free, no credit card",
+                "Developer-first APIs",
+                "Enterprise-ready platform",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center justify-center gap-2 p-3 bg-white/80 rounded-lg backdrop-blur-sm"
+                >
+                  <CheckCircle className="h-5 w-5 text-cyan-500" />
+                  <span className="text-gray-700">{item}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
+              className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
             >
-              <div className="p-8 bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-100 rounded-2xl">
-                <div className="mb-6">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white mb-4">
-                    <Globe className="h-6 w-6 text-cyan-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Build with Us</h3>
-                  <p className="text-gray-600 mb-6">
-                    Start building your communication and payment infrastructure with our APIs
-                  </p>
-                </div>
-                <Link
-                  href="/signup"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-3 font-semibold text-white hover:shadow-lg transition-all"
-                >
-                  Get Started Free
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              viewport={{ once: true }}
-            >
-              <div className="p-8 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl">
-                <div className="mb-6">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white mb-4">
-                    <Briefcase className="h-6 w-6 text-emerald-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Build Our Platform</h3>
-                  <p className="text-gray-600 mb-6">
-                    Join our team and help build the future of communication infrastructure
-                  </p>
-                </div>
-                <Link
-                  href="/careers"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-8 py-3 font-semibold text-white hover:shadow-lg transition-all"
-                >
-                  View Open Roles
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Additional Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            viewport={{ once: true }}
-            className="mt-12 pt-8 border-t border-gray-200"
-          >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-4 font-semibold text-white hover:shadow-lg transition-all group"
+              >
+                Get Started Free
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Link>
               <Link
                 href="/contact"
-                className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-cyan-200 transition-all"
+                className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-8 py-4 font-semibold text-gray-700 hover:border-gray-400 transition-all"
               >
-                <MessageSquare className="h-5 w-5 text-gray-600" />
-                <span className="font-medium text-gray-900">Contact Us</span>
+                Contact Sales
               </Link>
-              <Link
-                href="/press"
-                className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-cyan-200 transition-all"
-              >
-                <Globe className="h-5 w-5 text-gray-600" />
-                <span className="font-medium text-gray-900">Press Kit</span>
-              </Link>
-              <Link
-                href="/blog"
-                className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-cyan-200 transition-all"
-              >
-                <div className="h-5 w-5 text-gray-600">📰</div>
-                <span className="font-medium text-gray-900">Blog</span>
-              </Link>
-              <Link
-                href="/security"
-                className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-cyan-200 transition-all"
-              >
-                <Shield className="h-5 w-5 text-gray-600" />
-                <span className="font-medium text-gray-900">Security</span>
-              </Link>
-            </div>
-          </motion.div>
+            </motion.div>
+
+            {/* Footer Note */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              viewport={{ once: true }}
+              className="text-sm text-gray-500"
+            >
+              <p>
+                Free trial includes all features • 14-day trial, no commitment
+              </p>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

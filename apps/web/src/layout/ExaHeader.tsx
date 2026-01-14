@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, ChevronDown, Globe } from "lucide-react";
+import { Menu, ChevronDown  } from "lucide-react";
 import Link from "next/link";
 import ProductDropdown from "@/components/dropdowns/ProductDropdown";
 import SolutionsDropdown from "@/components/dropdowns/SolutionsDropdown";
@@ -13,9 +13,10 @@ import Image from "next/image";
 
 const navigation = [
   { name: "Home", href: "/" },
-  { name: "Product", href: "/product", hasDropdown: true, id: "product" },
+  { name: "Products", href: "/products", hasDropdown: true, id: "products" },
   { name: "Solutions", href: "/solutions", hasDropdown: true, id: "solutions" },
-  { name: "Developers", href: "/developers", hasDropdown: true, id: "developers" },
+  { name: "Developers", href: "/developers", },
+  // { name: "Developers", href: "/developers", hasDropdown: true, id: "developers" },
   { name: "Pricing", href: "/pricing" },
   { name: "Company", href: "/company", hasDropdown: true, id: "company" },
 ];
@@ -86,7 +87,7 @@ export default function ExaHeader() {
     const isCompanyDropdown = activeDropdown === "company";
 
     const dropdownComponents = {
-      product: <ProductDropdown />,
+      products: <ProductDropdown />,
       solutions: <SolutionsDropdown />,
       developers: <DevelopersDropdown />,
       company: <CompanyDropdown />,
@@ -211,9 +212,9 @@ export default function ExaHeader() {
             >
               Sign up
             </Link>
-            <button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50">
+            {/* <button className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50">
               <Globe className="h-5 w-5 text-gray-600" />
-            </button>
+            </button> */}
           </div>
 
           {/* Mobile menu button */}
