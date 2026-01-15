@@ -15,6 +15,12 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "static.sendexa.co",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "user-images.trustpilot.com",
         port: "",
         pathname: "/**",
