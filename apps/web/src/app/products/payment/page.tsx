@@ -1,16 +1,5 @@
-// "use client";
-// import PaymentHero from "@/components/payment/PaymentHero";
-
-// export default function PaymentPage() {
-//   return (
-//     <div className="relative flex min-h-svh items-center justify-center">
-//       <PaymentHero />
-//     </div>
-//   );
-// }
-
-
 // app/product/payment/page.tsx
+import type { Metadata } from "next";
 import PaymentHero from "@/components/product/payment/PaymentHero";
 import PaymentMethods from "@/components/product/payment/PaymentMethods";
 import PaymentFeatures from "@/components/product/payment/PaymentFeatures";
@@ -18,6 +7,12 @@ import PaymentSubscriptions from "@/components/product/payment/PaymentSubscripti
 import PaymentInvoicing from "@/components/product/payment/PaymentInvoicing";
 import PaymentSecurity from "@/components/product/payment/PaymentSecurity";
 import PaymentCTASection from "@/components/product/payment/PaymentCTASection";
+
+export const metadata: Metadata = {
+  title: "Robust Payment Infrastructure | Sendexa API",
+  description:
+    "Seamless payment processing with multi-currency support, PCI-DSS compliance, and advanced fraud detection for secure transactions.",
+};
 
 export default function PaymentPage() {
   return (
