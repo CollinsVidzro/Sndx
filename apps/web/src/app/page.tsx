@@ -1,5 +1,5 @@
 // Updated page.tsx with all new components
-"use client";
+// "use client";
 import HeroGrid from "@/components/home/HeroGrid";
 import FeaturesGridClean from "@/components/home/FeaturesGridClean";
 import UseCaseGrid from "@/components/home/UseCaseGrid";

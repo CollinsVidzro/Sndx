@@ -1,22 +1,91 @@
 "use client";
-import { MessageCircleMore, Mail, Shield,  Hash, PhoneCall, CreditCard } from "lucide-react";
+import {
+  MessageCircleMore,
+  Mail,
+  Shield,
+  Hash,
+  PhoneCall,
+  MessageSquare,
+ 
+} from "lucide-react";
 import Link from "next/link";
 
+// const productItems = [
+//   {
+//     icon: <MessageCircleMore className="h-5 w-5" />,
+//     title: "SMS API",
+//     description:
+//       "Carrier-grade SMS delivery across Africa with high throughput and reliability.",
+//     href: "/products/sms",
+//     badge: "Popular",
+//     color: "from-cyan-500 to-blue-600",
+//     bgColor: "bg-gradient-to-br from-cyan-50 to-blue-50",
+//   },
+//   {
+//     icon: <Shield className="h-5 w-5" />,
+//     title: "OTP API",
+//     description:
+//       "Secure one-time passwords and phone verification built for scale.",
+//     href: "/products/otp",
+//     badge: null,
+//     color: "from-violet-500 to-purple-600",
+//     bgColor: "bg-gradient-to-br from-violet-50 to-purple-50",
+//   },
+//   {
+//     icon: <Mail className="h-5 w-5" />,
+//     title: "Email API",
+//     description:
+//       "Reliable transactional and notification emails for modern applications.",
+//     href: "/products/email",
+//     badge: "Beta",
+//     color: "from-emerald-500 to-green-600",
+//     bgColor: "bg-gradient-to-br from-emerald-50 to-green-50",
+//   },
+//   {
+//     icon: <PhoneCall className="h-5 w-5" />,
+//     title: "Voice API",
+//     description: "Programmable voice calls, alerts, and IVR solutions.",
+//     href: "/products/voice",
+//     badge: "Coming Soon",
+//     color: "from-pink-500 to-rose-600",
+//     bgColor: "bg-gradient-to-br from-pink-50 to-rose-50",
+//   },
+//   {
+//     icon: <Hash className="h-5 w-5" />,
+//     title: "USSD API",
+//     description:
+//       "Build interactive USSD applications for feature phones and mobile networks.",
+//     href: "/products/ussd",
+//     badge: "Coming Soon",
+//     color: "from-indigo-500 to-blue-600",
+//     bgColor: "bg-gradient-to-br from-indigo-50 to-blue-50",
+//   },
+//   {
+//     icon: <CreditCard className="h-5 w-5" />,
+//     title: "Payment Service",
+//     description:
+//       "Mobile money and digital payment infrastructure for African businesses.",
+//     href: "/products/payment",
+//     badge: "Coming Soon",
+//     color: "from-yellow-500 to-orange-600",
+//     bgColor: "bg-gradient-to-br from-yellow-50 to-orange-50",
+//   },
+// ];
 
 const productItems = [
   {
     icon: <MessageCircleMore className="h-5 w-5" />,
-    title: "Messaging API",
-    description: "Carrier-grade SMS delivery across Africa with high throughput and reliability.",
-    href: "/products/messaging",
+    title: "SMS API",
+    description: "Fast and reliable SMS delivery across Africa.",
+    href: "/products/sms",
     badge: "Popular",
     color: "from-cyan-500 to-blue-600",
     bgColor: "bg-gradient-to-br from-cyan-50 to-blue-50",
   },
   {
     icon: <Shield className="h-5 w-5" />,
-    title: "OTP & Verification",
-    description: "Secure one-time passwords and phone verification built for scale.",
+    title: "OTP API",
+    description: "Secure one-time passwords for user verification.",
     href: "/products/otp",
     badge: null,
     color: "from-violet-500 to-purple-600",
@@ -25,7 +94,7 @@ const productItems = [
   {
     icon: <Mail className="h-5 w-5" />,
     title: "Email API",
-    description: "Reliable transactional and notification emails for modern applications.",
+    description: "Send transactional and notification emails easily.",
     href: "/products/email",
     badge: "Beta",
     color: "from-emerald-500 to-green-600",
@@ -34,7 +103,7 @@ const productItems = [
   {
     icon: <PhoneCall className="h-5 w-5" />,
     title: "Voice API",
-    description: "Programmable voice calls, alerts, and IVR solutions.",
+    description: "Programmable voice calls and IVR.",
     href: "/products/voice",
     badge: "Coming Soon",
     color: "from-pink-500 to-rose-600",
@@ -43,27 +112,27 @@ const productItems = [
   {
     icon: <Hash className="h-5 w-5" />,
     title: "USSD API",
-    description: "Build interactive USSD applications for feature phones and mobile networks.",
+    description: "Interactive USSD apps for mobile networks.",
     href: "/products/ussd",
     badge: "Coming Soon",
     color: "from-indigo-500 to-blue-600",
     bgColor: "bg-gradient-to-br from-indigo-50 to-blue-50",
   },
   {
-    icon: <CreditCard className="h-5 w-5" />,
-    title: "Payment Service",
-    description: "Mobile money and digital payment infrastructure for African businesses.",
-    href: "/products/payment",
+    icon: <MessageSquare className="h-5 w-5" />,
+    title: "WhatsApp API",
+    description: "Send messages and notifications on WhatsApp.",
+    href: "/products/whatsapp",
     badge: "Coming Soon",
-    color: "from-yellow-500 to-orange-600",
-    bgColor: "bg-gradient-to-br from-yellow-50 to-orange-50",
+    color: "from-green-500 to-emerald-600",
+    bgColor: "bg-gradient-to-br from-green-50 to-emerald-50",
   },
 ];
 
 
 export default function ProductDropdown() {
   return (
-    <div className="w-[700px] rounded-xl border border-gray-200 bg-white p-8 shadow-2xl">
+    <div className="w-[800px] rounded-xl border border-gray-200 bg-white p-8 shadow-2xl">
       <div className="grid grid-cols-1 gap-8">
         {/* Products Grid */}
         <div>
@@ -71,7 +140,6 @@ export default function ProductDropdown() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-2">
               Products
             </h3>
-            {/* <p className="text-sm text-gray-600">Choose your messaging solution</p> */}
           </div>
 
           <div className="grid grid-cols-3 gap-4">

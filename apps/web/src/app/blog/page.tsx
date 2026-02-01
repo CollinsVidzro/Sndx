@@ -2,5 +2,5 @@ import { redirect } from "next/navigation";
 
 export default function BlogPage() {
   
-  redirect("https://blog.sndx.eu");
+  redirect("https://blog.sendexa.co");
 }

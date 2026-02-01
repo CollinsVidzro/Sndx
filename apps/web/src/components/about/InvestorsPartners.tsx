@@ -13,7 +13,7 @@ const investors = [
 const partners = [
   { name: "AWS", description: "Cloud Infrastructure Partner" },
   { name: "Stripe", description: "Payment Processing" },
-  { name: "Twilio", description: "Communication Infrastructure" },
+  { name: "Telecel", description: "Communication Infrastructure" },
   { name: "Google Cloud", description: "AI & Analytics" }
 ];
 

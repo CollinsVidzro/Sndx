@@ -7,12 +7,10 @@
     "dev": "turbo run dev",
     "dev:docs": "turbo run dev --filter=docs",
     "dev:web": "turbo run dev --filter=web",
+    "dev:blog": "turbo run dev --filter=blog",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "db:push": "turbo run db:push",
-    "db:generate": "turbo run db:generate",
-    "db:studio": "prisma studio"
   },
   "devDependencies": {
     "@sndx/eslint-config": "workspace:*",
@@ -29,10 +27,7 @@
 
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "services/*",
-    "tooling/*",
-    "server/*"
+    "packages/*"
   ],
   "pnpm": {
     "overrides": {
@@ -40,12 +35,10 @@
       "@types/react-dom": "19.2.3"
     },
     "onlyBuiltDependencies": [
-      "@prisma/engines",
       "@tailwindcss/oxide",
       "contentlayer2",
       "core-js-pure",
       "esbuild",
-      "prisma",
       "protobufjs",
       "sharp",
       "unrs-resolver"

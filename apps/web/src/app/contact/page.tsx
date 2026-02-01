@@ -2,18 +2,15 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
-  Send, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  Send,
   CheckCircle,
   MessageSquare,
-  Globe,
-  Users,
-  Building,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,15 +21,18 @@ export default function ContactPage() {
     email: "",
     company: "",
     phone: "",
-    companySize: "",
+
     message: "",
-    reason: "general",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -42,10 +42,10 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     setIsSubmitting(false);
     setIsSubmitted(true);
   };
@@ -55,42 +55,26 @@ export default function ContactPage() {
       icon: <Mail className="h-6 w-6" />,
       title: "Email",
       details: ["sales@sendexa.co", "support@sendexa.co"],
-      description: "We respond within 24 hours"
+      description: "We respond within 24 hours",
     },
     {
       icon: <Phone className="h-6 w-6" />,
       title: "Phone",
       details: ["+233 (555) 539 152", "+233 (551) 196 764"],
-      description: "Mon-Fri, 9am-6pm GMT"
+      description: "Mon-Fri, 9am-6pm GMT",
     },
     {
       icon: <MapPin className="h-6 w-6" />,
       title: "Office",
       details: ["14R59+MW", "Akatsi, Volta Region, Ghana"],
-      description: "Global headquarters"
+      description: "Global headquarters",
     },
     {
       icon: <Clock className="h-6 w-6" />,
       title: "Response Time",
       details: ["Sales: < 2 hours", "Support: < 4 hours"],
-      description: "Typical response times"
-    }
-  ];
-
-  const contactReasons = [
-    { value: "general", label: "General Inquiry", icon: <MessageSquare className="h-4 w-4" /> },
-    { value: "sales", label: "Sales", icon: <Users className="h-4 w-4" /> },
-    { value: "support", label: "Technical Support", icon: <Globe className="h-4 w-4" /> },
-    { value: "enterprise", label: "Enterprise Solution", icon: <Building className="h-4 w-4" /> },
-  ];
-
-  const companySizes = [
-    "1-10 employees",
-    "11-50 employees",
-    "51-200 employees",
-    "201-500 employees",
-    "501-1000 employees",
-    "1000+ employees"
+      description: "Typical response times",
+    },
   ];
 
   return (
@@ -115,17 +99,17 @@ export default function ContactPage() {
                   GET IN TOUCH
                 </span>
               </div>
-              
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
                 <span className="block text-gray-900 mb-2">Contact Our</span>
                 <span className="block bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Support Team
                 </span>
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-                Have questions about Sendexa? Our team is here to help you build better 
-                communication and payment infrastructure.
+                Have questions about Sendexa? Our team is here to help you build
+                better communication and payment infrastructure.
               </p>
             </motion.div>
           </div>
@@ -152,7 +136,8 @@ export default function ContactPage() {
                     Message Sent Successfully!
                   </h3>
                   <p className="text-gray-600 mb-8">
-                    Thank you for reaching out. Our team will get back to you within 24 hours.
+                    Thank you for reaching out. Our team will get back to you
+                    within 24 hours.
                   </p>
                   <button
                     onClick={() => {
@@ -163,9 +148,8 @@ export default function ContactPage() {
                         email: "",
                         company: "",
                         phone: "",
-                        companySize: "",
+
                         message: "",
-                        reason: "general",
                       });
                     }}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-3 font-semibold text-white hover:shadow-lg transition-all"
@@ -180,7 +164,8 @@ export default function ContactPage() {
                       Send us a message
                     </h2>
                     <p className="text-gray-600">
-                      Fill out the form below and we&apos;ll get back to you as soon as possible.
+                      Fill out the form below and we&apos;ll get back to you as
+                      soon as possible.
                     </p>
                   </div>
 
@@ -262,62 +247,6 @@ export default function ContactPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Size
-                      </label>
-                      <select
-                        name="companySize"
-                        value={formData.companySize}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all"
-                      >
-                        <option value="">Select company size</option>
-                        {companySizes.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        What can we help you with? *
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {contactReasons.map((reason) => (
-                          <label
-                            key={reason.value}
-                            className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                              formData.reason === reason.value
-                                ? "border-cyan-500 bg-cyan-50"
-                                : "border-gray-300 hover:border-gray-400"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="reason"
-                              value={reason.value}
-                              checked={formData.reason === reason.value}
-                              onChange={handleChange}
-                              className="sr-only"
-                            />
-                            <div className={`p-2 rounded ${
-                              formData.reason === reason.value
-                                ? "bg-cyan-100 text-cyan-600"
-                                : "bg-gray-100 text-gray-600"
-                            }`}>
-                              {reason.icon}
-                            </div>
-                            <span className="text-sm font-medium">
-                              {reason.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Message *
                       </label>
                       <textarea
@@ -362,8 +291,9 @@ export default function ContactPage() {
                   Get in touch
                 </h2>
                 <p className="text-gray-600 mb-8">
-                  Whether you have questions about our products, need technical support, 
-                  or want to discuss enterprise solutions, we&apos;re here to help.
+                  Whether you have questions about our products, need technical
+                  support, or want to discuss enterprise solutions, we&apos;re
+                  here to help.
                 </p>
               </div>
 
@@ -374,9 +304,7 @@ export default function ContactPage() {
                     className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm transition-shadow"
                   >
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-50 to-blue-50 mb-4">
-                      <div className="text-cyan-600">
-                        {info.icon}
-                      </div>
+                      <div className="text-cyan-600">{info.icon}</div>
                     </div>
                     <h3 className="font-bold text-gray-900 mb-2">
                       {info.title}
@@ -388,74 +316,26 @@ export default function ContactPage() {
                         </p>
                       ))}
                     </div>
-                    <p className="text-sm text-gray-500">
-                      {info.description}
-                    </p>
+                    <p className="text-sm text-gray-500">{info.description}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Quick Help Links */}
-              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border border-cyan-100 p-8">
-                <h3 className="font-bold text-gray-900 mb-4">
-                  Need quick help?
-                </h3>
-                <div className="space-y-4">
-                  <Link
-                    href="/docs"
-                    className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-cyan-200 hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-cyan-100">
-                        <div className="text-cyan-600">📚</div>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          Documentation
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          API guides and tutorials
-                        </div>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                  
-                  <Link
-                    href="/support"
-                    className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-cyan-200 hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-cyan-100">
-                        <div className="text-cyan-600">💬</div>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          Support Center
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          FAQs and troubleshooting
-                        </div>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-gray-400" />
-                  </Link>
-                </div>
-              </div>
-
               {/* Office Hours */}
               <div className="p-6 bg-white rounded-xl border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-4">
-                  Office Hours
-                </h3>
+                <h3 className="font-bold text-gray-900 mb-4">Office Hours</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Monday - Friday</span>
-                    <span className="font-medium text-gray-900">9:00 AM - 6:00 PM GMT</span>
+                    <span className="font-medium text-gray-900">
+                      9:00 AM - 6:00 PM GMT
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Saturday - Sunday</span>
-                    <span className="font-medium text-gray-900">Emergency Support Only</span>
+                    <span className="font-medium text-gray-900">
+                      Emergency Support Only
+                    </span>
                   </div>
                 </div>
               </div>
@@ -480,31 +360,31 @@ export default function ContactPage() {
             {[
               {
                 question: "How long does it take to implement Sendexa?",
-                answer: "Most developers get started in under 30 minutes with our comprehensive documentation and SDKs."
+                answer:
+                  "Most developers get started in under 30 minutes with our comprehensive documentation and SDKs.",
               },
               {
                 question: "Do you offer enterprise SLAs?",
-                answer: "Yes, we offer 99.99% uptime SLAs with 24/7 support for enterprise customers."
+                answer:
+                  "Yes, we offer 99.99% uptime SLAs with 24/7 support for enterprise customers.",
               },
               {
                 question: "What countries do you support?",
-                answer: "We support 200+ countries with local compliance and messaging regulations."
+                answer:
+                  "We support 200+ countries with local compliance and messaging regulations.",
               },
               {
                 question: "Can I migrate from another provider?",
-                answer: "Yes, we offer migration assistance and dedicated support for switching providers."
+                answer:
+                  "Yes, we offer migration assistance and dedicated support for switching providers.",
               },
             ].map((faq, idx) => (
               <div
                 key={idx}
                 className="p-6 bg-gray-50 rounded-xl border border-gray-200 hover:border-cyan-200 transition-colors"
               >
-                <h3 className="font-bold text-gray-900 mb-3">
-                  {faq.question}
-                </h3>
-                <p className="text-gray-600">
-                  {faq.answer}
-                </p>
+                <h3 className="font-bold text-gray-900 mb-3">{faq.question}</h3>
+                <p className="text-gray-600">{faq.answer}</p>
               </div>
             ))}
           </div>

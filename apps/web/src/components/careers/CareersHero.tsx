@@ -64,8 +64,8 @@ export default function CareersHero() {
               className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12"
             >
               {[
-                { value: "100+", label: "Team Members" },
-                { value: "40+", label: "Countries" },
+                { value: "5+", label: "Team Members" },
+                { value: "2+", label: "Countries" },
                 { value: "Remote", label: "First Culture" },
                 { value: "10K+", label: "Businesses Served" },
               ].map((stat) => (
@@ -91,7 +91,7 @@ export default function CareersHero() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
-                href="/careers/why-join"
+                href="/careers/#why-join"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-8 py-3 font-semibold text-gray-900 hover:border-gray-400 hover:shadow-sm transition-all"
               >
                 Why Join Sendexa

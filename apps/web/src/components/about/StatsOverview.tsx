@@ -7,13 +7,13 @@ export default function StatsOverview() {
   const stats = [
     {
       icon: <Globe className="h-6 w-6" />,
-      value: "200+",
+      value: "2+",
       label: "Countries Supported",
       description: "Global reach with local compliance"
     },
     {
       icon: <Building className="h-6 w-6" />,
-      value: "10,000+",
+      value: "100+",
       label: "Businesses Trust Us",
       description: "From startups to enterprises"
     },
@@ -25,7 +25,7 @@ export default function StatsOverview() {
     },
     {
       icon: <Zap className="h-6 w-6" />,
-      value: "1B+",
+      value: "2K+",
       label: "Monthly Transactions",
       description: "Processing at scale"
     }

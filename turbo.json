@@ -6,12 +6,6 @@
   ],
   "globalEnv": [
     "NODE_ENV",
-    "BETTER_AUTH_URL",
-    "BETTER_AUTH_SECRET",
-    "DATABASE_URL",
-    "ADMIN_APP_URL",
-    "CLIENT_APP_URL",
-    "WEB_APP_URL",
     "NEXT_PUBLIC_API_URL"
   ],
   "tasks": {
@@ -25,9 +19,7 @@
         "^build"
       ],
       "env": [
-        "NEXT_PUBLIC_API_URL",
-        "NEXT_PUBLIC_ADMIN_URL",
-        "NEXT_PUBLIC_CLIENT_URL"
+        "NEXT_PUBLIC_API_URL"
       ]
     },
     "dev": {
@@ -41,18 +33,7 @@
     "type-check": {
       "outputs": [],
       "cache": true
-    },
-    "db:push": {
-      "cache": false,
-      "inputs": [
-        "prisma/schema.prisma"
-      ]
-    },
-    "db:generate": {
-      "cache": true,
-      "inputs": [
-        "prisma/schema.prisma"
-      ]
+    }
     }
   }
 }
