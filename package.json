@@ -10,7 +10,7 @@
     "dev:blog": "turbo run dev --filter=blog",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@sndx/eslint-config": "workspace:*",
